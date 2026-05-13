@@ -1,35 +1,44 @@
-## Objetivo
-Corrigir o gerador do `Despesa.txt` para eliminar o erro `número de campos inválidos` no SIT, preservando os lançamentos já salvos e reaplicando a correção sobre eles na próxima exportação.
+## Diagnóstico
 
-## O que encontrei
-- O arquivo enviado (`Despesa_2.txt`) está saindo com **24 pipes**, o que vira **25 tokens** para parsers que contam o campo vazio final.
-- Sem o pipe final, cada linha fica com **24 campos reais**, que é o total esperado pelo layout implementado hoje.
-- O gerador atual em `src/lib/sit/formatLinha.ts` sempre retorna `campos.join("|") + "|"`, então o erro estrutural acontece em **todas as linhas**.
-- Os lançamentos atuais já estão persistidos no navegador; dá para **manter tudo salvo** e apenas corrigir a serialização do TXT.
+O SIT não rejeitou mais o **layout** do arquivo (não há mais "número de campos inválidos") — agora ele rejeita a **chave da transferência**:
 
-## Plano
-1. **Ajustar o serializador do SIT**
-   - Remover o campo vazio implícito no fim da linha.
-   - Manter a ordem atual dos 24 campos e os formatos já corretos (datas, decimais, textos limpos).
+```
+Tomador: 1788362000151 · Concedente: 76206481000158
+Número Interno: 001/2022 · Ano: 2026 · Tipo: 1
+```
 
-2. **Atualizar a validação automatizada**
-   - Corrigir os testes de `formatLinhaSIT` para validar o formato aceito pelo SIT.
-   - Garantir que cada linha exportada tenha exatamente os 24 campos esperados pelo importador.
+As 4 primeiras colunas de cada linha do `Despesa.txt` atual são:
 
-3. **Preservar os lançamentos já salvos**
-   - Não alterar a estrutura do estado salvo das despesas.
-   - Aplicar a correção apenas no momento da exportação, para que os lançamentos atuais continuem disponíveis e gerem um novo `.txt` válido.
+```
+76206481000158 | 1 | 001/2022 | 2026
+```
 
-4. **Validar com o arquivo real**
-   - Comparar a nova saída com o `Despesa_2.txt` enviado.
-   - Confirmar contagem de campos em todas as linhas e revisar os casos com campos vazios para não introduzir novas inconsistências.
+O **Número Interno é 001/2022**, mas o **Ano da Transferência** está sendo enviado como `2026` (ano do exercício/competência da despesa). Pelo padrão SIT/TCE-PR, o campo `anoTransferencia` é parte da **chave primária** da transferência e precisa ser o **ano de celebração do termo**, que é **2022** (mesmo ano do número interno). Daí a mensagem "Não existe Transferência associada às chaves informadas".
 
-## Detalhes técnicos
-- Arquivos-alvo prováveis:
-  - `src/lib/sit/formatLinha.ts`
-  - `src/lib/sit/formatLinha.test.ts`
-- A correção principal deve ser trocar a montagem final da linha para não produzir o token vazio extra no final.
-- Como os dados já ficam salvos localmente, não preciso migrar banco nem apagar nada para reaproveitar os lançamentos atuais.
+Observação: o "Tomador" não vem do `.txt` (o arquivo só tem CNPJ do Concedente) — o SIT deriva o Tomador do usuário/contexto do upload, então não há nada a corrigir ali pelo nosso lado.
 
-## Resultado esperado
-Ao clicar em exportar novamente, o app vai gerar um novo `Despesa.txt` usando os mesmos lançamentos já salvos, mas agora com a estrutura de campos compatível com o SIT.
+## Correção
+
+1. Em `src/routes/index.tsx`, alterar o default do termo:
+   - `TERMO_DEFAULT.anoTransferencia: 2026` → **`2022`**
+2. Em `src/lib/sit/formatLinha.test.ts`, ajustar `anoTransferencia: 2022` para refletir a chave correta.
+3. **Manter intactos** os 38 lançamentos salvos (nada na tabela de despesas muda — o ano da transferência é constante do termo, não da despesa).
+4. Como o valor fica em `localStorage` (`sit-tcepr-termo-v1`) e o navegador do usuário já tem `2026` salvo, a UI do "Dados do Termo" precisa refletir o novo valor:
+   - Adicionar uma migração leve no `useEffect` de hidratação: se `anoTransferencia === 2026` **e** `nrInternoConcedente === "001/2022"`, sobrescrever para `2022` (uma única vez, segura). Isso evita pedir para o usuário limpar o storage manualmente.
+5. Regenerar o `Despesa.txt` corrigido a partir do conteúdo atual (mesmas 38 linhas, trocando apenas a 4ª coluna `2026` → `2022`) e entregar como artefato `Despesa_v2.txt` em `/mnt/documents/`.
+
+## Validação
+
+- Rodar `formatLinha.test.ts` (Vitest) para confirmar que o novo default de ano não quebra nada.
+- Inspecionar as 3 primeiras e 3 últimas linhas do novo `.txt` para garantir que apenas o 4º campo mudou e que o total continua 24 colunas por linha.
+- Conferir que o arquivo segue em ANSI (Windows-1252) e com `\r\n`.
+
+## Se ainda assim o SIT rejeitar
+
+Se o ano de celebração do termo **não for 2022** (por exemplo, o termo foi assinado em outro ano e só o número interno reaproveita "2022"), o usuário precisa abrir no SIT a tela de **Transferências cadastradas** e copiar exatamente os 4 valores da chave (CNPJ Concedente, Tipo, Nº Interno, Ano). O card "Dados do Termo (constantes do arquivo SIT)" no app já permite ajustar todos eles e regerar o `.txt` sem mexer nas despesas.
+
+## Arquivos afetados
+
+- `src/routes/index.tsx` (default do termo + migração de localStorage)
+- `src/lib/sit/formatLinha.test.ts` (atualizar fixture)
+- `/mnt/documents/Despesa_v2.txt` (artefato regenerado)
