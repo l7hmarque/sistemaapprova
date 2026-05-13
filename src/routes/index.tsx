@@ -842,7 +842,7 @@ function DespesasTable({
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-72">
-                        {CATEGORIAS.map((c) => (
+                        {categorias.map((c) => (
                           <SelectItem key={c.codigo} value={c.codigo}>
                             <span className="font-mono text-xs">{c.codigo}</span>
                             <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
