@@ -406,7 +406,7 @@ function AppPage() {
     todasCategorias.forEach((c) => {
       const o = overrides[c.codigo] ?? {};
       const previsto = o.previsto ?? c.previsto;
-      const gastoCalc = gastoPorCategoria.get(c.codigo) ?? 0;
+      const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gastoPorCategoria.get(c.codigo) ?? 0);
       const gasto = o.gasto ?? gastoCalc;
       const saldo = o.saldo ?? previsto - gasto;
       tp += previsto;
