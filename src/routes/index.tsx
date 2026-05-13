@@ -1382,3 +1382,77 @@ function CategoriasTable({
     </Table>
   );
 }
+
+function TermoCard({
+  termo,
+  onChange,
+}: {
+  termo: DadosTermo;
+  onChange: (t: DadosTermo) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Dados do Termo (constantes do arquivo SIT)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div>
+            <Label className="mb-1 block text-xs text-muted-foreground">CNPJ Concedente</Label>
+            <Input
+              value={termo.nrCNPJConcedente}
+              maxLength={14}
+              inputMode="numeric"
+              onChange={(e) =>
+                onChange({ ...termo, nrCNPJConcedente: e.target.value.replace(/\D/g, "").slice(0, 14) })
+              }
+              className="h-10 text-sm border-[0.5px] border-black"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block text-xs text-muted-foreground">Tipo de transferência</Label>
+            <Select
+              value={String(termo.tpTransferencia)}
+              onValueChange={(v) => onChange({ ...termo, tpTransferencia: Number(v) })}
+            >
+              <SelectTrigger className="h-10 text-sm border-[0.5px] border-black">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPOS_TRANSFERENCIA.map((t) => (
+                  <SelectItem key={t.codigo} value={String(t.codigo)}>
+                    {t.codigo} — {t.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-1 block text-xs text-muted-foreground">Nº interno do termo</Label>
+            <Input
+              value={termo.nrInternoConcedente}
+              maxLength={20}
+              onChange={(e) =>
+                onChange({ ...termo, nrInternoConcedente: e.target.value.slice(0, 20) })
+              }
+              className="h-10 text-sm border-[0.5px] border-black"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block text-xs text-muted-foreground">Ano da transferência</Label>
+            <Input
+              type="number"
+              value={termo.anoTransferencia}
+              min={2000}
+              max={2100}
+              onChange={(e) =>
+                onChange({ ...termo, anoTransferencia: Number(e.target.value) || new Date().getFullYear() })
+              }
+              className="h-10 text-sm border-[0.5px] border-black"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
