@@ -208,7 +208,7 @@ function AppPage() {
     }
     const conteudo = linhas.join("\r\n") + "\r\n";
     const bytes = encodeWin1252(conteudo);
-    const blob = new Blob([bytes], { type: "application/octet-stream" });
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
