@@ -127,7 +127,7 @@ function AppPage() {
           valor: Number(d.valor) || 0,
           tipoDocumento: d.tipoDocumento,
           subtipoDocumento: d.subtipoDocumento ?? null,
-          tpDocFav: d.tpDocFav,
+          tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
           nrDocFav: d.nrDocFav,
           descricao: d.descricao,
           categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
