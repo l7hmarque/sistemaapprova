@@ -1,35 +1,83 @@
-## Atualizar Execução Orçamentária com a planilha de saldoCategoriaEcon (03/26)
+## Aplicar regras de Holerite (aba `regrasHolerite`) antes das tabelas e do `.txt`
 
-### O que muda
+### Onde aplicar
 
-1. **`src/lib/sit/catalogos.ts`** — atualizar `previsto` de todas as 30 categorias com os valores da planilha enviada e adicionar uma nova exportação `CATEGORIA_GASTO_BASELINE` (mapa `codigo → valor já gasto até 03/2026`).
+Em `src/routes/api/extract.ts`, **logo após** o `extracaoSchema.parse(parsed)` e **antes** do `return Response.json(...)`. A regra incide uma única vez, central, e tudo que vem depois (tabela 1.2 Despesas, Execução Orçamentária, geração do `Despesa.txt`) já recebe os dados corrigidos.
 
-   Exemplos da atualização:
-   - `3.1.90.11.01` previsto 1.802.789,73 → **2.048.283,54**, baseline gasto **1.599.241,59**
-   - `3.3.90.39.99` previsto 514.659,87 → **613.811,68**, baseline gasto **367.525,82**
-   - (e assim para as 30 linhas; coluna "Valor Estornado" é % de execução, será ignorada)
+### Quais despesas são afetadas
 
-2. **`src/routes/index.tsx` — `CategoriasTable`**: o cálculo do **Gasto** efetivo passa a ser `baseline + soma das despesas lançadas no app`, em vez de só a soma das despesas. Saldo continua `previsto − gasto`. Overrides manuais existentes (Previsto/Gasto/Saldo + botão ↺) continuam funcionando por cima desse novo default.
+Toda despesa em que `sugestaoCategoria === "3.1.90.11.01"` (Vencimentos e salários — holerites/folha).
 
-3. **Persistência**: nada novo a salvar — os valores ficam no código (commitados). As despesas que você lançar continuam somando em cima do baseline automaticamente. O botão "Limpar" segue limpando apenas receitas/despesas/overrides do usuário, **sem mexer no baseline**.
+### Regra 1 — `documento` (Nº NF/Doc Fiscal)
 
-### Não muda
+Padrão fixo `MM/AA`, **idêntico** para todos os holerites do mês:
 
-- Pipeline de IA, geração do `Despesa.txt` SIT, schema, layout das abas Receitas/Despesas, botões "Copiar tabela", localStorage atual.
-- Aba "Execução Orçamentária" continua editável célula a célula como já está.
+- **MM** = mês de referência − 1, com zero-padding (2 dígitos). Se ref. = `01`, MM = `12`.
+- **AA** = últimos 2 dígitos do ano de referência (com zero-padding).
+- Exemplo: prestação de `03/2026` → `02/26` para **todos** os holerites.
 
-### Detalhe técnico
+### Regra 2 — `dataEmissao` (`AAAA-MM-DD`)
+
+- **MM** = `(mesReferencia − 2)` com wrap para o ano anterior se necessário.
+- **DD** = último dia desse mês (cobre fev/bissexto via `new Date(y, m, 0).getDate()`).
+- **AAAA** = ano resultante após o wrap.
+- Exemplo: prestação de `03/2026` → `2026-01-31`. Prestação de `02/2026` → `2025-12-31`.
+
+A `data` (data de pagamento) **não é alterada** — fica como a IA extraiu do comprovante de pagamento.
+
+### Implementação
+
+Novo arquivo `src/lib/sit/regrasHolerite.ts`:
 
 ```ts
-// catalogos.ts
-export const CATEGORIA_GASTO_BASELINE: Record<string, number> = {
-  "3.1.90.11.01": 1599241.59,
-  // ...
-};
+import type { ExtracaoResultado } from "@/lib/extract/schema";
+
+export function aplicarRegrasHolerite(extracao: ExtracaoResultado): ExtracaoResultado {
+  const m = extracao.mesReferencia.match(/(\d{1,2})\/(\d{4})/);
+  if (!m) return extracao;
+  const mm = Number(m[1]);
+  const aaaa = Number(m[2]);
+
+  // Documento: MM = mês anterior, AA = últimos 2 dígitos do ano (mesmo valor para todos)
+  let mDoc = mm - 1;
+  let yDoc = aaaa;
+  if (mDoc <= 0) { mDoc += 12; yDoc -= 1; }
+  const documento = `${String(mDoc).padStart(2, "0")}/${String(yDoc % 100).padStart(2, "0")}`;
+
+  // dataEmissao: MM = ref - 2, DD = último dia, AAAA = ano correspondente
+  let mEm = mm - 2;
+  let yEm = aaaa;
+  if (mEm <= 0) { mEm += 12; yEm -= 1; }
+  const ultimoDia = new Date(yEm, mEm, 0).getDate();
+  const dataEmissao =
+    `${yEm}-${String(mEm).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+
+  const despesas = extracao.despesas.map((d) =>
+    d.sugestaoCategoria === "3.1.90.11.01"
+      ? { ...d, documento, dataEmissao }
+      : d,
+  );
+  return { ...extracao, despesas };
+}
 ```
 
+Em `src/routes/api/extract.ts`:
+
 ```ts
-// CategoriasTable
-const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gastoDespesas.get(c.codigo) ?? 0);
-const gastoEfetivo = override?.gasto ?? gastoCalc;
+import { aplicarRegrasHolerite } from "@/lib/sit/regrasHolerite";
+// ...
+const validated = extracaoSchema.parse(parsed);
+return Response.json(aplicarRegrasHolerite(validated));
 ```
+
+### O que NÃO muda
+
+- Schema Zod, prompt da IA, layout das abas, `formatLinhaSIT`, persistência no `localStorage`, baseline de Execução Orçamentária.
+- Despesas que não são salário passam intactas.
+- Edição manual posterior em Despesas continua prevalecendo (regra só roda no momento da extração).
+
+### Edge cases
+
+- Ref. `01/AAAA` → documento `12/(AA-1)`, data emissão `(AAAA-1)-11-30`.
+- Ref. `02/AAAA` → documento `01/AA`, data emissão `(AAAA-1)-12-31`.
+- Anos bissextos cobertos automaticamente.
