@@ -24,6 +24,7 @@ import {
 import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
 import {
   CATEGORIAS,
+  CATEGORIA_GASTO_BASELINE,
   SUBTIPOS_DOCUMENTO,
   TIPOS_COM_SUBTIPO,
   TIPOS_DOCUMENTO,
