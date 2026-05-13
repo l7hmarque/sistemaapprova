@@ -71,6 +71,18 @@ const fmtBRL = (n: number) =>
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Sanitizadores espelhados de src/lib/sit/formatLinha.ts
+const stripDiacritics = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const cleanText = (s: string) =>
+  stripDiacritics((s ?? "").replace(/[|"'\\\r\n]/g, " ").replace(/\s+/g, " ").trim());
+const onlyDigits = (s: string) => (s ?? "").replace(/\D/g, "");
+const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+const sanitizeId = (s: string) => (s ?? "").replace(/[^A-Za-z0-9_\-]/g, "").slice(0, 30);
+const limiteDocFav = (tp: "CPF" | "CNPJ" | "EXT") => (tp === "CPF" ? 11 : tp === "CNPJ" ? 14 : 20);
+const sanitizeNrDocFav = (s: string, tp: "CPF" | "CNPJ" | "EXT") =>
+  tp === "EXT" ? truncate(cleanText(s), 20) : truncate(onlyDigits(s), limiteDocFav(tp));
+
 /**
  * Input numérico que mantém um draft em string. Resolve o bug de
  * "não consigo apagar o zero" / "perde a vírgula no meio da digitação".
