@@ -1,34 +1,24 @@
-## Problema
-A tabela de Despesas tem 10 colunas — mesmo com inputs maiores, "Doc nº", "Favorecido", "Categoria 2.4" continuam apertados/cortados.
-
-## Solução
-Substituir a `<Table>` por uma **lista de cards**, um card por despesa, com campos organizados em grid de 2 linhas. Assim cada campo ocupa largura adequada e nada fica cortado.
-
-## Layout do card (cada despesa)
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│ [ID]   [Data pgto]                                       [🗑]    │
-│                                                                   │
-│ Favorecido (full width) ─────────────────────────────────────     │
-│ Descrição (full width) ──────────────────────────────────────     │
-│                                                                   │
-│ [Tp][CPF/CNPJ        ]  [Tipo doc        ]  [Subtipo      ]      │
-│ [Doc nº            ]  [Categoria 2.4 (wide) ──────] [Valor R$]   │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-- Grid responsivo: `grid grid-cols-12 gap-3`.
-- Favorecido e Descrição: `col-span-12` (linha cheia, nome completo visível).
-- CPF/CNPJ: `col-span-4`; Tipo: `col-span-4`; Subtipo: `col-span-4`.
-- Doc nº: `col-span-3`; Categoria: `col-span-6` (com nome em até 2 linhas, fonte `text-sm`); Valor: `col-span-3`.
-- Cada campo com `<Label>` pequeno acima do input.
-- Inputs: `h-10 text-sm`. Categoria: `min-h-12` com nome `text-sm line-clamp-2`.
-- Header de cada card: ID compacto + Data pgto + botão remover.
-
 ## Mudanças
-- `src/routes/index.tsx` — reescrever apenas o `return` do `DespesasTable` (e o estado vazio) para renderizar `<div className="space-y-3">` com cards `<Card>`/`<CardContent>` em vez de `<Table>`.
-- Remover imports não usados (`Table*`) **somente** se não forem usados em outras tabelas — verificar antes (Receitas e Categorias ainda usam `Table`, então manter).
+
+### 1. Bordas dos cards (1px)
+- No `<Card>` de cada despesa em `DespesasTable`: trocar `border-border/60` por `border-[1px] border-border` para obter a borda explícita de 1px solicitada.
+
+### 2. Bordas dos campos (0.5px)
+- Adicionar classe utilitária `border-[0.5px] border-border` em todos os campos editáveis dentro do card:
+  - Inputs (ID, Data pgto, Favorecido, Descrição, CPF/CNPJ nº, Doc nº)
+  - SelectTrigger (Tp doc, Tipo, Subtipo, Categoria 2.4)
+  - NumberField (Valor) — adicionado via `className`
+- Como o estilo padrão do shadcn já aplica `border` (1px), as classes acima sobrescrevem para 0.5px sem alterar o componente base.
+
+### 3. Verificação dos campos (apenas leitura/diagnóstico)
+Revisei os handlers — **estão íntegros e editáveis**:
+- `Input` texto/data: `value` controlado, `onChange` chama `onUpdate(uid, { campo })`. OK.
+- `Select` (Tp, Tipo, Subtipo, Categoria): `value` controlado, `onValueChange` atualiza estado. Tipo aciona reset coerente do subtipo. OK.
+- `NumberField` (Valor): mantém `draft` em string para permitir apagar zero, vírgula intermediária e ponto. Comita ao blur. OK — sem bug conhecido.
+- `onUpdate` mapeia por `uid` (não índice), seguro contra reordenação/remoção.
+- Persistência via `localStorage` re-hidrata corretamente.
+
+Nenhuma alteração de lógica é necessária. Apenas as classes de borda nos elementos da `DespesasTable` em `src/routes/index.tsx`.
 
 ## Fora do escopo
-- Aba Receitas, aba Categorias, header, upload, regras de holerite, schema, backend.
+- Receitas, Categorias, header, upload, regras de holerite, schema, backend.
