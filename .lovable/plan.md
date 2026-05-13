@@ -1,36 +1,35 @@
-## Mudanças propostas em `src/routes/index.tsx`
+## Atualizar Execução Orçamentária com a planilha de saldoCategoriaEcon (03/26)
 
-### 1. Limpar dados atuais da Execução Orçamentária
+### O que muda
 
-- Adicionar estado `overrides` (Map por código de categoria) salvo no `localStorage` junto com receitas/despesas, contendo `{ previsto?, gasto?, saldo? }` por linha.
-- Inicializar vazio (sem dados pré-carregados além do catálogo). O botão "Limpar" existente também zera os overrides.
+1. **`src/lib/sit/catalogos.ts`** — atualizar `previsto` de todas as 30 categorias com os valores da planilha enviada e adicionar uma nova exportação `CATEGORIA_GASTO_BASELINE` (mapa `codigo → valor já gasto até 03/2026`).
 
-### 2. Edição/inserção de Previsto, Gasto e Saldo
+   Exemplos da atualização:
+   - `3.1.90.11.01` previsto 1.802.789,73 → **2.048.283,54**, baseline gasto **1.599.241,59**
+   - `3.3.90.39.99` previsto 514.659,87 → **613.811,68**, baseline gasto **367.525,82**
+   - (e assim para as 30 linhas; coluna "Valor Estornado" é % de execução, será ignorada)
 
-- Em `CategoriasTable`, transformar as células Previsto/Gasto/Saldo em campos editáveis usando o `NumberField` já existente.
-- Comportamento:
-  - **Previsto**: default = valor do catálogo; editável; salva override.
-  - **Gasto**: default = somatório calculado das despesas (`gasto.get(codigo)`); editável manualmente sobrescreve.
-  - **Saldo**: default = `previsto - gasto`; se editado, vira valor fixo; botão "↺" por linha para voltar ao calculado.
-- Adicionar linha extra no final para **inserir nova categoria** (código + descrição + previsto), armazenada em `categoriasExtras` no estado/localStorage.
-- Totais no rodapé recalculam com os valores efetivos (override quando houver).
+2. **`src/routes/index.tsx` — `CategoriasTable`**: o cálculo do **Gasto** efetivo passa a ser `baseline + soma das despesas lançadas no app`, em vez de só a soma das despesas. Saldo continua `previsto − gasto`. Overrides manuais existentes (Previsto/Gasto/Saldo + botão ↺) continuam funcionando por cima desse novo default.
 
-### 3. Copiar tabela (Receitas / Despesas / Execução Orçamentária)
-
-- Novo helper `copyTableTSV(rows: string[][])` que monta TSV (tab-separated) — formato que cola corretamente em Google Sheets e em tabelas do Google Docs.
-- Botão "Copiar tabela" (ícone `Copy` do lucide) no cabeçalho de cada uma das três abas, ao lado do título da seção. Toast de confirmação.
-- Conteúdo copiado por aba:
-  - **Receitas**: Parcela, Data, Valor.
-  - **Despesas**: Data, Favorecido, Documento, Tipo, CPF/CNPJ, Categoria (código — descrição), Valor.
-  - **Execução Orçamentária**: Código, Descrição, Previsto, Gasto, Saldo (valores formatados em BRL com vírgula decimal).
+3. **Persistência**: nada novo a salvar — os valores ficam no código (commitados). As despesas que você lançar continuam somando em cima do baseline automaticamente. O botão "Limpar" segue limpando apenas receitas/despesas/overrides do usuário, **sem mexer no baseline**.
 
 ### Não muda
 
-- Pipeline de extração via IA, geração do `Despesa.txt` SIT, validações e schema permanecem intactos.
-- Persistência atual em `localStorage` é estendida (mesma chave `sit-tcepr-state-v1`) com dois campos novos: `overrides` e `categoriasExtras`. Hidratação trata ausência como vazio (compatível com salvamentos antigos).
+- Pipeline de IA, geração do `Despesa.txt` SIT, schema, layout das abas Receitas/Despesas, botões "Copiar tabela", localStorage atual.
+- Aba "Execução Orçamentária" continua editável célula a célula como já está.
 
-### Detalhes técnicos
+### Detalhe técnico
 
-- `NumberField` já aceita valor controlado e `onCommit`; reutilizado nas três colunas.
-- Cópia: `navigator.clipboard.writeText(tsv)` com fallback `document.execCommand("copy")` se indisponível.
-- Tipos: `type CategoriaOverride = { previsto?: number; gasto?: number; saldo?: number }`, `type CategoriaExtra = { codigo: string; nome: string; previsto: number }`.
+```ts
+// catalogos.ts
+export const CATEGORIA_GASTO_BASELINE: Record<string, number> = {
+  "3.1.90.11.01": 1599241.59,
+  // ...
+};
+```
+
+```ts
+// CategoriasTable
+const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gastoDespesas.get(c.codigo) ?? 0);
+const gastoEfetivo = override?.gasto ?? gastoCalc;
+```
