@@ -825,7 +825,7 @@ function DespesasTable({
               </TableCell>
               <TableCell>
                 {(() => {
-                  const cat = CATEGORIAS.find((c) => c.codigo === d.categoria);
+                  const cat = categorias.find((c) => c.codigo === d.categoria);
                   return (
                     <Select
                       value={d.categoria}
