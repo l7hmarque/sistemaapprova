@@ -527,15 +527,14 @@ function ResumoCards({
               {c.label}
             </div>
             {c.key ? (
-              <Input
-                type="number"
-                step="0.01"
-                value={resumo[c.key]}
-                onChange={(e) =>
-                  onChange({ ...resumo, [c.key as string]: Number(e.target.value) || 0 })
-                }
-                className="mt-1 h-8 px-2 text-base font-semibold"
-              />
+              <>
+                <NumberField
+                  value={resumo[c.key]}
+                  onChange={(n) => onChange({ ...resumo, [c.key as string]: n })}
+                  className="mt-1 h-8 px-2 text-base font-semibold"
+                />
+                <div className="mt-1 text-xs text-muted-foreground">{fmtBRL(resumo[c.key])}</div>
+              </>
             ) : (
               <div className={`mt-2 text-lg font-semibold ${c.tone ?? ""}`}>
                 {fmtBRL(c.value)}
