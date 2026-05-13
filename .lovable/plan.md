@@ -1,83 +1,20 @@
-## Aplicar regras de Holerite (aba `regrasHolerite`) antes das tabelas e do `.txt`
+## Problema
+Após extração do PDF, os campos de revisão/edição na aba Despesas estão muito apertados (h-8/h-7, text-xs, text-[11px]), dificultando ver o conteúdo extraído (favorecido, descrição, categoria, doc, etc.).
 
-### Onde aplicar
+## Mudanças (apenas UI em `src/routes/index.tsx`, função `DespesasTable`)
 
-Em `src/routes/api/extract.ts`, **logo após** o `extracaoSchema.parse(parsed)` e **antes** do `return Response.json(...)`. A regra incide uma única vez, central, e tudo que vem depois (tabela 1.2 Despesas, Execução Orçamentária, geração do `Despesa.txt`) já recebe os dados corrigidos.
+1. **Inputs de texto/data/número/select**: subir altura de `h-8` para `h-10` e usar `text-sm` (padrão), removendo o aperto visual.
+2. **Campo Descrição** (sub-input do Favorecido): de `h-7 text-xs` para `h-9 text-sm` (cor levemente atenuada mantida).
+3. **Coluna Categoria 2.4**: aumentar `text-[11px]` para `text-xs`/`text-sm` no código e nome, permitir até 3 linhas no nome (line-clamp-3) e aumentar largura da coluna de `w-[280px]` para `w-[320px]`.
+4. **Larguras das colunas**: ajustar para acomodar conteúdo sem truncar:
+   - Favorecido: garantir `min-w-[260px]`
+   - CPF/CNPJ: `w-[180px]`
+   - Doc nº: `w-[130px]`
+   - Data pgto: `w-[150px]`
+5. **Espaçamento das linhas**: adicionar `py-2` nas células para respirar.
+6. **Scroll horizontal**: envolver `<Table>` em `<div className="overflow-x-auto">` para evitar quebra em telas menores agora que as colunas são mais largas.
+7. **Botão remover**: subir de `h-7 w-7` para `h-9 w-9` para alinhar com a nova altura das linhas.
 
-### Quais despesas são afetadas
-
-Toda despesa em que `sugestaoCategoria === "3.1.90.11.01"` (Vencimentos e salários — holerites/folha).
-
-### Regra 1 — `documento` (Nº NF/Doc Fiscal)
-
-Padrão fixo `MM/AA`, **idêntico** para todos os holerites do mês:
-
-- **MM** = mês de referência − 1, com zero-padding (2 dígitos). Se ref. = `01`, MM = `12`.
-- **AA** = últimos 2 dígitos do ano de referência (com zero-padding).
-- Exemplo: prestação de `03/2026` → `02/26` para **todos** os holerites.
-
-### Regra 2 — `dataEmissao` (`AAAA-MM-DD`)
-
-- **MM** = `(mesReferencia − 2)` com wrap para o ano anterior se necessário.
-- **DD** = último dia desse mês (cobre fev/bissexto via `new Date(y, m, 0).getDate()`).
-- **AAAA** = ano resultante após o wrap.
-- Exemplo: prestação de `03/2026` → `2026-01-31`. Prestação de `02/2026` → `2025-12-31`.
-
-A `data` (data de pagamento) **não é alterada** — fica como a IA extraiu do comprovante de pagamento.
-
-### Implementação
-
-Novo arquivo `src/lib/sit/regrasHolerite.ts`:
-
-```ts
-import type { ExtracaoResultado } from "@/lib/extract/schema";
-
-export function aplicarRegrasHolerite(extracao: ExtracaoResultado): ExtracaoResultado {
-  const m = extracao.mesReferencia.match(/(\d{1,2})\/(\d{4})/);
-  if (!m) return extracao;
-  const mm = Number(m[1]);
-  const aaaa = Number(m[2]);
-
-  // Documento: MM = mês anterior, AA = últimos 2 dígitos do ano (mesmo valor para todos)
-  let mDoc = mm - 1;
-  let yDoc = aaaa;
-  if (mDoc <= 0) { mDoc += 12; yDoc -= 1; }
-  const documento = `${String(mDoc).padStart(2, "0")}/${String(yDoc % 100).padStart(2, "0")}`;
-
-  // dataEmissao: MM = ref - 2, DD = último dia, AAAA = ano correspondente
-  let mEm = mm - 2;
-  let yEm = aaaa;
-  if (mEm <= 0) { mEm += 12; yEm -= 1; }
-  const ultimoDia = new Date(yEm, mEm, 0).getDate();
-  const dataEmissao =
-    `${yEm}-${String(mEm).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
-
-  const despesas = extracao.despesas.map((d) =>
-    d.sugestaoCategoria === "3.1.90.11.01"
-      ? { ...d, documento, dataEmissao }
-      : d,
-  );
-  return { ...extracao, despesas };
-}
-```
-
-Em `src/routes/api/extract.ts`:
-
-```ts
-import { aplicarRegrasHolerite } from "@/lib/sit/regrasHolerite";
-// ...
-const validated = extracaoSchema.parse(parsed);
-return Response.json(aplicarRegrasHolerite(validated));
-```
-
-### O que NÃO muda
-
-- Schema Zod, prompt da IA, layout das abas, `formatLinhaSIT`, persistência no `localStorage`, baseline de Execução Orçamentária.
-- Despesas que não são salário passam intactas.
-- Edição manual posterior em Despesas continua prevalecendo (regra só roda no momento da extração).
-
-### Edge cases
-
-- Ref. `01/AAAA` → documento `12/(AA-1)`, data emissão `(AAAA-1)-11-30`.
-- Ref. `02/AAAA` → documento `01/AA`, data emissão `(AAAA-1)-12-31`.
-- Anos bissextos cobertos automaticamente.
+## Fora do escopo
+- Lógica de extração, schema, regras de holerite, `formatLinhaSIT`, persistência — sem alterações.
+- Aba Receitas e Categorias mantidas como estão (a queixa é específica de Despesas após upload do PDF).
