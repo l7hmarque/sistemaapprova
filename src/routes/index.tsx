@@ -697,187 +697,189 @@ function DespesasTable({
     );
   }
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[110px]">ID</TableHead>
-          <TableHead className="w-[130px]">Data pgto</TableHead>
-          <TableHead>Favorecido</TableHead>
-          <TableHead className="w-[150px]">CPF/CNPJ</TableHead>
-          <TableHead className="w-[100px]">Tipo</TableHead>
-          <TableHead className="w-[110px]">Subtipo</TableHead>
-          <TableHead className="w-[110px]">Doc nº</TableHead>
-          <TableHead className="w-[280px]">Categoria 2.4</TableHead>
-          <TableHead className="w-[140px] text-right">Valor</TableHead>
-          <TableHead className="w-[40px]" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {despesas.map((d) => {
-          const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
-          return (
-            <TableRow key={d.uid}>
-              <TableCell>
-                <Input
-                  value={d.idInterno}
-                  onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
-                  className="h-8 px-2"
-                />
-              </TableCell>
-              <TableCell>
-                <Input
-                  type="date"
-                  value={d.data}
-                  onChange={(e) => onUpdate(d.uid, { data: e.target.value })}
-                  className="h-8 px-2"
-                />
-              </TableCell>
-              <TableCell>
-                <Input
-                  value={d.favorecido}
-                  onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
-                  className="h-8 px-2"
-                />
-                <Input
-                  value={d.descricao}
-                  placeholder="Descrição do gasto"
-                  onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
-                  className="mt-1 h-7 px-2 text-xs text-muted-foreground"
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-1">
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[110px]">ID</TableHead>
+            <TableHead className="w-[150px]">Data pgto</TableHead>
+            <TableHead className="min-w-[260px]">Favorecido</TableHead>
+            <TableHead className="w-[180px]">CPF/CNPJ</TableHead>
+            <TableHead className="w-[110px]">Tipo</TableHead>
+            <TableHead className="w-[120px]">Subtipo</TableHead>
+            <TableHead className="w-[130px]">Doc nº</TableHead>
+            <TableHead className="w-[320px]">Categoria 2.4</TableHead>
+            <TableHead className="w-[160px] text-right">Valor</TableHead>
+            <TableHead className="w-[48px]" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {despesas.map((d) => {
+            const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
+            return (
+              <TableRow key={d.uid}>
+                <TableCell className="py-2">
+                  <Input
+                    value={d.idInterno}
+                    onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
+                    className="h-10 px-2 text-sm"
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  <Input
+                    type="date"
+                    value={d.data}
+                    onChange={(e) => onUpdate(d.uid, { data: e.target.value })}
+                    className="h-10 px-2 text-sm"
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  <Input
+                    value={d.favorecido}
+                    onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
+                    className="h-10 px-2 text-sm"
+                  />
+                  <Input
+                    value={d.descricao}
+                    placeholder="Descrição do gasto"
+                    onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
+                    className="mt-1 h-9 px-2 text-sm text-muted-foreground"
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  <div className="flex gap-1">
+                    <Select
+                      value={d.tpDocFav}
+                      onValueChange={(v) =>
+                        onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })
+                      }
+                    >
+                      <SelectTrigger className="h-10 w-[78px] px-2 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CNPJ">CNPJ</SelectItem>
+                        <SelectItem value="CPF">CPF</SelectItem>
+                        <SelectItem value="EXT">EXT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={d.nrDocFav}
+                      onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
+                      className="h-10 px-2 text-sm"
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="py-2">
                   <Select
-                    value={d.tpDocFav}
-                    onValueChange={(v) =>
-                      onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })
-                    }
+                    value={String(d.tipoDocumento)}
+                    onValueChange={(v) => {
+                      const tipo = Number(v);
+                      onUpdate(d.uid, {
+                        tipoDocumento: tipo,
+                        subtipoDocumento: TIPOS_COM_SUBTIPO.has(tipo)
+                          ? (d.subtipoDocumento ?? SUBTIPOS_DOCUMENTO[0].codigo)
+                          : null,
+                      });
+                    }}
                   >
-                    <SelectTrigger className="h-8 w-[70px] px-2">
+                    <SelectTrigger className="h-10 px-2 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CNPJ">CNPJ</SelectItem>
-                      <SelectItem value="CPF">CPF</SelectItem>
-                      <SelectItem value="EXT">EXT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={d.nrDocFav}
-                    onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
-                    className="h-8 px-2"
-                  />
-                </div>
-              </TableCell>
-              <TableCell>
-                <Select
-                  value={String(d.tipoDocumento)}
-                  onValueChange={(v) => {
-                    const tipo = Number(v);
-                    onUpdate(d.uid, {
-                      tipoDocumento: tipo,
-                      subtipoDocumento: TIPOS_COM_SUBTIPO.has(tipo)
-                        ? (d.subtipoDocumento ?? SUBTIPOS_DOCUMENTO[0].codigo)
-                        : null,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="h-8 px-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIPOS_DOCUMENTO.map((t) => (
-                      <SelectItem key={t.codigo} value={String(t.codigo)}>
-                        {t.codigo} — {t.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                {precisaSub ? (
-                  <Select
-                    value={String(d.subtipoDocumento ?? "")}
-                    onValueChange={(v) =>
-                      onUpdate(d.uid, { subtipoDocumento: Number(v) })
-                    }
-                  >
-                    <SelectTrigger className="h-8 px-2">
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUBTIPOS_DOCUMENTO.map((s) => (
-                        <SelectItem key={s.codigo} value={String(s.codigo)}>
-                          {s.codigo} — {s.nome}
+                      {TIPOS_DOCUMENTO.map((t) => (
+                        <SelectItem key={t.codigo} value={String(t.codigo)}>
+                          {t.codigo} — {t.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <Input
-                  value={d.documento}
-                  onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
-                  className="h-8 px-2"
-                />
-              </TableCell>
-              <TableCell>
-                {(() => {
-                  const cat = categorias.find((c) => c.codigo === d.categoria);
-                  return (
+                </TableCell>
+                <TableCell className="py-2">
+                  {precisaSub ? (
                     <Select
-                      value={d.categoria}
-                      onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
+                      value={String(d.subtipoDocumento ?? "")}
+                      onValueChange={(v) =>
+                        onUpdate(d.uid, { subtipoDocumento: Number(v) })
+                      }
                     >
-                      <SelectTrigger className="h-auto min-h-8 px-2 py-1 text-left">
-                        <SelectValue asChild>
-                          <div className="flex flex-col leading-tight">
-                            <span className="font-mono text-[11px]">{cat?.codigo ?? d.categoria}</span>
-                            <span className="text-[11px] text-muted-foreground line-clamp-2">
-                              {cat?.nome ?? "—"}
-                            </span>
-                          </div>
-                        </SelectValue>
+                      <SelectTrigger className="h-10 px-2 text-sm">
+                        <SelectValue placeholder="—" />
                       </SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        {categorias.map((c) => (
-                          <SelectItem key={c.codigo} value={c.codigo}>
-                            <span className="font-mono text-xs">{c.codigo}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
+                      <SelectContent>
+                        {SUBTIPOS_DOCUMENTO.map((s) => (
+                          <SelectItem key={s.codigo} value={String(s.codigo)}>
+                            {s.codigo} — {s.nome}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  );
-                })()}
-              </TableCell>
-              <TableCell>
-                <NumberField
-                  value={d.valor}
-                  onChange={(n) => onUpdate(d.uid, { valor: n })}
-                  className="h-8 px-2"
-                  align="right"
-                />
-              </TableCell>
-              <TableCell>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onRemove(d.uid)}
-                  className="h-7 w-7"
-                  aria-label="Remover"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-2">
+                  <Input
+                    value={d.documento}
+                    onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
+                    className="h-10 px-2 text-sm"
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  {(() => {
+                    const cat = categorias.find((c) => c.codigo === d.categoria);
+                    return (
+                      <Select
+                        value={d.categoria}
+                        onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
+                      >
+                        <SelectTrigger className="h-auto min-h-10 px-2 py-2 text-left">
+                          <SelectValue asChild>
+                            <div className="flex flex-col leading-tight gap-0.5">
+                              <span className="font-mono text-xs">{cat?.codigo ?? d.categoria}</span>
+                              <span className="text-xs text-muted-foreground line-clamp-3">
+                                {cat?.nome ?? "—"}
+                              </span>
+                            </div>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {categorias.map((c) => (
+                            <SelectItem key={c.codigo} value={c.codigo}>
+                              <span className="font-mono text-xs">{c.codigo}</span>
+                              <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell className="py-2">
+                  <NumberField
+                    value={d.valor}
+                    onChange={(n) => onUpdate(d.uid, { valor: n })}
+                    className="h-10 px-2 text-sm"
+                    align="right"
+                  />
+                </TableCell>
+                <TableCell className="py-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => onRemove(d.uid)}
+                    className="h-9 w-9"
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
