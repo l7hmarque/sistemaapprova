@@ -1011,24 +1011,29 @@ function DespesasTable({
                 </div>
 
                 <div className="col-span-12 md:col-span-4">
-                  <Label className="mb-1 block text-xs text-muted-foreground">Tipo de documento</Label>
+                  <Label className="mb-1 block text-xs text-muted-foreground">Tipo de documento de despesa</Label>
                   <Select
-                    value={String(d.tipoDocumento)}
+                    value={String(d.tpDocumentoDespesa)}
                     onValueChange={(v) => {
                       const tipo = Number(v);
-                      onUpdate(d.uid, {
-                        tipoDocumento: tipo,
-                        subtipoDocumento: TIPOS_COM_SUBTIPO.has(tipo)
-                          ? (d.subtipoDocumento ?? SUBTIPOS_DOCUMENTO[0].codigo)
-                          : null,
-                      });
+                      const ov = FAVORECIDO_OVERRIDES[tipo];
+                      const patch: Partial<Despesa> = {
+                        tpDocumentoDespesa: tipo,
+                        cdModalidadeCompra: modalidadePadrao(tipo),
+                      };
+                      if (ov) {
+                        patch.tpDocFav = "CNPJ";
+                        patch.nrDocFav = ov.cnpj;
+                        patch.favorecido = ov.nome;
+                      }
+                      onUpdate(d.uid, patch);
                     }}
                   >
                     <SelectTrigger className="h-10 text-sm border-[0.5px] border-black">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {TIPOS_DOCUMENTO.map((t) => (
+                    <SelectContent className="max-h-72">
+                      {TIPOS_DOC_DESPESA.map((t) => (
                         <SelectItem key={t.codigo} value={String(t.codigo)}>
                           {t.codigo} — {t.nome}
                         </SelectItem>
@@ -1038,26 +1043,51 @@ function DespesasTable({
                 </div>
 
                 <div className="col-span-12 md:col-span-4">
-                  <Label className="mb-1 block text-xs text-muted-foreground">Subtipo</Label>
-                  {precisaSub ? (
-                    <Select
-                      value={String(d.subtipoDocumento ?? "")}
-                      onValueChange={(v) => onUpdate(d.uid, { subtipoDocumento: Number(v) })}
-                    >
-                      <SelectTrigger className="h-10 text-sm border-[0.5px] border-black">
-                        <SelectValue placeholder="—" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUBTIPOS_DOCUMENTO.map((s) => (
-                          <SelectItem key={s.codigo} value={String(s.codigo)}>
-                            {s.codigo} — {s.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex h-10 items-center text-sm text-muted-foreground">—</div>
-                  )}
+                  <Label className="mb-1 block text-xs text-muted-foreground">Modalidade de compra</Label>
+                  <Select
+                    value={String(d.cdModalidadeCompra)}
+                    onValueChange={(v) => onUpdate(d.uid, { cdModalidadeCompra: Number(v) })}
+                  >
+                    <SelectTrigger className="h-10 text-sm border-[0.5px] border-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {MODALIDADES_COMPRA.map((m) => (
+                        <SelectItem key={m.codigo} value={String(m.codigo)}>
+                          {m.codigo} — {m.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-12 md:col-span-4">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Forma de pagamento</Label>
+                  <Select
+                    value={String(d.tpDocumentoPagamento)}
+                    onValueChange={(v) => onUpdate(d.uid, { tpDocumentoPagamento: Number(v) })}
+                  >
+                    <SelectTrigger className="h-10 text-sm border-[0.5px] border-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_DOC_PAGAMENTO.map((p) => (
+                        <SelectItem key={p.codigo} value={String(p.codigo)}>
+                          {p.codigo} — {p.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-12 md:col-span-4">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Data emissão doc</Label>
+                  <Input
+                    type="date"
+                    value={d.dataEmissao}
+                    onChange={(e) => onUpdate(d.uid, { dataEmissao: e.target.value })}
+                    className="h-10 text-sm border-[0.5px] border-black"
+                  />
                 </div>
 
                 {/* linha 5: Doc nº, Categoria (largo), Valor */}
