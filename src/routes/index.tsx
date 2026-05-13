@@ -50,6 +50,7 @@ import {
   migrarTipoLegacy,
 } from "@/lib/sit/catalogos";
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
+import { isValidCNPJ, isValidCPF } from "@/lib/sit/cnpjValidator";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 
