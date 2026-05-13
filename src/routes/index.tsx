@@ -547,12 +547,12 @@ function AppPage() {
     ];
     despesas.forEach((d) => {
       const cat = todasCategorias.find((c) => c.codigo === d.categoria);
-      const tipo = TIPOS_DOCUMENTO.find((t) => t.codigo === d.tipoDocumento);
+      const tipo = TIPOS_DOC_DESPESA.find((t) => t.codigo === d.tpDocumentoDespesa);
       rows.push([
         d.data,
         d.favorecido,
         d.documento,
-        tipo ? `${tipo.codigo} — ${tipo.nome}` : String(d.tipoDocumento),
+        tipo ? `${tipo.codigo} — ${tipo.nome}` : String(d.tpDocumentoDespesa),
         `${d.tpDocFav} ${d.nrDocFav}`,
         cat ? `${cat.codigo} — ${cat.nome}` : d.categoria,
         fmtNum(d.valor),
