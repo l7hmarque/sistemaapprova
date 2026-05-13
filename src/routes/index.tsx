@@ -146,6 +146,59 @@ function AppPage() {
     rendimentos: 0,
     estornados: 0,
   });
+  const [hidratado, setHidratado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw) as {
+          mesRef?: string;
+          receitas?: ReceitaExtraida[];
+          despesas?: Despesa[];
+          resumo?: typeof resumo;
+        };
+        if (s.mesRef) setMesRef(s.mesRef);
+        if (s.receitas) setReceitas(s.receitas);
+        if (s.despesas) setDespesas(s.despesas);
+        if (s.resumo) setResumo(s.resumo);
+      }
+    } catch {
+      /* noop */
+    }
+    setHidratado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hidratado || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ mesRef, receitas, despesas, resumo }),
+      );
+    } catch {
+      /* noop */
+    }
+  }, [hidratado, mesRef, receitas, despesas, resumo]);
+
+  function salvarManual() {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ mesRef, receitas, despesas, resumo }),
+    );
+    toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
+  }
+
+  function limparTudo() {
+    if (!window.confirm("Apagar todos os lançamentos salvos?")) return;
+    setMesRef("");
+    setReceitas([]);
+    setDespesas([]);
+    setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
+    window.localStorage.removeItem(STORAGE_KEY);
+    toast.success("Lançamentos apagados.");
+  }
 
   async function handleUpload(file: File) {
     setExtraindo(true);
