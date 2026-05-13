@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
 import {
   CATEGORIAS,
   SUBTIPOS_DOCUMENTO,
@@ -135,6 +135,33 @@ function novaDespesa(): Despesa {
   };
 }
 
+type CategoriaOverride = { previsto?: number; gasto?: number; saldo?: number };
+type CategoriaExtra = { codigo: string; nome: string; previsto: number };
+
+async function copyTSV(rows: (string | number)[][], label: string) {
+  const fmt = (v: string | number) =>
+    String(v ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ");
+  const tsv = rows.map((r) => r.map(fmt).join("\t")).join("\n");
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(tsv);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = tsv;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast.success(`${label} copiada (${rows.length - 1} linha(s)).`);
+  } catch {
+    toast.error("Não foi possível copiar.");
+  }
+}
+
+const fmtNum = (n: number) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function AppPage() {
   const [extraindo, setExtraindo] = useState(false);
   const [mesRef, setMesRef] = useState("");
@@ -146,6 +173,8 @@ function AppPage() {
     rendimentos: 0,
     estornados: 0,
   });
+  const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
+  const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
   const [hidratado, setHidratado] = useState(false);
 
   useEffect(() => {
@@ -158,11 +187,15 @@ function AppPage() {
           receitas?: ReceitaExtraida[];
           despesas?: Despesa[];
           resumo?: typeof resumo;
+          overrides?: Record<string, CategoriaOverride>;
+          categoriasExtras?: CategoriaExtra[];
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
         if (s.despesas) setDespesas(s.despesas);
         if (s.resumo) setResumo(s.resumo);
+        if (s.overrides) setOverrides(s.overrides);
+        if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
       }
     } catch {
       /* noop */
@@ -175,17 +208,17 @@ function AppPage() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mesRef, receitas, despesas, resumo }),
+        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
       );
     } catch {
       /* noop */
     }
-  }, [hidratado, mesRef, receitas, despesas, resumo]);
+  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras]);
 
   function salvarManual() {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ mesRef, receitas, despesas, resumo }),
+      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
     );
     toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
   }
@@ -196,6 +229,8 @@ function AppPage() {
     setReceitas([]);
     setDespesas([]);
     setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
+    setOverrides({});
+    setCategoriasExtras([]);
     window.localStorage.removeItem(STORAGE_KEY);
     toast.success("Lançamentos apagados.");
   }
@@ -322,7 +357,65 @@ function AppPage() {
   }
 
   const fechaMatematica = Math.abs(saldoMes - (saldoMes | 0)) >= 0; // sempre verdadeiro; usado só para tipagem
-  const algumDado = despesas.length > 0 || receitas.length > 0;
+  const algumDado =
+    despesas.length > 0 ||
+    receitas.length > 0 ||
+    Object.keys(overrides).length > 0 ||
+    categoriasExtras.length > 0;
+
+  const todasCategorias = useMemo(
+    () => [
+      ...CATEGORIAS.map((c) => ({ codigo: c.codigo, nome: c.nome, previsto: c.previsto })),
+      ...categoriasExtras,
+    ],
+    [categoriasExtras],
+  );
+
+  function copyReceitas() {
+    const rows: (string | number)[][] = [["Parcela", "Data", "Valor"]];
+    receitas.forEach((r, i) =>
+      rows.push([r.numeroParcela ?? i + 1, r.dataRecebimento, fmtNum(r.valor)]),
+    );
+    copyTSV(rows, "Tabela Receitas");
+  }
+  function copyDespesas() {
+    const rows: (string | number)[][] = [
+      ["Data", "Favorecido", "Documento", "Tipo", "CPF/CNPJ", "Categoria", "Valor"],
+    ];
+    despesas.forEach((d) => {
+      const cat = todasCategorias.find((c) => c.codigo === d.categoria);
+      const tipo = TIPOS_DOCUMENTO.find((t) => t.codigo === d.tipoDocumento);
+      rows.push([
+        d.data,
+        d.favorecido,
+        d.documento,
+        tipo ? `${tipo.codigo} — ${tipo.nome}` : String(d.tipoDocumento),
+        `${d.tpDocFav} ${d.nrDocFav}`,
+        cat ? `${cat.codigo} — ${cat.nome}` : d.categoria,
+        fmtNum(d.valor),
+      ]);
+    });
+    copyTSV(rows, "Tabela Despesas");
+  }
+  function copyCategorias() {
+    const rows: (string | number)[][] = [["Código", "Descrição", "Previsto", "Gasto", "Saldo"]];
+    let tp = 0,
+      tg = 0,
+      ts = 0;
+    todasCategorias.forEach((c) => {
+      const o = overrides[c.codigo] ?? {};
+      const previsto = o.previsto ?? c.previsto;
+      const gastoCalc = gastoPorCategoria.get(c.codigo) ?? 0;
+      const gasto = o.gasto ?? gastoCalc;
+      const saldo = o.saldo ?? previsto - gasto;
+      tp += previsto;
+      tg += gasto;
+      ts += saldo;
+      rows.push([c.codigo, c.nome, fmtNum(previsto), fmtNum(gasto), fmtNum(saldo)]);
+    });
+    rows.push(["", "TOTAL", fmtNum(tp), fmtNum(tg), fmtNum(ts)]);
+    copyTSV(rows, "Tabela Execução Orçamentária");
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -368,10 +461,20 @@ function AppPage() {
             <TabsTrigger value="categorias">Execução Orçamentária (2.4)</TabsTrigger>
           </TabsList>
 
+
           <TabsContent value="receitas">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">Valores transferidos</CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyReceitas}
+                  disabled={receitas.length === 0}
+                  className="gap-1"
+                >
+                  <Copy className="h-4 w-4" /> Copiar tabela
+                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -409,15 +512,27 @@ function AppPage() {
                 <CardTitle className="text-base">
                   Despesas efetuadas no mês ({despesas.length})
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={adicionarDespesa} className="gap-1">
-                  <Plus className="h-4 w-4" /> Adicionar
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={copyDespesas}
+                    disabled={despesas.length === 0}
+                    className="gap-1"
+                  >
+                    <Copy className="h-4 w-4" /> Copiar tabela
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={adicionarDespesa} className="gap-1">
+                    <Plus className="h-4 w-4" /> Adicionar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="overflow-x-auto">
                 <DespesasTable
                   despesas={despesas}
                   onUpdate={updateDespesa}
                   onRemove={removerDespesa}
+                  categorias={todasCategorias}
                 />
               </CardContent>
             </Card>
@@ -425,13 +540,27 @@ function AppPage() {
 
           <TabsContent value="categorias">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">
                   Saldo atualizado por categoria econômica
                 </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyCategorias}
+                  className="gap-1"
+                >
+                  <Copy className="h-4 w-4" /> Copiar tabela
+                </Button>
               </CardHeader>
               <CardContent className="overflow-x-auto">
-                <CategoriasTable gasto={gastoPorCategoria} />
+                <CategoriasTable
+                  gasto={gastoPorCategoria}
+                  overrides={overrides}
+                  setOverrides={setOverrides}
+                  extras={categoriasExtras}
+                  setExtras={setCategoriasExtras}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -551,10 +680,12 @@ function DespesasTable({
   despesas,
   onUpdate,
   onRemove,
+  categorias,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
   onRemove: (uid: string) => void;
+  categorias: { codigo: string; nome: string; previsto: number }[];
 }) {
   if (despesas.length === 0) {
     return (
@@ -694,7 +825,7 @@ function DespesasTable({
               </TableCell>
               <TableCell>
                 {(() => {
-                  const cat = CATEGORIAS.find((c) => c.codigo === d.categoria);
+                  const cat = categorias.find((c) => c.codigo === d.categoria);
                   return (
                     <Select
                       value={d.categoria}
@@ -711,7 +842,7 @@ function DespesasTable({
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-72">
-                        {CATEGORIAS.map((c) => (
+                        {categorias.map((c) => (
                           <SelectItem key={c.codigo} value={c.codigo}>
                             <span className="font-mono text-xs">{c.codigo}</span>
                             <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
@@ -749,58 +880,235 @@ function DespesasTable({
   );
 }
 
-function CategoriasTable({ gasto }: { gasto: Map<string, number> }) {
-  const total = CATEGORIAS.reduce(
-    (acc, c) => {
-      const g = gasto.get(c.codigo) ?? 0;
-      acc.previsto += c.previsto;
-      acc.gasto += g;
-      acc.saldo += c.previsto - g;
-      return acc;
-    },
-    { previsto: 0, gasto: 0, saldo: 0 },
-  );
+function CategoriasTable({
+  gasto,
+  overrides,
+  setOverrides,
+  extras,
+  setExtras,
+}: {
+  gasto: Map<string, number>;
+  overrides: Record<string, CategoriaOverride>;
+  setOverrides: (
+    upd:
+      | Record<string, CategoriaOverride>
+      | ((prev: Record<string, CategoriaOverride>) => Record<string, CategoriaOverride>),
+  ) => void;
+  extras: CategoriaExtra[];
+  setExtras: (
+    upd: CategoriaExtra[] | ((prev: CategoriaExtra[]) => CategoriaExtra[]),
+  ) => void;
+}) {
+  const linhas = [
+    ...CATEGORIAS.map((c) => ({ codigo: c.codigo, nome: c.nome, previsto: c.previsto, extra: false })),
+    ...extras.map((c) => ({ ...c, extra: true })),
+  ];
+
+  function patchOverride(codigo: string, patch: Partial<CategoriaOverride>) {
+    setOverrides((prev) => {
+      const cur = { ...(prev[codigo] ?? {}), ...patch };
+      // limpa undefineds
+      (Object.keys(cur) as (keyof CategoriaOverride)[]).forEach((k) => {
+        if (cur[k] === undefined) delete cur[k];
+      });
+      const next = { ...prev };
+      if (Object.keys(cur).length === 0) delete next[codigo];
+      else next[codigo] = cur;
+      return next;
+    });
+  }
+
+  function resetSaldo(codigo: string) {
+    patchOverride(codigo, { saldo: undefined });
+  }
+  function resetGasto(codigo: string) {
+    patchOverride(codigo, { gasto: undefined });
+  }
+
+  // form de nova categoria
+  const [novoCodigo, setNovoCodigo] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoPrevisto, setNovoPrevisto] = useState(0);
+
+  function adicionarCategoria() {
+    if (!novoCodigo.trim() || !novoNome.trim()) {
+      toast.error("Informe código e descrição da categoria.");
+      return;
+    }
+    if (
+      CATEGORIAS.some((c) => c.codigo === novoCodigo) ||
+      extras.some((c) => c.codigo === novoCodigo)
+    ) {
+      toast.error("Código já existe.");
+      return;
+    }
+    setExtras((prev) => [...prev, { codigo: novoCodigo.trim(), nome: novoNome.trim(), previsto: novoPrevisto }]);
+    setNovoCodigo("");
+    setNovoNome("");
+    setNovoPrevisto(0);
+  }
+
+  function removerExtra(codigo: string) {
+    setExtras((prev) => prev.filter((c) => c.codigo !== codigo));
+    patchOverride(codigo, { previsto: undefined, gasto: undefined, saldo: undefined });
+  }
+
+  let tp = 0,
+    tg = 0,
+    ts = 0;
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Código</TableHead>
+          <TableHead className="w-[120px]">Código</TableHead>
           <TableHead>Descrição</TableHead>
-          <TableHead className="text-right">Previsto</TableHead>
-          <TableHead className="text-right">Gasto</TableHead>
-          <TableHead className="text-right">Saldo</TableHead>
-          <TableHead className="w-[40px]" />
+          <TableHead className="w-[150px] text-right">Previsto</TableHead>
+          <TableHead className="w-[170px] text-right">Gasto</TableHead>
+          <TableHead className="w-[170px] text-right">Saldo</TableHead>
+          <TableHead className="w-[60px]" />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {CATEGORIAS.map((c) => {
-          const g = gasto.get(c.codigo) ?? 0;
-          const saldo = c.previsto - g;
-          const estourou = saldo < 0;
+        {linhas.map((c) => {
+          const o = overrides[c.codigo] ?? {};
+          const previsto = o.previsto ?? c.previsto;
+          const gastoCalc = gasto.get(c.codigo) ?? 0;
+          const gastoEfetivo = o.gasto ?? gastoCalc;
+          const saldoCalc = previsto - gastoEfetivo;
+          const saldoEfetivo = o.saldo ?? saldoCalc;
+          const estourou = saldoEfetivo < 0;
+          tp += previsto;
+          tg += gastoEfetivo;
+          ts += saldoEfetivo;
           return (
             <TableRow key={c.codigo} className={estourou ? "bg-destructive/5" : ""}>
               <TableCell className="font-mono text-xs">{c.codigo}</TableCell>
               <TableCell>{c.nome}</TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {fmtBRL(c.previsto)}
-              </TableCell>
-              <TableCell className="text-right">{fmtBRL(g)}</TableCell>
-              <TableCell className="text-right font-medium">{fmtBRL(saldo)}</TableCell>
               <TableCell>
-                {estourou ? (
+                <NumberField
+                  value={previsto}
+                  onChange={(n) =>
+                    patchOverride(c.codigo, {
+                      previsto: n === c.previsto && !c.extra ? undefined : n,
+                    })
+                  }
+                  className="h-8 px-2"
+                  align="right"
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <NumberField
+                    value={gastoEfetivo}
+                    onChange={(n) =>
+                      patchOverride(c.codigo, { gasto: n === gastoCalc ? undefined : n })
+                    }
+                    className="h-8 px-2"
+                    align="right"
+                  />
+                  {o.gasto !== undefined && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => resetGasto(c.codigo)}
+                      aria-label="Voltar ao calculado"
+                      title="Voltar ao gasto calculado"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <NumberField
+                    value={saldoEfetivo}
+                    onChange={(n) =>
+                      patchOverride(c.codigo, { saldo: n === saldoCalc ? undefined : n })
+                    }
+                    className="h-8 px-2"
+                    align="right"
+                  />
+                  {o.saldo !== undefined && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => resetSaldo(c.codigo)}
+                      aria-label="Voltar ao calculado"
+                      title="Voltar ao saldo calculado"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                {c.extra ? (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => removerExtra(c.codigo)}
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                ) : estourou ? (
                   <AlertCircle className="h-4 w-4 text-destructive" />
-                ) : g > 0 ? (
+                ) : gastoEfetivo > 0 ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 ) : null}
               </TableCell>
             </TableRow>
           );
         })}
+        <TableRow className="bg-muted/30">
+          <TableCell>
+            <Input
+              value={novoCodigo}
+              placeholder="ex 3.3.90.30.99"
+              onChange={(e) => setNovoCodigo(e.target.value)}
+              className="h-8 px-2 font-mono text-xs"
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              value={novoNome}
+              placeholder="Descrição da nova categoria"
+              onChange={(e) => setNovoNome(e.target.value)}
+              className="h-8 px-2"
+            />
+          </TableCell>
+          <TableCell>
+            <NumberField
+              value={novoPrevisto}
+              onChange={setNovoPrevisto}
+              className="h-8 px-2"
+              align="right"
+            />
+          </TableCell>
+          <TableCell colSpan={2} />
+          <TableCell>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={adicionarCategoria}
+              aria-label="Adicionar categoria"
+              title="Adicionar categoria"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </TableCell>
+        </TableRow>
         <TableRow className="border-t-2 font-semibold">
           <TableCell colSpan={2}>TOTAL</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.previsto)}</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.gasto)}</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.saldo)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(tp)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(tg)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(ts)}</TableCell>
           <TableCell />
         </TableRow>
       </TableBody>
