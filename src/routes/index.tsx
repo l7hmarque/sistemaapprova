@@ -22,7 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  salvarExtracaoOnline,
+  listarExtracoesOnline,
+  carregarExtracaoOnline,
+  apagarExtracaoOnline,
+  type ExtracaoSalvaResumo,
+} from "@/lib/extracoes-online";
 import {
   CATEGORIAS,
   CATEGORIA_GASTO_BASELINE,
