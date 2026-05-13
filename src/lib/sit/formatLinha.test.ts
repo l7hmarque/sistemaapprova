@@ -26,10 +26,10 @@ const base: DespesaInput = {
 };
 
 describe("formatLinhaSIT", () => {
-  it("gera 24 campos terminando com pipe", () => {
+  it("gera exatamente 24 campos sem pipe final", () => {
     const out = formatLinhaSIT(termo, base);
-    expect(out.endsWith("|")).toBe(true);
-    expect(out.split("|").length - 1).toBe(24);
+    expect(out.endsWith("|")).toBe(false);
+    expect(out.split("|").length).toBe(24);
   });
 
   it("CNPJ do concedente vira só dígitos", () => {

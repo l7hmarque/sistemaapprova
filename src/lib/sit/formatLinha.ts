@@ -119,5 +119,5 @@ export function formatLinhaSIT(termo: DadosTermo, d: DespesaInput): string {
     truncate(cleanText(d.dsItemDespesa), 2000),                            // 24
   ];
 
-  return campos.join("|") + "|";
+  return campos.join("|");
 }
