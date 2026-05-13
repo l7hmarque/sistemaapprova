@@ -698,64 +698,74 @@ function DespesasTable({
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[110px]">ID</TableHead>
-            <TableHead className="w-[150px]">Data pgto</TableHead>
-            <TableHead className="min-w-[260px]">Favorecido</TableHead>
-            <TableHead className="w-[180px]">CPF/CNPJ</TableHead>
-            <TableHead className="w-[110px]">Tipo</TableHead>
-            <TableHead className="w-[120px]">Subtipo</TableHead>
-            <TableHead className="w-[130px]">Doc nº</TableHead>
-            <TableHead className="w-[320px]">Categoria 2.4</TableHead>
-            <TableHead className="w-[160px] text-right">Valor</TableHead>
-            <TableHead className="w-[48px]" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {despesas.map((d) => {
-            const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
-            return (
-              <TableRow key={d.uid}>
-                <TableCell className="py-2">
+    <div className="space-y-3">
+      {despesas.map((d) => {
+        const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
+        const cat = categorias.find((c) => c.codigo === d.categoria);
+        return (
+          <Card key={d.uid} className="border-border/60">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-12 gap-3">
+                {/* linha 1: ID + Data + remover */}
+                <div className="col-span-3 md:col-span-2">
+                  <Label className="mb-1 block text-xs text-muted-foreground">ID</Label>
                   <Input
                     value={d.idInterno}
                     onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
-                    className="h-10 px-2 text-sm"
+                    className="h-10 text-sm"
                   />
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+                <div className="col-span-7 md:col-span-3">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Data pgto</Label>
                   <Input
                     type="date"
                     value={d.data}
                     onChange={(e) => onUpdate(d.uid, { data: e.target.value })}
-                    className="h-10 px-2 text-sm"
+                    className="h-10 text-sm"
                   />
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+                <div className="col-span-2 md:col-span-7 flex items-end justify-end">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => onRemove(d.uid)}
+                    className="h-10 w-10"
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+
+                {/* linha 2: Favorecido full width */}
+                <div className="col-span-12">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Favorecido</Label>
                   <Input
                     value={d.favorecido}
                     onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
-                    className="h-10 px-2 text-sm"
+                    className="h-10 text-sm"
                   />
+                </div>
+
+                {/* linha 3: Descrição full width */}
+                <div className="col-span-12">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Descrição</Label>
                   <Input
                     value={d.descricao}
                     placeholder="Descrição do gasto"
                     onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
-                    className="mt-1 h-9 px-2 text-sm text-muted-foreground"
+                    className="h-10 text-sm"
                   />
-                </TableCell>
-                <TableCell className="py-2">
-                  <div className="flex gap-1">
+                </div>
+
+                {/* linha 4: Tp + CPF/CNPJ, Tipo, Subtipo */}
+                <div className="col-span-12 md:col-span-4">
+                  <Label className="mb-1 block text-xs text-muted-foreground">CPF/CNPJ</Label>
+                  <div className="flex gap-2">
                     <Select
                       value={d.tpDocFav}
-                      onValueChange={(v) =>
-                        onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })
-                      }
+                      onValueChange={(v) => onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })}
                     >
-                      <SelectTrigger className="h-10 w-[78px] px-2 text-sm">
+                      <SelectTrigger className="h-10 w-[88px] text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -767,11 +777,13 @@ function DespesasTable({
                     <Input
                       value={d.nrDocFav}
                       onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
-                      className="h-10 px-2 text-sm"
+                      className="h-10 text-sm"
                     />
                   </div>
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+
+                <div className="col-span-12 md:col-span-4">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Tipo de documento</Label>
                   <Select
                     value={String(d.tipoDocumento)}
                     onValueChange={(v) => {
@@ -784,7 +796,7 @@ function DespesasTable({
                       });
                     }}
                   >
-                    <SelectTrigger className="h-10 px-2 text-sm">
+                    <SelectTrigger className="h-10 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -795,16 +807,16 @@ function DespesasTable({
                       ))}
                     </SelectContent>
                   </Select>
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+
+                <div className="col-span-12 md:col-span-4">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Subtipo</Label>
                   {precisaSub ? (
                     <Select
                       value={String(d.subtipoDocumento ?? "")}
-                      onValueChange={(v) =>
-                        onUpdate(d.uid, { subtipoDocumento: Number(v) })
-                      }
+                      onValueChange={(v) => onUpdate(d.uid, { subtipoDocumento: Number(v) })}
                     >
-                      <SelectTrigger className="h-10 px-2 text-sm">
+                      <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -816,70 +828,59 @@ function DespesasTable({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
+                    <div className="flex h-10 items-center text-sm text-muted-foreground">—</div>
                   )}
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+
+                {/* linha 5: Doc nº, Categoria (largo), Valor */}
+                <div className="col-span-12 md:col-span-3">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Doc nº</Label>
                   <Input
                     value={d.documento}
                     onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
-                    className="h-10 px-2 text-sm"
+                    className="h-10 text-sm"
                   />
-                </TableCell>
-                <TableCell className="py-2">
-                  {(() => {
-                    const cat = categorias.find((c) => c.codigo === d.categoria);
-                    return (
-                      <Select
-                        value={d.categoria}
-                        onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
-                      >
-                        <SelectTrigger className="h-auto min-h-10 px-2 py-2 text-left">
-                          <SelectValue asChild>
-                            <div className="flex flex-col leading-tight gap-0.5">
-                              <span className="font-mono text-xs">{cat?.codigo ?? d.categoria}</span>
-                              <span className="text-xs text-muted-foreground line-clamp-3">
-                                {cat?.nome ?? "—"}
-                              </span>
-                            </div>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72">
-                          {categorias.map((c) => (
-                            <SelectItem key={c.codigo} value={c.codigo}>
-                              <span className="font-mono text-xs">{c.codigo}</span>
-                              <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    );
-                  })()}
-                </TableCell>
-                <TableCell className="py-2">
+                </div>
+
+                <div className="col-span-12 md:col-span-6">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Categoria 2.4</Label>
+                  <Select
+                    value={d.categoria}
+                    onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
+                  >
+                    <SelectTrigger className="h-auto min-h-12 py-2 text-left">
+                      <SelectValue asChild>
+                        <div className="flex flex-col gap-0.5 leading-tight">
+                          <span className="font-mono text-xs">{cat?.codigo ?? d.categoria}</span>
+                          <span className="text-sm">{cat?.nome ?? "—"}</span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {categorias.map((c) => (
+                        <SelectItem key={c.codigo} value={c.codigo}>
+                          <span className="font-mono text-xs">{c.codigo}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-12 md:col-span-3">
+                  <Label className="mb-1 block text-xs text-muted-foreground">Valor (R$)</Label>
                   <NumberField
                     value={d.valor}
                     onChange={(n) => onUpdate(d.uid, { valor: n })}
-                    className="h-10 px-2 text-sm"
+                    className="h-10 text-sm"
                     align="right"
                   />
-                </TableCell>
-                <TableCell className="py-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => onRemove(d.uid)}
-                    className="h-9 w-9"
-                    aria-label="Remover"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
