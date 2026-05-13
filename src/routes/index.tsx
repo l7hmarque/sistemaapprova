@@ -41,11 +41,15 @@ import {
 import {
   CATEGORIAS,
   CATEGORIA_GASTO_BASELINE,
-  SUBTIPOS_DOCUMENTO,
-  TIPOS_COM_SUBTIPO,
-  TIPOS_DOCUMENTO,
+  CATEGORIA_TO_TPDESPESA,
+  TIPOS_DOC_DESPESA,
+  TIPOS_TRANSFERENCIA,
+  MODALIDADES_COMPRA,
+  TIPOS_DOC_PAGAMENTO,
+  FAVORECIDO_OVERRIDES,
+  migrarTipoLegacy,
 } from "@/lib/sit/catalogos";
-import { formatLinhaSIT } from "@/lib/sit/formatLinha";
+import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 
@@ -71,15 +75,30 @@ type Despesa = {
   favorecido: string;
   documento: string;
   valor: number;
-  tipoDocumento: number;
-  subtipoDocumento: number | null;
+  tpDocumentoDespesa: number;
   tpDocFav: "CPF" | "CNPJ" | "EXT";
   nrDocFav: string;
   descricao: string;
   categoria: string;
+  cdModalidadeCompra: number;
+  tpDocumentoPagamento: number;
 };
 
-const STORAGE_KEY = "sit-tcepr-state-v1";
+const STORAGE_KEY = "sit-tcepr-state-v2";
+const TERMO_KEY = "sit-tcepr-termo-v1";
+
+const TERMO_DEFAULT: DadosTermo = {
+  nrCNPJConcedente: "76206481000158",
+  tpTransferencia: 1,
+  nrInternoConcedente: "001/2022",
+  anoTransferencia: 2026,
+};
+
+function modalidadePadrao(tpDocumento: number): number {
+  // Holerite/RPA/Guias/Tarifas → Tributos/Pessoal (100). Resto → Dispensa (8).
+  if ([4, 5, 6, 7, 8, 9, 10, 20, 23].includes(tpDocumento)) return 100;
+  return 8;
+}
 
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -155,8 +174,9 @@ function novaDespesa(): Despesa {
     favorecido: "",
     documento: "0",
     valor: 0,
-    tipoDocumento: 1,
-    subtipoDocumento: null,
+    tpDocumentoDespesa: 1,
+    cdModalidadeCompra: 8,
+    tpDocumentoPagamento: 6,
     tpDocFav: "CNPJ",
     nrDocFav: "",
     descricao: "",
@@ -209,32 +229,60 @@ function AppPage() {
   const [carregarAberto, setCarregarAberto] = useState(false);
   const [listaOnline, setListaOnline] = useState<ExtracaoSalvaResumo[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(false);
+  const [termo, setTermo] = useState<DadosTermo>(TERMO_DEFAULT);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const rawT = window.localStorage.getItem(TERMO_KEY);
+      if (rawT) setTermo({ ...TERMO_DEFAULT, ...JSON.parse(rawT) });
+    } catch { /* noop */ }
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem("sit-tcepr-state-v1");
       if (raw) {
         const s = JSON.parse(raw) as {
           mesRef?: string;
           receitas?: ReceitaExtraida[];
-          despesas?: Despesa[];
+          despesas?: (Partial<Despesa> & { tipoDocumento?: number; subtipoDocumento?: number | null })[];
           resumo?: typeof resumo;
           overrides?: Record<string, CategoriaOverride>;
           categoriasExtras?: CategoriaExtra[];
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
-        if (s.despesas) setDespesas(s.despesas);
+        if (s.despesas) {
+          setDespesas(s.despesas.map((d) => {
+            const tpDoc = d.tpDocumentoDespesa ?? migrarTipoLegacy(d.tipoDocumento ?? 1, d.subtipoDocumento ?? null);
+            return {
+              uid: d.uid ?? crypto.randomUUID(),
+              idInterno: d.idInterno ?? "",
+              data: d.data ?? today(),
+              dataEmissao: d.dataEmissao ?? d.data ?? today(),
+              favorecido: d.favorecido ?? "",
+              documento: d.documento ?? "0",
+              valor: Number(d.valor) || 0,
+              tpDocumentoDespesa: tpDoc,
+              tpDocFav: (d.tpDocFav ?? "CNPJ") as Despesa["tpDocFav"],
+              nrDocFav: d.nrDocFav ?? "",
+              descricao: d.descricao ?? "",
+              categoria: d.categoria ?? CATEGORIAS[0].codigo,
+              cdModalidadeCompra: d.cdModalidadeCompra ?? modalidadePadrao(tpDoc),
+              tpDocumentoPagamento: d.tpDocumentoPagamento ?? 6,
+            };
+          }));
+        }
         if (s.resumo) setResumo(s.resumo);
         if (s.overrides) setOverrides(s.overrides);
         if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
       }
-    } catch {
-      /* noop */
-    }
+    } catch { /* noop */ }
     setHidratado(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(TERMO_KEY, JSON.stringify(termo)); } catch { /* noop */ }
+  }, [termo]);
 
   useEffect(() => {
     if (!hidratado || typeof window === "undefined") return;
@@ -278,21 +326,25 @@ function AppPage() {
       estornados: data.resumo?.estornados ?? 0,
     });
     setDespesas(
-      (data.despesas ?? []).map((d) => ({
-        uid: crypto.randomUUID(),
-        idInterno: d.idInterno,
-        data: d.data,
-        dataEmissao: d.dataEmissao || d.data,
-        favorecido: d.favorecido,
-        documento: d.documento || "0",
-        valor: Number(d.valor) || 0,
-        tipoDocumento: d.tipoDocumento,
-        subtipoDocumento: d.subtipoDocumento ?? null,
-        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
-        nrDocFav: d.nrDocFav,
-        descricao: d.descricao,
-        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
-      })),
+      (data.despesas ?? []).map((d) => {
+        const tpDoc = migrarTipoLegacy(d.tipoDocumento, d.subtipoDocumento ?? null);
+        return {
+          uid: crypto.randomUUID(),
+          idInterno: d.idInterno,
+          data: d.data,
+          dataEmissao: d.dataEmissao || d.data,
+          favorecido: d.favorecido,
+          documento: d.documento || "0",
+          valor: Number(d.valor) || 0,
+          tpDocumentoDespesa: tpDoc,
+          tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+          nrDocFav: d.nrDocFav,
+          descricao: d.descricao,
+          categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+          cdModalidadeCompra: modalidadePadrao(tpDoc),
+          tpDocumentoPagamento: 6,
+        };
+      }),
     );
   }
 
@@ -328,8 +380,8 @@ function AppPage() {
         favorecido: d.favorecido,
         documento: d.documento,
         valor: Number(d.valor) || 0,
-        tipoDocumento: d.tipoDocumento,
-        subtipoDocumento: d.subtipoDocumento ?? null,
+        tipoDocumento: d.tpDocumentoDespesa,
+        subtipoDocumento: null,
         tpDocFav: d.tpDocFav,
         nrDocFav: d.nrDocFav,
         descricao: d.descricao,
@@ -430,25 +482,24 @@ function AppPage() {
       if (!d.favorecido.trim()) erros.push(`Linha ${i + 1}: favorecido vazio.`);
       if (!d.nrDocFav.trim()) erros.push(`Linha ${i + 1}: documento do favorecido vazio.`);
       if (!d.data) erros.push(`Linha ${i + 1}: data de pagamento vazia.`);
-      if (TIPOS_COM_SUBTIPO.has(d.tipoDocumento) && d.subtipoDocumento == null) {
-        erros.push(`Linha ${i + 1}: subtipo obrigatório para tipo ${d.tipoDocumento}.`);
-      }
-      return formatLinhaSIT(
-        {
-          dtDespesa: d.data,
-          vlDespesa: d.valor,
-          cdTipoDocumentoDespesa: d.tipoDocumento,
-          cdSubtipoDocumentoDespesa: d.subtipoDocumento ?? null,
-          nrDocumentoDespesa: d.documento,
-          dtEmissaoDocumentoDespesa: d.dataEmissao || d.data,
-          tpDocumentoFavorecido: d.tpDocFav,
-          nrDocumentoFavorecido: d.nrDocFav,
-          nmFavorecido: d.favorecido,
-          dsObjetoDespesa: d.descricao,
-        },
-        i + 1,
-        d.idInterno || i + 1,
-      );
+      const tpDespesa = CATEGORIA_TO_TPDESPESA[d.categoria] ?? null;
+      if (tpDespesa == null) erros.push(`Linha ${i + 1}: categoria ${d.categoria} sem tpDespesa mapeado.`);
+      return formatLinhaSIT(termo, {
+        tpDespesa,
+        tpDocumentoFavorecido: d.tpDocFav,
+        nrDocumentoFavorecido: d.nrDocFav,
+        nmFavorecido: d.favorecido,
+        tpDocumentoDespesa: d.tpDocumentoDespesa,
+        nrDocumentoDespesa: d.documento,
+        vlDocumentoDespesa: d.valor,
+        dtDocumentoDespesa: d.dataEmissao || d.data,
+        cdModalidadeCompra: d.cdModalidadeCompra,
+        tpDocumentoPagamento: d.tpDocumentoPagamento,
+        nrDocumentoPagamento: d.documento,
+        dtEmissaoPagamento: d.data,
+        dtDebito: d.data,
+        dsItemDespesa: d.descricao,
+      });
     });
     if (erros.length) {
       toast.error(`${erros.length} pendência(s) na revisão`, {
