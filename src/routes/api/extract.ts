@@ -118,7 +118,7 @@ export const Route = createFileRoute("/api/extract")({
 
           const parsed = JSON.parse(cleaned);
           const validated = extracaoSchema.parse(parsed);
-          return Response.json(validated);
+          return Response.json(aplicarRegrasHolerite(validated));
         } catch (e: unknown) {
           const err = e as { statusCode?: number; message?: string };
           const status = err.statusCode ?? 500;
