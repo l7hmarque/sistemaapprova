@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { extracaoSchema } from "@/lib/extract/schema";
 import { CATEGORIAS } from "@/lib/sit/catalogos";
+import { aplicarRegrasHolerite } from "@/lib/sit/regrasHolerite";
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em prestações de contas de Termos de Fomento (TCE-PR / padrão SIT).
 
