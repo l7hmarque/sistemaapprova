@@ -78,10 +78,12 @@ export const Route = createFileRoute("/api/extract")({
         const model = gateway("google/gemini-3-flash-preview");
 
         try {
-          const { experimental_output } = await generateText({
+          const { text } = await generateText({
             model,
-            system: SYSTEM_PROMPT,
-            experimental_output: Output.object({ schema: extracaoSchema }),
+            system:
+              SYSTEM_PROMPT +
+              `\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido (sem markdown, sem \`\`\`), conforme este shape:\n` +
+              `{\n  "mesReferencia": "MM/AAAA",\n  "receitas": [{"numeroParcela": number|null, "valor": number, "dataRecebimento": "AAAA-MM-DD"}],\n  "despesas": [{"idInterno": string, "data": "AAAA-MM-DD", "dataEmissao": "AAAA-MM-DD"|null, "favorecido": string, "documento": string, "valor": number, "tipoDocumento": number, "subtipoDocumento": number|null, "tpDocFav": "CPF"|"CNPJ"|"EXT", "nrDocFav": string, "descricao": string, "sugestaoCategoria": string}],\n  "resumo": {"saldoAnterior": number, "transferidos": number, "rendimentos": number, "estornados": number}\n}`,
             messages: [
               {
                 role: "user",
@@ -89,21 +91,33 @@ export const Route = createFileRoute("/api/extract")({
                   ? [
                       {
                         type: "text",
-                        text: "Extraia receitas, despesas e resumo desta prestação de contas:",
+                        text: "Extraia receitas, despesas e resumo desta prestação de contas. Retorne SOMENTE o JSON.",
                       },
                       { type: "file", data: pdfBytes, mediaType: mimeType },
                     ]
                   : [
                       {
                         type: "text",
-                        text: `Extraia receitas, despesas e resumo deste texto de prestação de contas:\n\n${pdfText}`,
+                        text: `Extraia receitas, despesas e resumo deste texto de prestação de contas. Retorne SOMENTE o JSON.\n\n${pdfText}`,
                       },
                     ],
               },
             ],
           });
 
-          return Response.json(experimental_output);
+          // Sanitize and parse JSON
+          let cleaned = text.trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
+          const start = cleaned.indexOf("{");
+          const end = cleaned.lastIndexOf("}");
+          if (start !== -1 && end > start) cleaned = cleaned.slice(start, end + 1);
+
+          const parsed = JSON.parse(cleaned);
+          const validated = extracaoSchema.parse(parsed);
+          return Response.json(validated);
         } catch (e: unknown) {
           const err = e as { statusCode?: number; message?: string };
           const status = err.statusCode ?? 500;
