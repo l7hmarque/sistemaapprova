@@ -24,6 +24,7 @@ import {
 import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
 import {
   CATEGORIAS,
+  CATEGORIA_GASTO_BASELINE,
   SUBTIPOS_DOCUMENTO,
   TIPOS_COM_SUBTIPO,
   TIPOS_DOCUMENTO,
@@ -405,7 +406,7 @@ function AppPage() {
     todasCategorias.forEach((c) => {
       const o = overrides[c.codigo] ?? {};
       const previsto = o.previsto ?? c.previsto;
-      const gastoCalc = gastoPorCategoria.get(c.codigo) ?? 0;
+      const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gastoPorCategoria.get(c.codigo) ?? 0);
       const gasto = o.gasto ?? gastoCalc;
       const saldo = o.saldo ?? previsto - gasto;
       tp += previsto;
@@ -973,7 +974,7 @@ function CategoriasTable({
         {linhas.map((c) => {
           const o = overrides[c.codigo] ?? {};
           const previsto = o.previsto ?? c.previsto;
-          const gastoCalc = gasto.get(c.codigo) ?? 0;
+          const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gasto.get(c.codigo) ?? 0);
           const gastoEfetivo = o.gasto ?? gastoCalc;
           const saldoCalc = previsto - gastoEfetivo;
           const saldoEfetivo = o.saldo ?? saldoCalc;
