@@ -504,6 +504,12 @@ function AppPage() {
       if (!d.favorecido.trim()) erros.push(`Linha ${i + 1}: favorecido vazio.`);
       if (!d.nrDocFav.trim()) erros.push(`Linha ${i + 1}: documento do favorecido vazio.`);
       if (!d.data) erros.push(`Linha ${i + 1}: data de pagamento vazia.`);
+      if (d.tpDocFav === "CNPJ" && d.nrDocFav.trim() && !isValidCNPJ(d.nrDocFav)) {
+        erros.push(`Linha ${i + 1}: CNPJ inválido (${d.nrDocFav}) — ${d.favorecido}.`);
+      }
+      if (d.tpDocFav === "CPF" && d.nrDocFav.trim() && !isValidCPF(d.nrDocFav)) {
+        erros.push(`Linha ${i + 1}: CPF inválido (${d.nrDocFav}) — ${d.favorecido}.`);
+      }
       const tpDespesa = CATEGORIA_TO_TPDESPESA[d.categoria] ?? null;
       if (tpDespesa == null) erros.push(`Linha ${i + 1}: categoria ${d.categoria} sem tpDespesa mapeado.`);
       return formatLinhaSIT(termo, {
