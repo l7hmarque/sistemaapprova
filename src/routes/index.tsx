@@ -904,7 +904,6 @@ function DespesasTable({
   return (
     <div className="space-y-3">
       {despesas.map((d) => {
-        const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
         const cat = categorias.find((c) => c.codigo === d.categoria);
         const completa =
           d.idInterno.trim() !== "" &&
@@ -914,8 +913,7 @@ function DespesasTable({
           d.nrDocFav.trim() !== "" &&
           d.documento.trim() !== "" &&
           d.valor > 0 &&
-          !!d.tipoDocumento &&
-          (!precisaSub || d.subtipoDocumento != null) &&
+          !!d.tpDocumentoDespesa &&
           d.categoria.trim() !== "";
         return (
           <Card
