@@ -75,15 +75,30 @@ type Despesa = {
   favorecido: string;
   documento: string;
   valor: number;
-  tipoDocumento: number;
-  subtipoDocumento: number | null;
+  tpDocumentoDespesa: number;
   tpDocFav: "CPF" | "CNPJ" | "EXT";
   nrDocFav: string;
   descricao: string;
   categoria: string;
+  cdModalidadeCompra: number;
+  tpDocumentoPagamento: number;
 };
 
-const STORAGE_KEY = "sit-tcepr-state-v1";
+const STORAGE_KEY = "sit-tcepr-state-v2";
+const TERMO_KEY = "sit-tcepr-termo-v1";
+
+const TERMO_DEFAULT: DadosTermo = {
+  nrCNPJConcedente: "76206481000158",
+  tpTransferencia: 1,
+  nrInternoConcedente: "001/2022",
+  anoTransferencia: 2026,
+};
+
+function modalidadePadrao(tpDocumento: number): number {
+  // Holerite/RPA/Guias/Tarifas → Tributos/Pessoal (100). Resto → Dispensa (8).
+  if ([4, 5, 6, 7, 8, 9, 10, 20, 23].includes(tpDocumento)) return 100;
+  return 8;
+}
 
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
