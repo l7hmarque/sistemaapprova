@@ -391,6 +391,7 @@ function AppPage() {
     }
   }
 
+  const totalExecutado = useMemo(
     () => despesas.reduce((s, d) => s + (Number(d.valor) || 0), 0),
     [despesas],
   );
