@@ -4,7 +4,7 @@ import { formatLinhaSIT, type DadosTermo, type DespesaInput } from "./formatLinh
 const termo: DadosTermo = {
   nrCNPJConcedente: "76.206.481/0001-58",
   tpTransferencia: 8,
-  nrInternoConcedente: "001/2022",
+  nrInternoConcedente: "001",
   anoTransferencia: 2022,
 };
 
