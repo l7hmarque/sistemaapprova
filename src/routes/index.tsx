@@ -454,25 +454,24 @@ function AppPage() {
       if (!d.favorecido.trim()) erros.push(`Linha ${i + 1}: favorecido vazio.`);
       if (!d.nrDocFav.trim()) erros.push(`Linha ${i + 1}: documento do favorecido vazio.`);
       if (!d.data) erros.push(`Linha ${i + 1}: data de pagamento vazia.`);
-      if (TIPOS_COM_SUBTIPO.has(d.tipoDocumento) && d.subtipoDocumento == null) {
-        erros.push(`Linha ${i + 1}: subtipo obrigatório para tipo ${d.tipoDocumento}.`);
-      }
-      return formatLinhaSIT(
-        {
-          dtDespesa: d.data,
-          vlDespesa: d.valor,
-          cdTipoDocumentoDespesa: d.tipoDocumento,
-          cdSubtipoDocumentoDespesa: d.subtipoDocumento ?? null,
-          nrDocumentoDespesa: d.documento,
-          dtEmissaoDocumentoDespesa: d.dataEmissao || d.data,
-          tpDocumentoFavorecido: d.tpDocFav,
-          nrDocumentoFavorecido: d.nrDocFav,
-          nmFavorecido: d.favorecido,
-          dsObjetoDespesa: d.descricao,
-        },
-        i + 1,
-        d.idInterno || i + 1,
-      );
+      const tpDespesa = CATEGORIA_TO_TPDESPESA[d.categoria] ?? null;
+      if (tpDespesa == null) erros.push(`Linha ${i + 1}: categoria ${d.categoria} sem tpDespesa mapeado.`);
+      return formatLinhaSIT(termo, {
+        tpDespesa,
+        tpDocumentoFavorecido: d.tpDocFav,
+        nrDocumentoFavorecido: d.nrDocFav,
+        nmFavorecido: d.favorecido,
+        tpDocumentoDespesa: d.tpDocumentoDespesa,
+        nrDocumentoDespesa: d.documento,
+        vlDocumentoDespesa: d.valor,
+        dtDocumentoDespesa: d.dataEmissao || d.data,
+        cdModalidadeCompra: d.cdModalidadeCompra,
+        tpDocumentoPagamento: d.tpDocumentoPagamento,
+        nrDocumentoPagamento: d.documento,
+        dtEmissaoPagamento: d.data,
+        dtDebito: d.data,
+        dsItemDespesa: d.descricao,
+      });
     });
     if (erros.length) {
       toast.error(`${erros.length} pendência(s) na revisão`, {
