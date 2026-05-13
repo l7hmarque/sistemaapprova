@@ -1,49 +1,36 @@
-# Plano
+## Diagnóstico
 
-## O que vou corrigir
-A falha agora não está mais no ano. Pelas evidências do CSV e das prints, a transferência cadastrada no SIT é:
+Validei o checksum dos dois CNPJs do `Despesa_v4.txt`:
 
-- Número SIT: `51530`
-- Instrumento: `Termo de Colaboração - 001/2022`
-- Concedente: `MUNICÍPIO DE MEDIANEIRA`
-- Tomador: `SOCIEDADE CIVIL NOSSA SENHORA APARECIDA DE FOZ DO IGUAÇU`
 
-No app, o arquivo está sendo gerado com:
-- `tipo da transferência = 1` (`Termo de Convênio`)
+| Linha | Favorecido                       | CNPJ no arquivo      | Checksum                                                                                                                                                                                                                       |
+| ----- | -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 30    | MITRA DIOCESANA DE FOZ DO IGUACU | `77.945.152/0001-91` | ✅ válido (formato), mas o **/0001-91 não corresponde a nenhuma filial registrada** dessa razão social — as filiais conhecidas são `/0002-72`, `/0023-05`, `/0032-98` etc. O SIT consulta a Receita e rejeita CNPJ inexistente. |
+| 34    | SANEPAR                          | `76.484.013/0001-46` | ❌ **checksum inválido**. O CNPJ correto da Sanepar é `76.484.013/0001-45`.                                                                                                                                                     |
 
-Mas para `Termo de Colaboração`, o catálogo do próprio projeto indica:
-- `tipo da transferência = 8`
 
-Então a chave enviada hoje é incompatível com a transferência real do SIT.
+Ou seja: a IA de extração inventou/leu errado os dois CNPJs. O Sanepar é correção determinística (`...46` → `...45`). O da Mitra precisa do número da paróquia certa do recibo de aluguel (qual paróquia recebeu o aluguel?), porque "Mitra Diocesana" tem várias filiais e a matriz `/0001-91` aparentemente não existe.
 
-## Implementação
-1. Ajustar o default do termo em `src/routes/index.tsx` para usar `tpTransferencia: 8`.
-2. Adicionar migração no carregamento do `localStorage` para corrigir automaticamente casos já salvos com:
-   - `nrInternoConcedente = "001/2022"`
-   - `nrCNPJConcedente = "76206481000158"`
-   - `anoTransferencia = 2022`
-   - `tpTransferencia = 1`
-   para `tpTransferencia = 8`.
-3. Atualizar os testes de `src/lib/sit/formatLinha.test.ts` para refletir a chave correta.
-4. Regenerar o `.txt` mantendo os 38 lançamentos atuais e alterando apenas a 2ª coluna de `1` para `8`.
-5. Entregar um novo arquivo versionado em `/mnt/documents/` para comparação e importação.
+## Pergunta antes de gerar v5
 
-## Validação
-- Verificar que cada linha segue com 24 campos.
-- Conferir as primeiras e últimas linhas do novo arquivo para confirmar a chave:
-  - CNPJ concedente `76206481000158`
-  - tipo `8`
-  - número interno `001/2022`
-  - ano `2022`
-- Rodar o teste focado do formatador SIT.
+Preciso confirmar o CNPJ correto da Mitra (linha 30, Recibo 17 - Aluguel R$ 2.500). Algumas possibilidades comuns em Foz:
 
-## Detalhes técnicos
-- Evidência no CSV enviado:
-  - linha `42`: `51530;Termo de Colaboração - 001/2022;MUNICÍPIO DE MEDIANEIRA;SOCIEDADE CIVIL NOSSA SENHORA APARECIDA DE FOZ DO IGUAÇU;...`
-- Evidência no catálogo do projeto:
-  - `TIPOS_TRANSFERENCIA`: `8 = Termo de Colaboração`
-- Evidência no arquivo atual:
-  - `Despesa_v2.txt` ainda começa com `76206481000158|1|001/2022|2022|...`
+- Paróquia São João Batista — `77.945.152/0002-72`
+- Paróquia Catedral N. Sra. de Guadalupe — `77.945.152/0023-05`
+- Paróquia N. Sra. do Perpétuo Socorro — `77.945.152/0032-98`
+- Outra (informar) = 77945152000191
 
-## Resultado esperado
-O novo arquivo passará a usar a chave compatível com a transferência 51530 cadastrada no SIT, sem alterar os lançamentos de despesa.
+## Plano de correção (após confirmação)
+
+1. **Gerar `/mnt/documents/Despesa_v5.txt**` com Python, mantendo as 38 linhas e ANSI/Win-1252:
+  - Linha 30: trocar coluna 7 do CNPJ da Mitra para o correto.
+  - Linha 34: trocar `76484013000146` → `76484013000145` (Sanepar).
+2. **Hardening no app** (`src/lib/sit/`):
+  - Criar `src/lib/sit/cnpjValidator.ts` com a função `isValidCNPJ` (algoritmo oficial dos 2 dígitos verificadores) — testada em `cnpjValidator.test.ts`.
+  - Em `formatLinhaSIT`, quando `tpDocumentoFavorecido === "CNPJ"` e o CNPJ falhar no checksum, **lançar erro** com a linha/favorecido para impedir gerar arquivo inválido.
+  - Adicionar override fixo da Sanepar em `catalogos.ts` (igual aos overrides DARF/GPS/GFIP) para o caso `nmFavorecido` contendo "SANEPAR" → CNPJ `76484013000145`. Evita repetir o erro em meses futuros.
+3. **Validação na UI** (`src/routes/index.tsx`): ao salvar/editar despesa com tipo CNPJ, marcar campo inválido em vermelho e bloquear o botão "Gerar Despesa.txt" enquanto houver CNPJ inválido. Toast lista as linhas problemáticas.
+4. **Teste** (`formatLinha.test.ts`): novo caso garantindo que CNPJ com checksum quebrado dispara erro.
+5. **Verificar** com `vitest`.
+
+Posso seguir com esse plano assim que você me disser qual paróquia da Mitra usar na linha 30.
