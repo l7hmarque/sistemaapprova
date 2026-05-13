@@ -34,8 +34,8 @@ describe("formatLinhaSIT", () => {
     };
     const out = formatLinhaSIT(dirty, 2, 200);
     const parts = out.split("|");
-    expect(parts[10]).toBe("Joao  Pipe Co");
-    expect(parts[11]).toMatch(/^Linha com quebras e  barras$/);
+    expect(parts[10]).toBe("Joao Pipe Co");
+    expect(parts[11]).toBe("Linha com quebras e barras");
   });
 
   it("mantém apenas dígitos no nrDocumentoFavorecido", () => {
