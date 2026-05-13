@@ -737,7 +737,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">ID</Label>
                   <Input
                     value={d.idInterno}
-                    onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
+                    maxLength={30}
+                    onChange={(e) => onUpdate(d.uid, { idInterno: sanitizeId(e.target.value) })}
+                    onBlur={(e) => onUpdate(d.uid, { idInterno: sanitizeId(e.target.value) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
