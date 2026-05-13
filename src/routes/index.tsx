@@ -298,21 +298,25 @@ function AppPage() {
       estornados: data.resumo?.estornados ?? 0,
     });
     setDespesas(
-      (data.despesas ?? []).map((d) => ({
-        uid: crypto.randomUUID(),
-        idInterno: d.idInterno,
-        data: d.data,
-        dataEmissao: d.dataEmissao || d.data,
-        favorecido: d.favorecido,
-        documento: d.documento || "0",
-        valor: Number(d.valor) || 0,
-        tipoDocumento: d.tipoDocumento,
-        subtipoDocumento: d.subtipoDocumento ?? null,
-        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
-        nrDocFav: d.nrDocFav,
-        descricao: d.descricao,
-        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
-      })),
+      (data.despesas ?? []).map((d) => {
+        const tpDoc = migrarTipoLegacy(d.tipoDocumento, d.subtipoDocumento ?? null);
+        return {
+          uid: crypto.randomUUID(),
+          idInterno: d.idInterno,
+          data: d.data,
+          dataEmissao: d.dataEmissao || d.data,
+          favorecido: d.favorecido,
+          documento: d.documento || "0",
+          valor: Number(d.valor) || 0,
+          tpDocumentoDespesa: tpDoc,
+          tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+          nrDocFav: d.nrDocFav,
+          descricao: d.descricao,
+          categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+          cdModalidadeCompra: modalidadePadrao(tpDoc),
+          tpDocumentoPagamento: 6,
+        };
+      }),
     );
   }
 
