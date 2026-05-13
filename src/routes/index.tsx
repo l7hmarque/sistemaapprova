@@ -71,6 +71,18 @@ const fmtBRL = (n: number) =>
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Sanitizadores espelhados de src/lib/sit/formatLinha.ts
+const stripDiacritics = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const cleanText = (s: string) =>
+  stripDiacritics((s ?? "").replace(/[|"'\\\r\n]/g, " ").replace(/\s+/g, " ").trim());
+const onlyDigits = (s: string) => (s ?? "").replace(/\D/g, "");
+const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+const sanitizeId = (s: string) => (s ?? "").replace(/[^A-Za-z0-9_\-]/g, "").slice(0, 30);
+const limiteDocFav = (tp: "CPF" | "CNPJ" | "EXT") => (tp === "CPF" ? 11 : tp === "CNPJ" ? 14 : 20);
+const sanitizeNrDocFav = (s: string, tp: "CPF" | "CNPJ" | "EXT") =>
+  tp === "EXT" ? truncate(cleanText(s), 20) : truncate(onlyDigits(s), limiteDocFav(tp));
+
 /**
  * Input numérico que mantém um draft em string. Resolve o bug de
  * "não consigo apagar o zero" / "perde a vírgula no meio da digitação".
@@ -725,7 +737,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">ID</Label>
                   <Input
                     value={d.idInterno}
-                    onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
+                    maxLength={30}
+                    onChange={(e) => onUpdate(d.uid, { idInterno: sanitizeId(e.target.value) })}
+                    onBlur={(e) => onUpdate(d.uid, { idInterno: sanitizeId(e.target.value) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
@@ -755,7 +769,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Favorecido</Label>
                   <Input
                     value={d.favorecido}
+                    maxLength={100}
                     onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
+                    onBlur={(e) => onUpdate(d.uid, { favorecido: truncate(cleanText(e.target.value), 100) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
@@ -766,7 +782,9 @@ function DespesasTable({
                   <Input
                     value={d.descricao}
                     placeholder="Descrição do gasto"
+                    maxLength={1000}
                     onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
+                    onBlur={(e) => onUpdate(d.uid, { descricao: truncate(cleanText(e.target.value), 1000) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
@@ -777,7 +795,10 @@ function DespesasTable({
                   <div className="flex gap-2">
                     <Select
                       value={d.tpDocFav}
-                      onValueChange={(v) => onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })}
+                      onValueChange={(v) => {
+                        const tp = v as Despesa["tpDocFav"];
+                        onUpdate(d.uid, { tpDocFav: tp, nrDocFav: sanitizeNrDocFav(d.nrDocFav, tp) });
+                      }}
                     >
                       <SelectTrigger className="h-10 w-[88px] text-sm border-[0.5px] border-black">
                         <SelectValue />
@@ -790,7 +811,10 @@ function DespesasTable({
                     </Select>
                     <Input
                       value={d.nrDocFav}
-                      onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
+                      maxLength={limiteDocFav(d.tpDocFav)}
+                      inputMode={d.tpDocFav === "EXT" ? "text" : "numeric"}
+                      onChange={(e) => onUpdate(d.uid, { nrDocFav: sanitizeNrDocFav(e.target.value, d.tpDocFav) })}
+                      onBlur={(e) => onUpdate(d.uid, { nrDocFav: sanitizeNrDocFav(e.target.value, d.tpDocFav) })}
                       className="h-10 text-sm border-[0.5px] border-black"
                     />
                   </div>
@@ -851,7 +875,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Doc nº</Label>
                   <Input
                     value={d.documento}
+                    maxLength={20}
                     onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
+                    onBlur={(e) => onUpdate(d.uid, { documento: truncate(cleanText(e.target.value), 20) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
