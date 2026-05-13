@@ -543,6 +543,12 @@ function AppPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={abrirCarregarOnline} className="gap-2">
+              <CloudDownload className="h-4 w-4" /> Carregar online
+            </Button>
+            <Button variant="outline" onClick={salvarOnline} disabled={!algumDado || salvandoOnline} className="gap-2">
+              <Cloud className="h-4 w-4" /> {salvandoOnline ? "Salvando..." : "Salvar online"}
+            </Button>
             <Button variant="outline" onClick={salvarManual} disabled={!algumDado} className="gap-2">
               <Save className="h-4 w-4" /> Salvar
             </Button>
@@ -555,6 +561,43 @@ function AppPage() {
           </div>
         </div>
       </header>
+
+      <Dialog open={carregarAberto} onOpenChange={setCarregarAberto}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Carregar extração online</DialogTitle>
+            <DialogDescription>
+              Escolha uma extração salva para hidratar a tabela. Isso substitui o trabalho atual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto space-y-2">
+            {carregandoLista && <p className="text-sm text-muted-foreground">Carregando...</p>}
+            {!carregandoLista && listaOnline.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma extração salva ainda.</p>
+            )}
+            {listaOnline.map((it) => (
+              <div key={it.id} className="flex items-center justify-between gap-2 rounded border p-2">
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {it.mes_referencia ?? "(sem mês)"} · {it.nome_arquivo ?? "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(it.criada_em).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => carregarItem(it.id)}>Carregar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => apagarItem(it.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
+
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
         <UploadCard onFile={handleUpload} loading={extraindo} />
