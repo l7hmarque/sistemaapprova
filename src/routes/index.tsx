@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
 import {
   CATEGORIAS,
   SUBTIPOS_DOCUMENTO,
