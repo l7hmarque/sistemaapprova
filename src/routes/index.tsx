@@ -516,15 +516,105 @@ function AppPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="receitas">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Valores transferidos</CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyReceitas}
+                  disabled={receitas.length === 0}
+                  className="gap-1"
+                >
+                  <Copy className="h-4 w-4" /> Copiar tabela
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {receitas.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                          Nenhuma receita extraída ainda.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {receitas.map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{r.numeroParcela ?? i + 1}</TableCell>
+                        <TableCell>{r.dataRecebimento}</TableCell>
+                        <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="despesas">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">
+                  Despesas efetuadas no mês ({despesas.length})
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={copyDespesas}
+                    disabled={despesas.length === 0}
+                    className="gap-1"
+                  >
+                    <Copy className="h-4 w-4" /> Copiar tabela
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={adicionarDespesa} className="gap-1">
+                    <Plus className="h-4 w-4" /> Adicionar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <DespesasTable
+                  despesas={despesas}
+                  onUpdate={updateDespesa}
+                  onRemove={removerDespesa}
+                  categorias={todasCategorias}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="categorias">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">
                   Saldo atualizado por categoria econômica
                 </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copyCategorias}
+                  className="gap-1"
+                >
+                  <Copy className="h-4 w-4" /> Copiar tabela
+                </Button>
               </CardHeader>
               <CardContent className="overflow-x-auto">
-                <CategoriasTable gasto={gastoPorCategoria} />
+                <CategoriasTable
+                  gasto={gastoPorCategoria}
+                  overrides={overrides}
+                  setOverrides={setOverrides}
+                  extras={categoriasExtras}
+                  setExtras={setCategoriasExtras}
+                />
               </CardContent>
             </Card>
           </TabsContent>
