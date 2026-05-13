@@ -91,7 +91,7 @@ const TERMO_DEFAULT: DadosTermo = {
   nrCNPJConcedente: "76206481000158",
   tpTransferencia: 1,
   nrInternoConcedente: "001/2022",
-  anoTransferencia: 2026,
+  anoTransferencia: 2022,
 };
 
 function modalidadePadrao(tpDocumento: number): number {
@@ -235,7 +235,15 @@ function AppPage() {
     if (typeof window === "undefined") return;
     try {
       const rawT = window.localStorage.getItem(TERMO_KEY);
-      if (rawT) setTermo({ ...TERMO_DEFAULT, ...JSON.parse(rawT) });
+      if (rawT) {
+        const parsed = { ...TERMO_DEFAULT, ...JSON.parse(rawT) } as DadosTermo;
+        // Migração: o ano da transferência deve ser o ano de celebração do termo
+        // (parte da chave primária no SIT), não o ano do exercício das despesas.
+        if (parsed.nrInternoConcedente === "001/2022" && parsed.anoTransferencia === 2026) {
+          parsed.anoTransferencia = 2022;
+        }
+        setTermo(parsed);
+      }
     } catch { /* noop */ }
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem("sit-tcepr-state-v1");
