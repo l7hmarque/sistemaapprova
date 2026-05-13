@@ -734,10 +734,12 @@ function DespesasTable({
   despesas,
   onUpdate,
   onRemove,
+  categorias,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
   onRemove: (uid: string) => void;
+  categorias: { codigo: string; nome: string; previsto: number }[];
 }) {
   if (despesas.length === 0) {
     return (
