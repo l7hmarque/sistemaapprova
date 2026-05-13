@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { extracaoSchema } from "@/lib/extract/schema";
 import { CATEGORIAS } from "@/lib/sit/catalogos";
+import { aplicarRegrasHolerite } from "@/lib/sit/regrasHolerite";
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em prestações de contas de Termos de Fomento (TCE-PR / padrão SIT).
 
@@ -117,7 +118,7 @@ export const Route = createFileRoute("/api/extract")({
 
           const parsed = JSON.parse(cleaned);
           const validated = extracaoSchema.parse(parsed);
-          return Response.json(validated);
+          return Response.json(aplicarRegrasHolerite(validated));
         } catch (e: unknown) {
           const err = e as { statusCode?: number; message?: string };
           const status = err.statusCode ?? 500;
