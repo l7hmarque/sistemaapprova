@@ -89,7 +89,7 @@ const TERMO_KEY = "sit-tcepr-termo-v1";
 
 const TERMO_DEFAULT: DadosTermo = {
   nrCNPJConcedente: "76206481000158",
-  tpTransferencia: 1,
+  tpTransferencia: 8, // Termo de Colaboração
   nrInternoConcedente: "001/2022",
   anoTransferencia: 2022,
 };
@@ -241,6 +241,14 @@ function AppPage() {
         // (parte da chave primária no SIT), não o ano do exercício das despesas.
         if (parsed.nrInternoConcedente === "001/2022" && parsed.anoTransferencia === 2026) {
           parsed.anoTransferencia = 2022;
+        }
+        // Migração: termo 001/2022 de Medianeira é "Termo de Colaboração" (8), não "Convênio" (1).
+        if (
+          parsed.nrInternoConcedente === "001/2022" &&
+          parsed.nrCNPJConcedente === "76206481000158" &&
+          parsed.tpTransferencia === 1
+        ) {
+          parsed.tpTransferencia = 8;
         }
         setTermo(parsed);
       }
