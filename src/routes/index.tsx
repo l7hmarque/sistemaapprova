@@ -769,7 +769,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Favorecido</Label>
                   <Input
                     value={d.favorecido}
+                    maxLength={100}
                     onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
+                    onBlur={(e) => onUpdate(d.uid, { favorecido: truncate(cleanText(e.target.value), 100) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
