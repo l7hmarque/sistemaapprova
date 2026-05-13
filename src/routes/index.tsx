@@ -316,7 +316,81 @@ function AppPage() {
     }
   }
 
-  const totalExecutado = useMemo(
+  function buildExtracaoAtual(): ExtracaoResultado {
+    return {
+      mesReferencia: mesRef,
+      receitas,
+      resumo,
+      despesas: despesas.map((d) => ({
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || null,
+        favorecido: d.favorecido,
+        documento: d.documento,
+        valor: Number(d.valor) || 0,
+        tipoDocumento: d.tipoDocumento,
+        subtipoDocumento: d.subtipoDocumento ?? null,
+        tpDocFav: d.tpDocFav,
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        sugestaoCategoria: d.categoria,
+      })),
+    } as ExtracaoResultado;
+  }
+
+  async function salvarOnline() {
+    if (despesas.length === 0 && receitas.length === 0) {
+      toast.error("Nada para salvar online.");
+      return;
+    }
+    setSalvandoOnline(true);
+    try {
+      await salvarExtracaoOnline({
+        dados: buildExtracaoAtual(),
+        nomeArquivo: mesRef ? `extracao-${mesRef.replace("/", "-")}` : null,
+      });
+      toast.success("Extração salva online.");
+    } catch (e) {
+      toast.error("Falha ao salvar online: " + (e as Error).message);
+    } finally {
+      setSalvandoOnline(false);
+    }
+  }
+
+  async function abrirCarregarOnline() {
+    setCarregarAberto(true);
+    setCarregandoLista(true);
+    try {
+      setListaOnline(await listarExtracoesOnline());
+    } catch (e) {
+      toast.error("Falha ao listar: " + (e as Error).message);
+    } finally {
+      setCarregandoLista(false);
+    }
+  }
+
+  async function carregarItem(id: string) {
+    try {
+      const data = await carregarExtracaoOnline(id);
+      aplicarExtracao(data);
+      setCarregarAberto(false);
+      toast.success("Extração carregada.");
+    } catch (e) {
+      toast.error("Falha ao carregar: " + (e as Error).message);
+    }
+  }
+
+  async function apagarItem(id: string) {
+    if (!window.confirm("Apagar esta extração online?")) return;
+    try {
+      await apagarExtracaoOnline(id);
+      setListaOnline((prev) => prev.filter((x) => x.id !== id));
+      toast.success("Apagada.");
+    } catch (e) {
+      toast.error("Falha ao apagar: " + (e as Error).message);
+    }
+  }
+
     () => despesas.reduce((s, d) => s + (Number(d.valor) || 0), 0),
     [despesas],
   );
