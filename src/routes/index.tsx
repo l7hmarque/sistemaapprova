@@ -974,7 +974,7 @@ function CategoriasTable({
         {linhas.map((c) => {
           const o = overrides[c.codigo] ?? {};
           const previsto = o.previsto ?? c.previsto;
-          const gastoCalc = gasto.get(c.codigo) ?? 0;
+          const gastoCalc = (CATEGORIA_GASTO_BASELINE[c.codigo] ?? 0) + (gasto.get(c.codigo) ?? 0);
           const gastoEfetivo = o.gasto ?? gastoCalc;
           const saldoCalc = previsto - gastoEfetivo;
           const saldoEfetivo = o.saldo ?? saldoCalc;
