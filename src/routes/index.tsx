@@ -337,9 +337,17 @@ function AppPage() {
               TCE-PR · Importação Despesa.txt {mesRef && `· ${mesRef}`}
             </p>
           </div>
-          <Button onClick={exportarTxt} disabled={!algumDado} className="gap-2">
-            <Download className="h-4 w-4" /> Exportar .TXT
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={salvarManual} disabled={!algumDado} className="gap-2">
+              <Save className="h-4 w-4" /> Salvar
+            </Button>
+            <Button variant="ghost" onClick={limparTudo} disabled={!algumDado} className="gap-2">
+              <Trash2 className="h-4 w-4" /> Limpar
+            </Button>
+            <Button onClick={exportarTxt} disabled={!algumDado} className="gap-2">
+              <Download className="h-4 w-4" /> Exportar .TXT
+            </Button>
+          </div>
         </div>
       </header>
 
