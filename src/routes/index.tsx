@@ -268,6 +268,34 @@ function AppPage() {
     toast.success("Lançamentos apagados.");
   }
 
+  function aplicarExtracao(data: ExtracaoResultado) {
+    setMesRef(data.mesReferencia ?? "");
+    setReceitas(data.receitas ?? []);
+    setResumo({
+      saldoAnterior: data.resumo?.saldoAnterior ?? 0,
+      transferidos: data.resumo?.transferidos ?? 0,
+      rendimentos: data.resumo?.rendimentos ?? 0,
+      estornados: data.resumo?.estornados ?? 0,
+    });
+    setDespesas(
+      (data.despesas ?? []).map((d) => ({
+        uid: crypto.randomUUID(),
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || d.data,
+        favorecido: d.favorecido,
+        documento: d.documento || "0",
+        valor: Number(d.valor) || 0,
+        tipoDocumento: d.tipoDocumento,
+        subtipoDocumento: d.subtipoDocumento ?? null,
+        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+      })),
+    );
+  }
+
   async function handleUpload(file: File) {
     setExtraindo(true);
     try {
