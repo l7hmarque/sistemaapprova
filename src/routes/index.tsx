@@ -357,7 +357,65 @@ function AppPage() {
   }
 
   const fechaMatematica = Math.abs(saldoMes - (saldoMes | 0)) >= 0; // sempre verdadeiro; usado só para tipagem
-  const algumDado = despesas.length > 0 || receitas.length > 0;
+  const algumDado =
+    despesas.length > 0 ||
+    receitas.length > 0 ||
+    Object.keys(overrides).length > 0 ||
+    categoriasExtras.length > 0;
+
+  const todasCategorias = useMemo(
+    () => [
+      ...CATEGORIAS.map((c) => ({ codigo: c.codigo, nome: c.nome, previsto: c.previsto })),
+      ...categoriasExtras,
+    ],
+    [categoriasExtras],
+  );
+
+  function copyReceitas() {
+    const rows: (string | number)[][] = [["Parcela", "Data", "Valor"]];
+    receitas.forEach((r, i) =>
+      rows.push([r.numeroParcela ?? i + 1, r.dataRecebimento, fmtNum(r.valor)]),
+    );
+    copyTSV(rows, "Tabela Receitas");
+  }
+  function copyDespesas() {
+    const rows: (string | number)[][] = [
+      ["Data", "Favorecido", "Documento", "Tipo", "CPF/CNPJ", "Categoria", "Valor"],
+    ];
+    despesas.forEach((d) => {
+      const cat = todasCategorias.find((c) => c.codigo === d.categoria);
+      const tipo = TIPOS_DOCUMENTO.find((t) => t.codigo === d.tipoDocumento);
+      rows.push([
+        d.data,
+        d.favorecido,
+        d.documento,
+        tipo ? `${tipo.codigo} — ${tipo.nome}` : String(d.tipoDocumento),
+        `${d.tpDocFav} ${d.nrDocFav}`,
+        cat ? `${cat.codigo} — ${cat.nome}` : d.categoria,
+        fmtNum(d.valor),
+      ]);
+    });
+    copyTSV(rows, "Tabela Despesas");
+  }
+  function copyCategorias() {
+    const rows: (string | number)[][] = [["Código", "Descrição", "Previsto", "Gasto", "Saldo"]];
+    let tp = 0,
+      tg = 0,
+      ts = 0;
+    todasCategorias.forEach((c) => {
+      const o = overrides[c.codigo] ?? {};
+      const previsto = o.previsto ?? c.previsto;
+      const gastoCalc = gastoPorCategoria.get(c.codigo) ?? 0;
+      const gasto = o.gasto ?? gastoCalc;
+      const saldo = o.saldo ?? previsto - gasto;
+      tp += previsto;
+      tg += gasto;
+      ts += saldo;
+      rows.push([c.codigo, c.nome, fmtNum(previsto), fmtNum(gasto), fmtNum(saldo)]);
+    });
+    rows.push(["", "TOTAL", fmtNum(tp), fmtNum(tg), fmtNum(ts)]);
+    copyTSV(rows, "Tabela Execução Orçamentária");
+  }
 
   return (
     <div className="min-h-screen bg-background">
