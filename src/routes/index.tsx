@@ -702,8 +702,22 @@ function DespesasTable({
       {despesas.map((d) => {
         const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
         const cat = categorias.find((c) => c.codigo === d.categoria);
+        const completa =
+          d.idInterno.trim() !== "" &&
+          d.data.trim() !== "" &&
+          d.favorecido.trim() !== "" &&
+          d.descricao.trim() !== "" &&
+          d.nrDocFav.trim() !== "" &&
+          d.documento.trim() !== "" &&
+          d.valor > 0 &&
+          !!d.tipoDocumento &&
+          (!precisaSub || d.subtipoDocumento != null) &&
+          d.categoria.trim() !== "";
         return (
-          <Card key={d.uid} className="border-[1px] border-border">
+          <Card
+            key={d.uid}
+            className={`border-[1px] ${completa ? "border-emerald-500" : "border-amber-500"}`}
+          >
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-3">
                 {/* linha 1: ID + Data + remover */}
