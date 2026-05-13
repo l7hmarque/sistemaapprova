@@ -22,7 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  salvarExtracaoOnline,
+  listarExtracoesOnline,
+  carregarExtracaoOnline,
+  apagarExtracaoOnline,
+  type ExtracaoSalvaResumo,
+} from "@/lib/extracoes-online";
 import {
   CATEGORIAS,
   CATEGORIA_GASTO_BASELINE,
@@ -190,6 +205,10 @@ function AppPage() {
   const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
   const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
   const [hidratado, setHidratado] = useState(false);
+  const [salvandoOnline, setSalvandoOnline] = useState(false);
+  const [carregarAberto, setCarregarAberto] = useState(false);
+  const [listaOnline, setListaOnline] = useState<ExtracaoSalvaResumo[]>([]);
+  const [carregandoLista, setCarregandoLista] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -249,6 +268,34 @@ function AppPage() {
     toast.success("Lançamentos apagados.");
   }
 
+  function aplicarExtracao(data: ExtracaoResultado) {
+    setMesRef(data.mesReferencia ?? "");
+    setReceitas(data.receitas ?? []);
+    setResumo({
+      saldoAnterior: data.resumo?.saldoAnterior ?? 0,
+      transferidos: data.resumo?.transferidos ?? 0,
+      rendimentos: data.resumo?.rendimentos ?? 0,
+      estornados: data.resumo?.estornados ?? 0,
+    });
+    setDespesas(
+      (data.despesas ?? []).map((d) => ({
+        uid: crypto.randomUUID(),
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || d.data,
+        favorecido: d.favorecido,
+        documento: d.documento || "0",
+        valor: Number(d.valor) || 0,
+        tipoDocumento: d.tipoDocumento,
+        subtipoDocumento: d.subtipoDocumento ?? null,
+        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+      })),
+    );
+  }
+
   async function handleUpload(file: File) {
     setExtraindo(true);
     try {
@@ -260,36 +307,87 @@ function AppPage() {
         throw new Error(err.error ?? `Erro ${res.status}`);
       }
       const data = (await res.json()) as ExtracaoResultado;
-      setMesRef(data.mesReferencia ?? "");
-      setReceitas(data.receitas ?? []);
-      setResumo({
-        saldoAnterior: data.resumo?.saldoAnterior ?? 0,
-        transferidos: data.resumo?.transferidos ?? 0,
-        rendimentos: data.resumo?.rendimentos ?? 0,
-        estornados: data.resumo?.estornados ?? 0,
-      });
-      setDespesas(
-        (data.despesas ?? []).map((d) => ({
-          uid: crypto.randomUUID(),
-          idInterno: d.idInterno,
-          data: d.data,
-          dataEmissao: d.dataEmissao || d.data,
-          favorecido: d.favorecido,
-          documento: d.documento || "0",
-          valor: Number(d.valor) || 0,
-          tipoDocumento: d.tipoDocumento,
-          subtipoDocumento: d.subtipoDocumento ?? null,
-          tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
-          nrDocFav: d.nrDocFav,
-          descricao: d.descricao,
-          categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
-        })),
-      );
+      aplicarExtracao(data);
       toast.success(`Extraídas ${data.despesas?.length ?? 0} despesas.`);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setExtraindo(false);
+    }
+  }
+
+  function buildExtracaoAtual(): ExtracaoResultado {
+    return {
+      mesReferencia: mesRef,
+      receitas,
+      resumo,
+      despesas: despesas.map((d) => ({
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || null,
+        favorecido: d.favorecido,
+        documento: d.documento,
+        valor: Number(d.valor) || 0,
+        tipoDocumento: d.tipoDocumento,
+        subtipoDocumento: d.subtipoDocumento ?? null,
+        tpDocFav: d.tpDocFav,
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        sugestaoCategoria: d.categoria,
+      })),
+    } as ExtracaoResultado;
+  }
+
+  async function salvarOnline() {
+    if (despesas.length === 0 && receitas.length === 0) {
+      toast.error("Nada para salvar online.");
+      return;
+    }
+    setSalvandoOnline(true);
+    try {
+      await salvarExtracaoOnline({
+        dados: buildExtracaoAtual(),
+        nomeArquivo: mesRef ? `extracao-${mesRef.replace("/", "-")}` : null,
+      });
+      toast.success("Extração salva online.");
+    } catch (e) {
+      toast.error("Falha ao salvar online: " + (e as Error).message);
+    } finally {
+      setSalvandoOnline(false);
+    }
+  }
+
+  async function abrirCarregarOnline() {
+    setCarregarAberto(true);
+    setCarregandoLista(true);
+    try {
+      setListaOnline(await listarExtracoesOnline());
+    } catch (e) {
+      toast.error("Falha ao listar: " + (e as Error).message);
+    } finally {
+      setCarregandoLista(false);
+    }
+  }
+
+  async function carregarItem(id: string) {
+    try {
+      const data = await carregarExtracaoOnline(id);
+      aplicarExtracao(data);
+      setCarregarAberto(false);
+      toast.success("Extração carregada.");
+    } catch (e) {
+      toast.error("Falha ao carregar: " + (e as Error).message);
+    }
+  }
+
+  async function apagarItem(id: string) {
+    if (!window.confirm("Apagar esta extração online?")) return;
+    try {
+      await apagarExtracaoOnline(id);
+      setListaOnline((prev) => prev.filter((x) => x.id !== id));
+      toast.success("Apagada.");
+    } catch (e) {
+      toast.error("Falha ao apagar: " + (e as Error).message);
     }
   }
 
@@ -445,6 +543,12 @@ function AppPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={abrirCarregarOnline} className="gap-2">
+              <CloudDownload className="h-4 w-4" /> Carregar online
+            </Button>
+            <Button variant="outline" onClick={salvarOnline} disabled={!algumDado || salvandoOnline} className="gap-2">
+              <Cloud className="h-4 w-4" /> {salvandoOnline ? "Salvando..." : "Salvar online"}
+            </Button>
             <Button variant="outline" onClick={salvarManual} disabled={!algumDado} className="gap-2">
               <Save className="h-4 w-4" /> Salvar
             </Button>
@@ -457,6 +561,43 @@ function AppPage() {
           </div>
         </div>
       </header>
+
+      <Dialog open={carregarAberto} onOpenChange={setCarregarAberto}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Carregar extração online</DialogTitle>
+            <DialogDescription>
+              Escolha uma extração salva para hidratar a tabela. Isso substitui o trabalho atual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto space-y-2">
+            {carregandoLista && <p className="text-sm text-muted-foreground">Carregando...</p>}
+            {!carregandoLista && listaOnline.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma extração salva ainda.</p>
+            )}
+            {listaOnline.map((it) => (
+              <div key={it.id} className="flex items-center justify-between gap-2 rounded border p-2">
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {it.mes_referencia ?? "(sem mês)"} · {it.nome_arquivo ?? "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(it.criada_em).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => carregarItem(it.id)}>Carregar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => apagarItem(it.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
+
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
         <UploadCard onFile={handleUpload} loading={extraindo} />
