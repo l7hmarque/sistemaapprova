@@ -229,32 +229,60 @@ function AppPage() {
   const [carregarAberto, setCarregarAberto] = useState(false);
   const [listaOnline, setListaOnline] = useState<ExtracaoSalvaResumo[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(false);
+  const [termo, setTermo] = useState<DadosTermo>(TERMO_DEFAULT);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const rawT = window.localStorage.getItem(TERMO_KEY);
+      if (rawT) setTermo({ ...TERMO_DEFAULT, ...JSON.parse(rawT) });
+    } catch { /* noop */ }
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem("sit-tcepr-state-v1");
       if (raw) {
         const s = JSON.parse(raw) as {
           mesRef?: string;
           receitas?: ReceitaExtraida[];
-          despesas?: Despesa[];
+          despesas?: (Partial<Despesa> & { tipoDocumento?: number; subtipoDocumento?: number | null })[];
           resumo?: typeof resumo;
           overrides?: Record<string, CategoriaOverride>;
           categoriasExtras?: CategoriaExtra[];
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
-        if (s.despesas) setDespesas(s.despesas);
+        if (s.despesas) {
+          setDespesas(s.despesas.map((d) => {
+            const tpDoc = d.tpDocumentoDespesa ?? migrarTipoLegacy(d.tipoDocumento ?? 1, d.subtipoDocumento ?? null);
+            return {
+              uid: d.uid ?? crypto.randomUUID(),
+              idInterno: d.idInterno ?? "",
+              data: d.data ?? today(),
+              dataEmissao: d.dataEmissao ?? d.data ?? today(),
+              favorecido: d.favorecido ?? "",
+              documento: d.documento ?? "0",
+              valor: Number(d.valor) || 0,
+              tpDocumentoDespesa: tpDoc,
+              tpDocFav: (d.tpDocFav ?? "CNPJ") as Despesa["tpDocFav"],
+              nrDocFav: d.nrDocFav ?? "",
+              descricao: d.descricao ?? "",
+              categoria: d.categoria ?? CATEGORIAS[0].codigo,
+              cdModalidadeCompra: d.cdModalidadeCompra ?? modalidadePadrao(tpDoc),
+              tpDocumentoPagamento: d.tpDocumentoPagamento ?? 6,
+            };
+          }));
+        }
         if (s.resumo) setResumo(s.resumo);
         if (s.overrides) setOverrides(s.overrides);
         if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
       }
-    } catch {
-      /* noop */
-    }
+    } catch { /* noop */ }
     setHidratado(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(TERMO_KEY, JSON.stringify(termo)); } catch { /* noop */ }
+  }, [termo]);
 
   useEffect(() => {
     if (!hidratado || typeof window === "undefined") return;
