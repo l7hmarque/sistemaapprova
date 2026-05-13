@@ -575,8 +575,8 @@ function DespesasTable({
           <TableHead className="w-[100px]">Tipo</TableHead>
           <TableHead className="w-[110px]">Subtipo</TableHead>
           <TableHead className="w-[110px]">Doc nº</TableHead>
-          <TableHead className="w-[170px]">Categoria 2.4</TableHead>
-          <TableHead className="w-[120px] text-right">Valor</TableHead>
+          <TableHead className="w-[280px]">Categoria 2.4</TableHead>
+          <TableHead className="w-[140px] text-right">Valor</TableHead>
           <TableHead className="w-[40px]" />
         </TableRow>
       </TableHeader>
