@@ -703,7 +703,7 @@ function DespesasTable({
         const precisaSub = TIPOS_COM_SUBTIPO.has(d.tipoDocumento);
         const cat = categorias.find((c) => c.codigo === d.categoria);
         return (
-          <Card key={d.uid} className="border-border/60">
+          <Card key={d.uid} className="border-[1px] border-border">
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-3">
                 {/* linha 1: ID + Data + remover */}
@@ -712,7 +712,7 @@ function DespesasTable({
                   <Input
                     value={d.idInterno}
                     onChange={(e) => onUpdate(d.uid, { idInterno: e.target.value })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                   />
                 </div>
                 <div className="col-span-7 md:col-span-3">
@@ -721,7 +721,7 @@ function DespesasTable({
                     type="date"
                     value={d.data}
                     onChange={(e) => onUpdate(d.uid, { data: e.target.value })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                   />
                 </div>
                 <div className="col-span-2 md:col-span-7 flex items-end justify-end">
@@ -742,7 +742,7 @@ function DespesasTable({
                   <Input
                     value={d.favorecido}
                     onChange={(e) => onUpdate(d.uid, { favorecido: e.target.value })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                   />
                 </div>
 
@@ -753,7 +753,7 @@ function DespesasTable({
                     value={d.descricao}
                     placeholder="Descrição do gasto"
                     onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                   />
                 </div>
 
@@ -765,7 +765,7 @@ function DespesasTable({
                       value={d.tpDocFav}
                       onValueChange={(v) => onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })}
                     >
-                      <SelectTrigger className="h-10 w-[88px] text-sm">
+                      <SelectTrigger className="h-10 w-[88px] text-sm border-[0.5px] border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -777,7 +777,7 @@ function DespesasTable({
                     <Input
                       value={d.nrDocFav}
                       onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
-                      className="h-10 text-sm"
+                      className="h-10 text-sm border-[0.5px] border-border"
                     />
                   </div>
                 </div>
@@ -796,7 +796,7 @@ function DespesasTable({
                       });
                     }}
                   >
-                    <SelectTrigger className="h-10 text-sm">
+                    <SelectTrigger className="h-10 text-sm border-[0.5px] border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -816,7 +816,7 @@ function DespesasTable({
                       value={String(d.subtipoDocumento ?? "")}
                       onValueChange={(v) => onUpdate(d.uid, { subtipoDocumento: Number(v) })}
                     >
-                      <SelectTrigger className="h-10 text-sm">
+                      <SelectTrigger className="h-10 text-sm border-[0.5px] border-border">
                         <SelectValue placeholder="—" />
                       </SelectTrigger>
                       <SelectContent>
@@ -838,7 +838,7 @@ function DespesasTable({
                   <Input
                     value={d.documento}
                     onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                   />
                 </div>
 
@@ -848,7 +848,7 @@ function DespesasTable({
                     value={d.categoria}
                     onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
                   >
-                    <SelectTrigger className="h-auto min-h-12 py-2 text-left">
+                    <SelectTrigger className="h-auto min-h-12 py-2 text-left border-[0.5px] border-border">
                       <SelectValue asChild>
                         <div className="flex flex-col gap-0.5 leading-tight">
                           <span className="font-mono text-xs">{cat?.codigo ?? d.categoria}</span>
@@ -872,7 +872,7 @@ function DespesasTable({
                   <NumberField
                     value={d.valor}
                     onChange={(n) => onUpdate(d.uid, { valor: n })}
-                    className="h-10 text-sm"
+                    className="h-10 text-sm border-[0.5px] border-border"
                     align="right"
                   />
                 </div>
