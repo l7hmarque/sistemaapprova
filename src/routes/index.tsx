@@ -875,7 +875,9 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Doc nº</Label>
                   <Input
                     value={d.documento}
+                    maxLength={20}
                     onChange={(e) => onUpdate(d.uid, { documento: e.target.value })}
+                    onBlur={(e) => onUpdate(d.uid, { documento: truncate(cleanText(e.target.value), 20) })}
                     className="h-10 text-sm border-[0.5px] border-black"
                   />
                 </div>
