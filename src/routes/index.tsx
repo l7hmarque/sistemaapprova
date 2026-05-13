@@ -660,6 +660,8 @@ function AppPage() {
           onChange={setResumo}
         />
 
+        <TermoCard termo={termo} onChange={setTermo} />
+
         <Tabs defaultValue="despesas" className="w-full">
           <TabsList>
             <TabsTrigger value="receitas">Receitas (1.1)</TabsTrigger>
