@@ -205,6 +205,10 @@ function AppPage() {
   const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
   const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
   const [hidratado, setHidratado] = useState(false);
+  const [salvandoOnline, setSalvandoOnline] = useState(false);
+  const [carregarAberto, setCarregarAberto] = useState(false);
+  const [listaOnline, setListaOnline] = useState<ExtracaoSalvaResumo[]>([]);
+  const [carregandoLista, setCarregandoLista] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
