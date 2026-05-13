@@ -41,11 +41,15 @@ import {
 import {
   CATEGORIAS,
   CATEGORIA_GASTO_BASELINE,
-  SUBTIPOS_DOCUMENTO,
-  TIPOS_COM_SUBTIPO,
-  TIPOS_DOCUMENTO,
+  CATEGORIA_TO_TPDESPESA,
+  TIPOS_DOC_DESPESA,
+  TIPOS_TRANSFERENCIA,
+  MODALIDADES_COMPRA,
+  TIPOS_DOC_PAGAMENTO,
+  FAVORECIDO_OVERRIDES,
+  migrarTipoLegacy,
 } from "@/lib/sit/catalogos";
-import { formatLinhaSIT } from "@/lib/sit/formatLinha";
+import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 
