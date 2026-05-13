@@ -1,20 +1,34 @@
 ## Problema
-Após extração do PDF, os campos de revisão/edição na aba Despesas estão muito apertados (h-8/h-7, text-xs, text-[11px]), dificultando ver o conteúdo extraído (favorecido, descrição, categoria, doc, etc.).
+A tabela de Despesas tem 10 colunas — mesmo com inputs maiores, "Doc nº", "Favorecido", "Categoria 2.4" continuam apertados/cortados.
 
-## Mudanças (apenas UI em `src/routes/index.tsx`, função `DespesasTable`)
+## Solução
+Substituir a `<Table>` por uma **lista de cards**, um card por despesa, com campos organizados em grid de 2 linhas. Assim cada campo ocupa largura adequada e nada fica cortado.
 
-1. **Inputs de texto/data/número/select**: subir altura de `h-8` para `h-10` e usar `text-sm` (padrão), removendo o aperto visual.
-2. **Campo Descrição** (sub-input do Favorecido): de `h-7 text-xs` para `h-9 text-sm` (cor levemente atenuada mantida).
-3. **Coluna Categoria 2.4**: aumentar `text-[11px]` para `text-xs`/`text-sm` no código e nome, permitir até 3 linhas no nome (line-clamp-3) e aumentar largura da coluna de `w-[280px]` para `w-[320px]`.
-4. **Larguras das colunas**: ajustar para acomodar conteúdo sem truncar:
-   - Favorecido: garantir `min-w-[260px]`
-   - CPF/CNPJ: `w-[180px]`
-   - Doc nº: `w-[130px]`
-   - Data pgto: `w-[150px]`
-5. **Espaçamento das linhas**: adicionar `py-2` nas células para respirar.
-6. **Scroll horizontal**: envolver `<Table>` em `<div className="overflow-x-auto">` para evitar quebra em telas menores agora que as colunas são mais largas.
-7. **Botão remover**: subir de `h-7 w-7` para `h-9 w-9` para alinhar com a nova altura das linhas.
+## Layout do card (cada despesa)
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ [ID]   [Data pgto]                                       [🗑]    │
+│                                                                   │
+│ Favorecido (full width) ─────────────────────────────────────     │
+│ Descrição (full width) ──────────────────────────────────────     │
+│                                                                   │
+│ [Tp][CPF/CNPJ        ]  [Tipo doc        ]  [Subtipo      ]      │
+│ [Doc nº            ]  [Categoria 2.4 (wide) ──────] [Valor R$]   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- Grid responsivo: `grid grid-cols-12 gap-3`.
+- Favorecido e Descrição: `col-span-12` (linha cheia, nome completo visível).
+- CPF/CNPJ: `col-span-4`; Tipo: `col-span-4`; Subtipo: `col-span-4`.
+- Doc nº: `col-span-3`; Categoria: `col-span-6` (com nome em até 2 linhas, fonte `text-sm`); Valor: `col-span-3`.
+- Cada campo com `<Label>` pequeno acima do input.
+- Inputs: `h-10 text-sm`. Categoria: `min-h-12` com nome `text-sm line-clamp-2`.
+- Header de cada card: ID compacto + Data pgto + botão remover.
+
+## Mudanças
+- `src/routes/index.tsx` — reescrever apenas o `return` do `DespesasTable` (e o estado vazio) para renderizar `<div className="space-y-3">` com cards `<Card>`/`<CardContent>` em vez de `<Table>`.
+- Remover imports não usados (`Table*`) **somente** se não forem usados em outras tabelas — verificar antes (Receitas e Categorias ainda usam `Table`, então manter).
 
 ## Fora do escopo
-- Lógica de extração, schema, regras de holerite, `formatLinhaSIT`, persistência — sem alterações.
-- Aba Receitas e Categorias mantidas como estão (a queixa é específica de Despesas após upload do PDF).
+- Aba Receitas, aba Categorias, header, upload, regras de holerite, schema, backend.
