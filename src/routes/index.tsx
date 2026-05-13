@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import {
   CATEGORIAS,
   SUBTIPOS_DOCUMENTO,
@@ -62,10 +62,60 @@ type Despesa = {
   categoria: string;
 };
 
+const STORAGE_KEY = "sit-tcepr-state-v1";
+
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Input numérico que mantém um draft em string. Resolve o bug de
+ * "não consigo apagar o zero" / "perde a vírgula no meio da digitação".
+ * Aceita "," e ".", só comita o número quando o draft é válido.
+ */
+function NumberField({
+  value,
+  onChange,
+  className,
+  align = "left",
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  const [draft, setDraft] = useState<string>(() => String(value ?? 0));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setDraft(String(value ?? 0));
+  }, [value]);
+  return (
+    <Input
+      inputMode="decimal"
+      value={draft}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onChange={(e) => {
+        const v = e.target.value;
+        setDraft(v);
+        const norm = v.replace(/\./g, "").replace(",", ".");
+        const n = Number(norm);
+        if (v.trim() !== "" && Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={() => {
+        focused.current = false;
+        const norm = draft.replace(/\./g, "").replace(",", ".");
+        const n = Number(norm);
+        const final = Number.isFinite(n) ? n : 0;
+        onChange(final);
+        setDraft(String(final));
+      }}
+      className={`${className ?? ""} ${align === "right" ? "text-right" : ""}`}
+    />
+  );
+}
 
 function novaDespesa(): Despesa {
   return {
@@ -96,6 +146,59 @@ function AppPage() {
     rendimentos: 0,
     estornados: 0,
   });
+  const [hidratado, setHidratado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw) as {
+          mesRef?: string;
+          receitas?: ReceitaExtraida[];
+          despesas?: Despesa[];
+          resumo?: typeof resumo;
+        };
+        if (s.mesRef) setMesRef(s.mesRef);
+        if (s.receitas) setReceitas(s.receitas);
+        if (s.despesas) setDespesas(s.despesas);
+        if (s.resumo) setResumo(s.resumo);
+      }
+    } catch {
+      /* noop */
+    }
+    setHidratado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hidratado || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ mesRef, receitas, despesas, resumo }),
+      );
+    } catch {
+      /* noop */
+    }
+  }, [hidratado, mesRef, receitas, despesas, resumo]);
+
+  function salvarManual() {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ mesRef, receitas, despesas, resumo }),
+    );
+    toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
+  }
+
+  function limparTudo() {
+    if (!window.confirm("Apagar todos os lançamentos salvos?")) return;
+    setMesRef("");
+    setReceitas([]);
+    setDespesas([]);
+    setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
+    window.localStorage.removeItem(STORAGE_KEY);
+    toast.success("Lançamentos apagados.");
+  }
 
   async function handleUpload(file: File) {
     setExtraindo(true);
@@ -234,9 +337,17 @@ function AppPage() {
               TCE-PR · Importação Despesa.txt {mesRef && `· ${mesRef}`}
             </p>
           </div>
-          <Button onClick={exportarTxt} disabled={!algumDado} className="gap-2">
-            <Download className="h-4 w-4" /> Exportar .TXT
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={salvarManual} disabled={!algumDado} className="gap-2">
+              <Save className="h-4 w-4" /> Salvar
+            </Button>
+            <Button variant="ghost" onClick={limparTudo} disabled={!algumDado} className="gap-2">
+              <Trash2 className="h-4 w-4" /> Limpar
+            </Button>
+            <Button onClick={exportarTxt} disabled={!algumDado} className="gap-2">
+              <Download className="h-4 w-4" /> Exportar .TXT
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -416,15 +527,14 @@ function ResumoCards({
               {c.label}
             </div>
             {c.key ? (
-              <Input
-                type="number"
-                step="0.01"
-                value={resumo[c.key]}
-                onChange={(e) =>
-                  onChange({ ...resumo, [c.key as string]: Number(e.target.value) || 0 })
-                }
-                className="mt-1 h-8 px-2 text-base font-semibold"
-              />
+              <>
+                <NumberField
+                  value={resumo[c.key]}
+                  onChange={(n) => onChange({ ...resumo, [c.key as string]: n })}
+                  className="mt-1 h-8 px-2 text-base font-semibold"
+                />
+                <div className="mt-1 text-xs text-muted-foreground">{fmtBRL(resumo[c.key])}</div>
+              </>
             ) : (
               <div className={`mt-2 text-lg font-semibold ${c.tone ?? ""}`}>
                 {fmtBRL(c.value)}
@@ -465,8 +575,8 @@ function DespesasTable({
           <TableHead className="w-[100px]">Tipo</TableHead>
           <TableHead className="w-[110px]">Subtipo</TableHead>
           <TableHead className="w-[110px]">Doc nº</TableHead>
-          <TableHead className="w-[170px]">Categoria 2.4</TableHead>
-          <TableHead className="w-[120px] text-right">Valor</TableHead>
+          <TableHead className="w-[280px]">Categoria 2.4</TableHead>
+          <TableHead className="w-[140px] text-right">Valor</TableHead>
           <TableHead className="w-[40px]" />
         </TableRow>
       </TableHeader>
@@ -583,29 +693,41 @@ function DespesasTable({
                 />
               </TableCell>
               <TableCell>
-                <Select
-                  value={d.categoria}
-                  onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
-                >
-                  <SelectTrigger className="h-8 px-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {CATEGORIAS.map((c) => (
-                      <SelectItem key={c.codigo} value={c.codigo}>
-                        {c.codigo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const cat = CATEGORIAS.find((c) => c.codigo === d.categoria);
+                  return (
+                    <Select
+                      value={d.categoria}
+                      onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
+                    >
+                      <SelectTrigger className="h-auto min-h-8 px-2 py-1 text-left">
+                        <SelectValue asChild>
+                          <div className="flex flex-col leading-tight">
+                            <span className="font-mono text-[11px]">{cat?.codigo ?? d.categoria}</span>
+                            <span className="text-[11px] text-muted-foreground line-clamp-2">
+                              {cat?.nome ?? "—"}
+                            </span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {CATEGORIAS.map((c) => (
+                          <SelectItem key={c.codigo} value={c.codigo}>
+                            <span className="font-mono text-xs">{c.codigo}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </TableCell>
               <TableCell>
-                <Input
-                  type="number"
-                  step="0.01"
+                <NumberField
                   value={d.valor}
-                  onChange={(e) => onUpdate(d.uid, { valor: Number(e.target.value) || 0 })}
-                  className="h-8 px-2 text-right"
+                  onChange={(n) => onUpdate(d.uid, { valor: n })}
+                  className="h-8 px-2"
+                  align="right"
                 />
               </TableCell>
               <TableCell>
