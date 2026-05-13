@@ -880,58 +880,235 @@ function DespesasTable({
   );
 }
 
-function CategoriasTable({ gasto }: { gasto: Map<string, number> }) {
-  const total = CATEGORIAS.reduce(
-    (acc, c) => {
-      const g = gasto.get(c.codigo) ?? 0;
-      acc.previsto += c.previsto;
-      acc.gasto += g;
-      acc.saldo += c.previsto - g;
-      return acc;
-    },
-    { previsto: 0, gasto: 0, saldo: 0 },
-  );
+function CategoriasTable({
+  gasto,
+  overrides,
+  setOverrides,
+  extras,
+  setExtras,
+}: {
+  gasto: Map<string, number>;
+  overrides: Record<string, CategoriaOverride>;
+  setOverrides: (
+    upd:
+      | Record<string, CategoriaOverride>
+      | ((prev: Record<string, CategoriaOverride>) => Record<string, CategoriaOverride>),
+  ) => void;
+  extras: CategoriaExtra[];
+  setExtras: (
+    upd: CategoriaExtra[] | ((prev: CategoriaExtra[]) => CategoriaExtra[]),
+  ) => void;
+}) {
+  const linhas = [
+    ...CATEGORIAS.map((c) => ({ codigo: c.codigo, nome: c.nome, previsto: c.previsto, extra: false })),
+    ...extras.map((c) => ({ ...c, extra: true })),
+  ];
+
+  function patchOverride(codigo: string, patch: Partial<CategoriaOverride>) {
+    setOverrides((prev) => {
+      const cur = { ...(prev[codigo] ?? {}), ...patch };
+      // limpa undefineds
+      (Object.keys(cur) as (keyof CategoriaOverride)[]).forEach((k) => {
+        if (cur[k] === undefined) delete cur[k];
+      });
+      const next = { ...prev };
+      if (Object.keys(cur).length === 0) delete next[codigo];
+      else next[codigo] = cur;
+      return next;
+    });
+  }
+
+  function resetSaldo(codigo: string) {
+    patchOverride(codigo, { saldo: undefined });
+  }
+  function resetGasto(codigo: string) {
+    patchOverride(codigo, { gasto: undefined });
+  }
+
+  // form de nova categoria
+  const [novoCodigo, setNovoCodigo] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoPrevisto, setNovoPrevisto] = useState(0);
+
+  function adicionarCategoria() {
+    if (!novoCodigo.trim() || !novoNome.trim()) {
+      toast.error("Informe código e descrição da categoria.");
+      return;
+    }
+    if (
+      CATEGORIAS.some((c) => c.codigo === novoCodigo) ||
+      extras.some((c) => c.codigo === novoCodigo)
+    ) {
+      toast.error("Código já existe.");
+      return;
+    }
+    setExtras((prev) => [...prev, { codigo: novoCodigo.trim(), nome: novoNome.trim(), previsto: novoPrevisto }]);
+    setNovoCodigo("");
+    setNovoNome("");
+    setNovoPrevisto(0);
+  }
+
+  function removerExtra(codigo: string) {
+    setExtras((prev) => prev.filter((c) => c.codigo !== codigo));
+    patchOverride(codigo, { previsto: undefined, gasto: undefined, saldo: undefined });
+  }
+
+  let tp = 0,
+    tg = 0,
+    ts = 0;
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Código</TableHead>
+          <TableHead className="w-[120px]">Código</TableHead>
           <TableHead>Descrição</TableHead>
-          <TableHead className="text-right">Previsto</TableHead>
-          <TableHead className="text-right">Gasto</TableHead>
-          <TableHead className="text-right">Saldo</TableHead>
-          <TableHead className="w-[40px]" />
+          <TableHead className="w-[150px] text-right">Previsto</TableHead>
+          <TableHead className="w-[170px] text-right">Gasto</TableHead>
+          <TableHead className="w-[170px] text-right">Saldo</TableHead>
+          <TableHead className="w-[60px]" />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {CATEGORIAS.map((c) => {
-          const g = gasto.get(c.codigo) ?? 0;
-          const saldo = c.previsto - g;
-          const estourou = saldo < 0;
+        {linhas.map((c) => {
+          const o = overrides[c.codigo] ?? {};
+          const previsto = o.previsto ?? c.previsto;
+          const gastoCalc = gasto.get(c.codigo) ?? 0;
+          const gastoEfetivo = o.gasto ?? gastoCalc;
+          const saldoCalc = previsto - gastoEfetivo;
+          const saldoEfetivo = o.saldo ?? saldoCalc;
+          const estourou = saldoEfetivo < 0;
+          tp += previsto;
+          tg += gastoEfetivo;
+          ts += saldoEfetivo;
           return (
             <TableRow key={c.codigo} className={estourou ? "bg-destructive/5" : ""}>
               <TableCell className="font-mono text-xs">{c.codigo}</TableCell>
               <TableCell>{c.nome}</TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {fmtBRL(c.previsto)}
-              </TableCell>
-              <TableCell className="text-right">{fmtBRL(g)}</TableCell>
-              <TableCell className="text-right font-medium">{fmtBRL(saldo)}</TableCell>
               <TableCell>
-                {estourou ? (
+                <NumberField
+                  value={previsto}
+                  onChange={(n) =>
+                    patchOverride(c.codigo, {
+                      previsto: n === c.previsto && !c.extra ? undefined : n,
+                    })
+                  }
+                  className="h-8 px-2"
+                  align="right"
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <NumberField
+                    value={gastoEfetivo}
+                    onChange={(n) =>
+                      patchOverride(c.codigo, { gasto: n === gastoCalc ? undefined : n })
+                    }
+                    className="h-8 px-2"
+                    align="right"
+                  />
+                  {o.gasto !== undefined && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => resetGasto(c.codigo)}
+                      aria-label="Voltar ao calculado"
+                      title="Voltar ao gasto calculado"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <NumberField
+                    value={saldoEfetivo}
+                    onChange={(n) =>
+                      patchOverride(c.codigo, { saldo: n === saldoCalc ? undefined : n })
+                    }
+                    className="h-8 px-2"
+                    align="right"
+                  />
+                  {o.saldo !== undefined && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => resetSaldo(c.codigo)}
+                      aria-label="Voltar ao calculado"
+                      title="Voltar ao saldo calculado"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                {c.extra ? (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => removerExtra(c.codigo)}
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                ) : estourou ? (
                   <AlertCircle className="h-4 w-4 text-destructive" />
-                ) : g > 0 ? (
+                ) : gastoEfetivo > 0 ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 ) : null}
               </TableCell>
             </TableRow>
           );
         })}
+        <TableRow className="bg-muted/30">
+          <TableCell>
+            <Input
+              value={novoCodigo}
+              placeholder="ex 3.3.90.30.99"
+              onChange={(e) => setNovoCodigo(e.target.value)}
+              className="h-8 px-2 font-mono text-xs"
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              value={novoNome}
+              placeholder="Descrição da nova categoria"
+              onChange={(e) => setNovoNome(e.target.value)}
+              className="h-8 px-2"
+            />
+          </TableCell>
+          <TableCell>
+            <NumberField
+              value={novoPrevisto}
+              onChange={setNovoPrevisto}
+              className="h-8 px-2"
+              align="right"
+            />
+          </TableCell>
+          <TableCell colSpan={2} />
+          <TableCell>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={adicionarCategoria}
+              aria-label="Adicionar categoria"
+              title="Adicionar categoria"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </TableCell>
+        </TableRow>
         <TableRow className="border-t-2 font-semibold">
           <TableCell colSpan={2}>TOTAL</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.previsto)}</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.gasto)}</TableCell>
-          <TableCell className="text-right">{fmtBRL(total.saldo)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(tp)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(tg)}</TableCell>
+          <TableCell className="text-right">{fmtBRL(ts)}</TableCell>
           <TableCell />
         </TableRow>
       </TableBody>
