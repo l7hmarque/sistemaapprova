@@ -795,7 +795,10 @@ function DespesasTable({
                   <div className="flex gap-2">
                     <Select
                       value={d.tpDocFav}
-                      onValueChange={(v) => onUpdate(d.uid, { tpDocFav: v as Despesa["tpDocFav"] })}
+                      onValueChange={(v) => {
+                        const tp = v as Despesa["tpDocFav"];
+                        onUpdate(d.uid, { tpDocFav: tp, nrDocFav: sanitizeNrDocFav(d.nrDocFav, tp) });
+                      }}
                     >
                       <SelectTrigger className="h-10 w-[88px] text-sm border-[0.5px] border-black">
                         <SelectValue />
@@ -808,7 +811,10 @@ function DespesasTable({
                     </Select>
                     <Input
                       value={d.nrDocFav}
-                      onChange={(e) => onUpdate(d.uid, { nrDocFav: e.target.value })}
+                      maxLength={limiteDocFav(d.tpDocFav)}
+                      inputMode={d.tpDocFav === "EXT" ? "text" : "numeric"}
+                      onChange={(e) => onUpdate(d.uid, { nrDocFav: sanitizeNrDocFav(e.target.value, d.tpDocFav) })}
+                      onBlur={(e) => onUpdate(d.uid, { nrDocFav: sanitizeNrDocFav(e.target.value, d.tpDocFav) })}
                       className="h-10 text-sm border-[0.5px] border-black"
                     />
                   </div>
