@@ -693,29 +693,41 @@ function DespesasTable({
                 />
               </TableCell>
               <TableCell>
-                <Select
-                  value={d.categoria}
-                  onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
-                >
-                  <SelectTrigger className="h-8 px-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {CATEGORIAS.map((c) => (
-                      <SelectItem key={c.codigo} value={c.codigo}>
-                        {c.codigo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const cat = CATEGORIAS.find((c) => c.codigo === d.categoria);
+                  return (
+                    <Select
+                      value={d.categoria}
+                      onValueChange={(v) => onUpdate(d.uid, { categoria: v })}
+                    >
+                      <SelectTrigger className="h-auto min-h-8 px-2 py-1 text-left">
+                        <SelectValue asChild>
+                          <div className="flex flex-col leading-tight">
+                            <span className="font-mono text-[11px]">{cat?.codigo ?? d.categoria}</span>
+                            <span className="text-[11px] text-muted-foreground line-clamp-2">
+                              {cat?.nome ?? "—"}
+                            </span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {CATEGORIAS.map((c) => (
+                          <SelectItem key={c.codigo} value={c.codigo}>
+                            <span className="font-mono text-xs">{c.codigo}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">{c.nome}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </TableCell>
               <TableCell>
-                <Input
-                  type="number"
-                  step="0.01"
+                <NumberField
                   value={d.valor}
-                  onChange={(e) => onUpdate(d.uid, { valor: Number(e.target.value) || 0 })}
-                  className="h-8 px-2 text-right"
+                  onChange={(n) => onUpdate(d.uid, { valor: n })}
+                  className="h-8 px-2"
+                  align="right"
                 />
               </TableCell>
               <TableCell>
