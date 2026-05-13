@@ -1,6 +1,6 @@
 import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { extracaoSchema } from "@/lib/extract/schema";
 import { CATEGORIAS } from "@/lib/sit/catalogos";
