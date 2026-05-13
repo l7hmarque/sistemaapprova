@@ -135,6 +135,33 @@ function novaDespesa(): Despesa {
   };
 }
 
+type CategoriaOverride = { previsto?: number; gasto?: number; saldo?: number };
+type CategoriaExtra = { codigo: string; nome: string; previsto: number };
+
+async function copyTSV(rows: (string | number)[][], label: string) {
+  const fmt = (v: string | number) =>
+    String(v ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ");
+  const tsv = rows.map((r) => r.map(fmt).join("\t")).join("\n");
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(tsv);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = tsv;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast.success(`${label} copiada (${rows.length - 1} linha(s)).`);
+  } catch {
+    toast.error("Não foi possível copiar.");
+  }
+}
+
+const fmtNum = (n: number) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function AppPage() {
   const [extraindo, setExtraindo] = useState(false);
   const [mesRef, setMesRef] = useState("");
@@ -146,6 +173,8 @@ function AppPage() {
     rendimentos: 0,
     estornados: 0,
   });
+  const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
+  const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
   const [hidratado, setHidratado] = useState(false);
 
   useEffect(() => {
@@ -158,11 +187,15 @@ function AppPage() {
           receitas?: ReceitaExtraida[];
           despesas?: Despesa[];
           resumo?: typeof resumo;
+          overrides?: Record<string, CategoriaOverride>;
+          categoriasExtras?: CategoriaExtra[];
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
         if (s.despesas) setDespesas(s.despesas);
         if (s.resumo) setResumo(s.resumo);
+        if (s.overrides) setOverrides(s.overrides);
+        if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
       }
     } catch {
       /* noop */
@@ -175,17 +208,17 @@ function AppPage() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mesRef, receitas, despesas, resumo }),
+        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
       );
     } catch {
       /* noop */
     }
-  }, [hidratado, mesRef, receitas, despesas, resumo]);
+  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras]);
 
   function salvarManual() {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ mesRef, receitas, despesas, resumo }),
+      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
     );
     toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
   }
@@ -196,6 +229,8 @@ function AppPage() {
     setReceitas([]);
     setDespesas([]);
     setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
+    setOverrides({});
+    setCategoriasExtras([]);
     window.localStorage.removeItem(STORAGE_KEY);
     toast.success("Lançamentos apagados.");
   }
