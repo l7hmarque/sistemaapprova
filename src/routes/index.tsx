@@ -62,10 +62,60 @@ type Despesa = {
   categoria: string;
 };
 
+const STORAGE_KEY = "sit-tcepr-state-v1";
+
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Input numérico que mantém um draft em string. Resolve o bug de
+ * "não consigo apagar o zero" / "perde a vírgula no meio da digitação".
+ * Aceita "," e ".", só comita o número quando o draft é válido.
+ */
+function NumberField({
+  value,
+  onChange,
+  className,
+  align = "left",
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  const [draft, setDraft] = useState<string>(() => String(value ?? 0));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setDraft(String(value ?? 0));
+  }, [value]);
+  return (
+    <Input
+      inputMode="decimal"
+      value={draft}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onChange={(e) => {
+        const v = e.target.value;
+        setDraft(v);
+        const norm = v.replace(/\./g, "").replace(",", ".");
+        const n = Number(norm);
+        if (v.trim() !== "" && Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={() => {
+        focused.current = false;
+        const norm = draft.replace(/\./g, "").replace(",", ".");
+        const n = Number(norm);
+        const final = Number.isFinite(n) ? n : 0;
+        onChange(final);
+        setDraft(String(final));
+      }}
+      className={`${className ?? ""} ${align === "right" ? "text-right" : ""}`}
+    />
+  );
+}
 
 function novaDespesa(): Despesa {
   return {
