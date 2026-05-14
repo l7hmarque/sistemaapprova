@@ -19,7 +19,7 @@ export type OrigemCampo = "nfe-chave" | "boleto-linha" | "ia";
 
 export type DespesaEnriquecida = DespesaExtraida & {
   origem: OrigemCampo;
-  evidencia?: string; // ex.: "Página 3 — chave NF-e 4123..."
+  evidencia?: string | null;
 };
 
 export type ExtracaoEnriquecida = Omit<ExtracaoResultado, "despesas"> & {
