@@ -990,7 +990,22 @@ function DespesasTable({
 
                 {/* linha 2: Favorecido full width */}
                 <div className="col-span-12">
-                  <Label className="mb-1 block text-xs text-muted-foreground">Favorecido</Label>
+                  <div className="mb-1 flex items-center gap-2">
+                    <Label className="block text-xs text-muted-foreground">Favorecido</Label>
+                    {d.origem && d.origem !== "ia" && (
+                      <span
+                        title={d.evidencia ?? ""}
+                        className="rounded-sm bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
+                      >
+                        {d.origem === "nfe-chave" ? "📄 chave NF-e" : "🔢 boleto"}
+                      </span>
+                    )}
+                    {d.origem === "ia" && (
+                      <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                        🤖 IA
+                      </span>
+                    )}
+                  </div>
                   <Input
                     value={d.favorecido}
                     maxLength={100}
