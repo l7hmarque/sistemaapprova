@@ -33,6 +33,12 @@ export const despesaExtraidaSchema = z.object({
   nrDocFav: z.string().describe("Apenas dígitos do CPF/CNPJ"),
   descricao: z.string(),
   sugestaoCategoria: z.string().describe("Código natureza econômica (ex: 3.1.90.11.01)"),
+  origem: z
+    .enum(["nfe-chave", "boleto-linha", "ia"])
+    .nullable()
+    .optional()
+    .describe("Origem da extração; preenchido pela pipeline determinística no servidor"),
+  evidencia: z.string().nullable().optional(),
 });
 
 export const extracaoSchema = z.object({
