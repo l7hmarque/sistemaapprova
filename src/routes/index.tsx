@@ -83,6 +83,8 @@ type Despesa = {
   categoria: string;
   cdModalidadeCompra: number;
   tpDocumentoPagamento: number;
+  origem?: "nfe-chave" | "boleto-linha" | "ia" | null;
+  evidencia?: string | null;
 };
 
 const STORAGE_KEY = "sit-tcepr-state-v2";
@@ -365,6 +367,8 @@ function AppPage() {
           categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
           cdModalidadeCompra: modalidadePadrao(tpDoc),
           tpDocumentoPagamento: 6,
+          origem: (d as { origem?: Despesa["origem"] }).origem ?? "ia",
+          evidencia: (d as { evidencia?: string | null }).evidencia ?? null,
         };
       }),
     );
