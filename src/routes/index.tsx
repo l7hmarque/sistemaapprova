@@ -115,6 +115,16 @@ const cleanText = (s: string) =>
   stripDiacritics((s ?? "").replace(/[|"'\\\r\n]/g, " ").replace(/\s+/g, " ").trim());
 const onlyDigits = (s: string) => (s ?? "").replace(/\D/g, "");
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+const simplificarDescricao = (s: string) => {
+  let out = cleanText(s ?? "");
+  out = out.replace(
+    /^(pagamento\s+(referente\s+(a|ao)|de|do)\s+|ref(\.|er[eê]ncia)?\s+(a|ao)\s+|conforme\s+(nota|recibo|nf|cupom)[^,;.]*[,;.]?\s*)/i,
+    "",
+  );
+  out = out.replace(/\s*conforme\s+(nota|nf|recibo|cupom)[^,;.]*$/i, "");
+  out = out.replace(/\s+/g, " ").trim();
+  return truncate(out, 200);
+};
 const sanitizeId = (s: string) => (s ?? "").replace(/[^A-Za-z0-9_\-]/g, "").slice(0, 30);
 const limiteDocFav = (tp: "CPF" | "CNPJ" | "EXT") => (tp === "CPF" ? 11 : tp === "CNPJ" ? 14 : 20);
 const sanitizeNrDocFav = (s: string, tp: "CPF" | "CNPJ" | "EXT") =>
@@ -952,9 +962,9 @@ function DespesasTable({
         return (
           <Card
             key={d.uid}
-            className={`border-[1px] ${completa ? "border-emerald-500" : "border-amber-500"}`}
+            className={`border-[1px] ${completa ? "border-emerald-500" : "border-amber-500"} text-black [&_input]:text-black [&_button[role=combobox]]:text-black [&_textarea]:text-black`}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-black">
               <div className="grid grid-cols-12 gap-3">
                 {/* linha 1: ID + Data + remover */}
                 <div className="col-span-3 md:col-span-2">
@@ -1026,11 +1036,11 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Descrição</Label>
                   <Input
                     value={d.descricao}
-                    placeholder="Descrição do gasto"
-                    maxLength={1000}
+                    placeholder="Ex.: Aluguel mar/2025"
+                    maxLength={200}
                     onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
-                    onBlur={(e) => onUpdate(d.uid, { descricao: truncate(cleanText(e.target.value), 1000) })}
-                    className="h-10 text-sm border-[0.5px] border-black"
+                    onBlur={(e) => onUpdate(d.uid, { descricao: simplificarDescricao(e.target.value) })}
+                    className="h-10 text-sm border-[0.5px] border-black text-foreground"
                   />
                 </div>
 

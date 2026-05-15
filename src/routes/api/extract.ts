@@ -28,6 +28,7 @@ REGRAS IMPORTANTES:
 ${CATEGORIAS.map((c) => `  ${c.codigo} — ${c.nome}`).join("\n")}
 - idInterno: use o código interno que aparecer perto da despesa (ex: 10183728); se não houver, gere "ext-1", "ext-2".
 - Pagamentos a funcionários (salários) → 3.1.90.11.01. Rescisão → 3.1.90.94.00. INSS → 3.1.90.13.02. FGTS → 3.1.90.13.01. Energia → 3.3.90.39.43. Água → 3.3.90.39.44. Combustível → 3.3.90.30.01. Aluguel → 3.3.90.36.15. Transporte escolar → 3.3.90.33.03. Telefonia/internet → 3.3.90.40.97.
+- descricao: curta e objetiva, no máximo 120 caracteres. Ex.: "Aluguel mar/2025", "Energia março", "Salário João mar/2025". NÃO use frases como "Pagamento referente a..." ou "Conforme nota fiscal nº...".
 - Inclua TODAS as despesas; não resuma nem agrupe.`;
 
 export const Route = createFileRoute("/api/extract")({
