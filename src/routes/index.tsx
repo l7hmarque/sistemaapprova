@@ -115,6 +115,16 @@ const cleanText = (s: string) =>
   stripDiacritics((s ?? "").replace(/[|"'\\\r\n]/g, " ").replace(/\s+/g, " ").trim());
 const onlyDigits = (s: string) => (s ?? "").replace(/\D/g, "");
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+const simplificarDescricao = (s: string) => {
+  let out = cleanText(s ?? "");
+  out = out.replace(
+    /^(pagamento\s+(referente\s+(a|ao)|de|do)\s+|ref(\.|er[eê]ncia)?\s+(a|ao)\s+|conforme\s+(nota|recibo|nf|cupom)[^,;.]*[,;.]?\s*)/i,
+    "",
+  );
+  out = out.replace(/\s*conforme\s+(nota|nf|recibo|cupom)[^,;.]*$/i, "");
+  out = out.replace(/\s+/g, " ").trim();
+  return truncate(out, 200);
+};
 const sanitizeId = (s: string) => (s ?? "").replace(/[^A-Za-z0-9_\-]/g, "").slice(0, 30);
 const limiteDocFav = (tp: "CPF" | "CNPJ" | "EXT") => (tp === "CPF" ? 11 : tp === "CNPJ" ? 14 : 20);
 const sanitizeNrDocFav = (s: string, tp: "CPF" | "CNPJ" | "EXT") =>
