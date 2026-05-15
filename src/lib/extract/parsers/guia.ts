@@ -21,7 +21,7 @@ export type GuiaParsed = {
 
 // Linha digitável de guia em 4 grupos de 12 dígitos (com separadores opcionais).
 // Estrita: começa com '8' e soma exatamente 48 dígitos.
-const LINHA_RE = /\b8\d{11}[\s.-]?\d{12}[\s.-]?\d{12}[\s.-]?\d{11}\b/g;
+const LINHA_RE = /\b8\d{11}[\s.-]?\d{12}[\s.-]?\d{12}[\s.-]?\d{12}\b/g;
 
 function detectarTipo(texto: string): GuiaTipo {
   const u = texto.toUpperCase();
