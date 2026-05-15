@@ -3,19 +3,24 @@
  *
  * Estratégia:
  *  1. Extrai texto por página com unpdf.
- *  2. Em cada página: tenta NF-e (chave 44) e boleto (linha digitável 47).
- *  3. Para cada despesa retornada pela IA, procura um match determinístico pelo
- *     valor (tolerância de 1 centavo). Quando encontra:
- *       - sobrescreve `nrDocFav` (CNPJ da chave NF-e), `documento` (nº NF) e `valor`;
- *       - marca `origem` como "nfe-chave" ou "boleto-linha".
- *  4. Despesas sem match continuam com origem "ia".
+ *  2. Em cada página: tenta NF-e (chave 44), boleto (47) e guia de arrecadação (48).
+ *  3. Para cada despesa retornada pela IA, procura match determinístico pelo valor.
+ *     Quando encontra, sobrescreve campos com confiança alta e marca a `origem`.
+ *  4. Aplica overrides de favorecidos padrão (DARF/GPS/GFIP/Sanepar/Copel).
  */
 import type { ExtracaoResultado, DespesaExtraida } from "./schema";
 import { extrairTextoPorPagina, normalizarTexto } from "./pdfText";
 import { parseNFe, type NFeParsed } from "./parsers/nfe";
 import { parseBoleto, type BoletoParsed } from "./parsers/boleto";
+import { parseGuia, type GuiaParsed } from "./parsers/guia";
+import { aplicarFavorecidoPadrao } from "./favorecidosPadrao";
 
-export type OrigemCampo = "nfe-chave" | "boleto-linha" | "ia";
+export type OrigemCampo =
+  | "nfe-chave"
+  | "boleto-linha"
+  | "guia-linha"
+  | "favorecido-padrao"
+  | "ia";
 
 export type DespesaEnriquecida = DespesaExtraida & {
   origem: OrigemCampo;
@@ -32,8 +37,9 @@ export async function reforcarComDeterministico(
   pdfBytes: Uint8Array,
   resultadoIA: ExtracaoResultado,
 ): Promise<ExtracaoEnriquecida> {
-  let nfes: NFeParsed[] = [];
-  let boletos: BoletoParsed[] = [];
+  const nfes: NFeParsed[] = [];
+  const boletos: BoletoParsed[] = [];
+  const guias: GuiaParsed[] = [];
 
   try {
     const paginas = await extrairTextoPorPagina(pdfBytes);
@@ -43,17 +49,20 @@ export async function reforcarComDeterministico(
       if (nfe) nfes.push(nfe);
       const bol = parseBoleto(txt, p.numero);
       if (bol) boletos.push(bol);
+      const g = parseGuia(txt, p.numero);
+      if (g) guias.push(g);
     }
   } catch (e) {
     console.warn("[pipeline] falha extraindo texto do PDF, seguindo apenas com IA", e);
   }
 
-  // Marca usados para não mapear o mesmo achado em despesas duplicadas.
   const nfeUsado = new Set<number>();
   const boletoUsado = new Set<number>();
+  const guiaUsado = new Set<number>();
 
   const despesas: DespesaEnriquecida[] = resultadoIA.despesas.map((d) => {
-    // Tenta NF-e primeiro (mais informações).
+    let enriquecida: DespesaEnriquecida = { ...d, origem: "ia" };
+
     const idxNF = nfes.findIndex(
       (n, i) =>
         !nfeUsado.has(i) && n.valor != null && Math.abs(n.valor - d.valor) <= TOLERANCIA,
@@ -61,33 +70,58 @@ export async function reforcarComDeterministico(
     if (idxNF >= 0) {
       nfeUsado.add(idxNF);
       const n = nfes[idxNF];
-      return {
+      enriquecida = {
         ...d,
         nrDocFav: n.cnpjEmit,
         tpDocFav: "CNPJ",
         documento: n.numeroNF,
         valor: n.valor ?? d.valor,
-        tipoDocumento: 1, // NF
+        tipoDocumento: 1,
         origem: "nfe-chave",
         evidencia: `Pág ${n.paginaInicial} — chave NF-e ${n.chave.slice(0, 8)}…${n.chave.slice(-4)}`,
       };
+    } else {
+      const idxBol = boletos.findIndex(
+        (b, i) => !boletoUsado.has(i) && Math.abs(b.valor - d.valor) <= TOLERANCIA,
+      );
+      if (idxBol >= 0) {
+        boletoUsado.add(idxBol);
+        const b = boletos[idxBol];
+        enriquecida = {
+          ...d,
+          valor: b.valor,
+          origem: "boleto-linha",
+          evidencia: `Pág ${b.paginaInicial} — boleto banco ${b.banco}, linha ${b.linhaDigitavel.slice(0, 6)}…${b.linhaDigitavel.slice(-4)}`,
+        };
+      } else {
+        const idxG = guias.findIndex(
+          (g, i) => !guiaUsado.has(i) && Math.abs(g.valor - d.valor) <= TOLERANCIA,
+        );
+        if (idxG >= 0) {
+          guiaUsado.add(idxG);
+          const g = guias[idxG];
+          enriquecida = {
+            ...d,
+            valor: g.valor,
+            origem: "guia-linha",
+            evidencia: `Pág ${g.paginaInicial} — guia ${g.tipo} (seg ${g.segmento}), linha ${g.linhaDigitavel.slice(0, 6)}…${g.linhaDigitavel.slice(-4)}`,
+          };
+        }
+      }
     }
 
-    const idxBol = boletos.findIndex(
-      (b, i) => !boletoUsado.has(i) && Math.abs(b.valor - d.valor) <= TOLERANCIA,
-    );
-    if (idxBol >= 0) {
-      boletoUsado.add(idxBol);
-      const b = boletos[idxBol];
+    // Fase 6: favorecido padrão (DARF/GPS/GFIP/Sanepar/Copel).
+    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida);
+    if (ajuste.aplicado) {
+      const evidenciaPrev = enriquecida.evidencia ? `${enriquecida.evidencia} · ` : "";
       return {
-        ...d,
-        valor: b.valor,
-        origem: "boleto-linha",
-        evidencia: `Pág ${b.paginaInicial} — boleto banco ${b.banco}, linha ${b.linhaDigitavel.slice(0, 6)}…${b.linhaDigitavel.slice(-4)}`,
+        ...enriquecida,
+        ...comOverride,
+        origem: enriquecida.origem === "ia" ? "favorecido-padrao" : enriquecida.origem,
+        evidencia: `${evidenciaPrev}favorecido padrão: ${ajuste.motivo}`,
       };
     }
-
-    return { ...d, origem: "ia" };
+    return enriquecida;
   });
 
   return { ...resultadoIA, despesas };
