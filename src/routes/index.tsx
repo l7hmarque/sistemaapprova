@@ -1036,11 +1036,11 @@ function DespesasTable({
                   <Label className="mb-1 block text-xs text-muted-foreground">Descrição</Label>
                   <Input
                     value={d.descricao}
-                    placeholder="Descrição do gasto"
-                    maxLength={1000}
+                    placeholder="Ex.: Aluguel mar/2025"
+                    maxLength={200}
                     onChange={(e) => onUpdate(d.uid, { descricao: e.target.value })}
-                    onBlur={(e) => onUpdate(d.uid, { descricao: truncate(cleanText(e.target.value), 1000) })}
-                    className="h-10 text-sm border-[0.5px] border-black"
+                    onBlur={(e) => onUpdate(d.uid, { descricao: simplificarDescricao(e.target.value) })}
+                    className="h-10 text-sm border-[0.5px] border-black text-foreground"
                   />
                 </div>
 
