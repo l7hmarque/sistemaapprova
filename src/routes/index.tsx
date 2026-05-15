@@ -83,7 +83,7 @@ type Despesa = {
   categoria: string;
   cdModalidadeCompra: number;
   tpDocumentoPagamento: number;
-  origem?: "nfe-chave" | "boleto-linha" | "ia" | null;
+  origem?: "nfe-chave" | "boleto-linha" | "guia-linha" | "favorecido-padrao" | "ia" | null;
   evidencia?: string | null;
 };
 
@@ -997,7 +997,13 @@ function DespesasTable({
                         title={d.evidencia ?? ""}
                         className="rounded-sm bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
                       >
-                        {d.origem === "nfe-chave" ? "📄 chave NF-e" : "🔢 boleto"}
+                        {d.origem === "nfe-chave"
+                          ? "📄 chave NF-e"
+                          : d.origem === "boleto-linha"
+                            ? "🔢 boleto"
+                            : d.origem === "guia-linha"
+                              ? "🏛️ guia"
+                              : "⭐ favorecido padrão"}
                       </span>
                     )}
                     {d.origem === "ia" && (
