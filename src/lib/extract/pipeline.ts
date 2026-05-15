@@ -3,16 +3,17 @@
  *
  * Estratégia:
  *  1. Extrai texto por página com unpdf.
- *  2. Em cada página: tenta NF-e (chave 44), boleto (47) e guia de arrecadação (48).
- *  3. Para cada despesa retornada pela IA, procura match determinístico pelo valor.
- *     Quando encontra, sobrescreve campos com confiança alta e marca a `origem`.
+ *  2. Em cada página: coleta TODAS as NF-e (44d), boletos (47d) e guias (48d).
+ *  3. Para cada despesa retornada pela IA, tenta casar pelo valor (±0,01).
+ *     Se houver mais de um candidato com o mesmo valor para o mesmo tipo,
+ *     o override é PULADO (ambiguidade) — preserva o que a IA extraiu.
  *  4. Aplica overrides de favorecidos padrão (DARF/GPS/GFIP/Sanepar/Copel).
  */
 import type { ExtracaoResultado, DespesaExtraida } from "./schema";
 import { extrairTextoPorPagina, normalizarTexto } from "./pdfText";
-import { parseNFe, type NFeParsed } from "./parsers/nfe";
-import { parseBoleto, type BoletoParsed } from "./parsers/boleto";
-import { parseGuia, type GuiaParsed } from "./parsers/guia";
+import { parseNFeAll, type NFeParsed } from "./parsers/nfe";
+import { parseBoletoAll, type BoletoParsed } from "./parsers/boleto";
+import { parseGuiaAll, type GuiaParsed } from "./parsers/guia";
 import { aplicarFavorecidoPadrao } from "./favorecidosPadrao";
 
 export type OrigemCampo =
@@ -33,6 +34,24 @@ export type ExtracaoEnriquecida = Omit<ExtracaoResultado, "despesas"> & {
 
 const TOLERANCIA = 0.011;
 
+type Used = Set<number>;
+
+function buscarUnico<T extends { valor: number | null }>(
+  arr: T[],
+  used: Used,
+  valor: number,
+): { idx: number; item: T } | { ambiguo: true } | null {
+  const candidatos: number[] = [];
+  arr.forEach((it, i) => {
+    if (used.has(i)) return;
+    if (it.valor == null) return;
+    if (Math.abs(it.valor - valor) <= TOLERANCIA) candidatos.push(i);
+  });
+  if (candidatos.length === 0) return null;
+  if (candidatos.length > 1) return { ambiguo: true };
+  return { idx: candidatos[0], item: arr[candidatos[0]] };
+}
+
 export async function reforcarComDeterministico(
   pdfBytes: Uint8Array,
   resultadoIA: ExtracaoResultado,
@@ -45,31 +64,26 @@ export async function reforcarComDeterministico(
     const paginas = await extrairTextoPorPagina(pdfBytes);
     for (const p of paginas) {
       const txt = normalizarTexto(p.texto);
-      const nfe = parseNFe(txt, p.numero);
-      if (nfe) nfes.push(nfe);
-      const bol = parseBoleto(txt, p.numero);
-      if (bol) boletos.push(bol);
-      const g = parseGuia(txt, p.numero);
-      if (g) guias.push(g);
+      nfes.push(...parseNFeAll(txt, p.numero));
+      boletos.push(...parseBoletoAll(txt, p.numero));
+      guias.push(...parseGuiaAll(txt, p.numero));
     }
   } catch (e) {
     console.warn("[pipeline] falha extraindo texto do PDF, seguindo apenas com IA", e);
   }
 
-  const nfeUsado = new Set<number>();
-  const boletoUsado = new Set<number>();
-  const guiaUsado = new Set<number>();
+  const nfeUsado: Used = new Set();
+  const boletoUsado: Used = new Set();
+  const guiaUsado: Used = new Set();
 
   const despesas: DespesaEnriquecida[] = resultadoIA.despesas.map((d) => {
     let enriquecida: DespesaEnriquecida = { ...d, origem: "ia" };
 
-    const idxNF = nfes.findIndex(
-      (n, i) =>
-        !nfeUsado.has(i) && n.valor != null && Math.abs(n.valor - d.valor) <= TOLERANCIA,
-    );
-    if (idxNF >= 0) {
-      nfeUsado.add(idxNF);
-      const n = nfes[idxNF];
+    // Ordem: NF-e (mais específico/CNPJ validado) → boleto → guia.
+    const nf = buscarUnico(nfes, nfeUsado, d.valor);
+    if (nf && !("ambiguo" in nf)) {
+      nfeUsado.add(nf.idx);
+      const n = nf.item;
       enriquecida = {
         ...d,
         nrDocFav: n.cnpjEmit,
@@ -81,12 +95,10 @@ export async function reforcarComDeterministico(
         evidencia: `Pág ${n.paginaInicial} — chave NF-e ${n.chave.slice(0, 8)}…${n.chave.slice(-4)}`,
       };
     } else {
-      const idxBol = boletos.findIndex(
-        (b, i) => !boletoUsado.has(i) && Math.abs(b.valor - d.valor) <= TOLERANCIA,
-      );
-      if (idxBol >= 0) {
-        boletoUsado.add(idxBol);
-        const b = boletos[idxBol];
+      const bol = buscarUnico(boletos, boletoUsado, d.valor);
+      if (bol && !("ambiguo" in bol)) {
+        boletoUsado.add(bol.idx);
+        const b = bol.item;
         enriquecida = {
           ...d,
           valor: b.valor,
@@ -94,18 +106,24 @@ export async function reforcarComDeterministico(
           evidencia: `Pág ${b.paginaInicial} — boleto banco ${b.banco}, linha ${b.linhaDigitavel.slice(0, 6)}…${b.linhaDigitavel.slice(-4)}`,
         };
       } else {
-        const idxG = guias.findIndex(
-          (g, i) => !guiaUsado.has(i) && Math.abs(g.valor - d.valor) <= TOLERANCIA,
-        );
-        if (idxG >= 0) {
-          guiaUsado.add(idxG);
-          const g = guias[idxG];
+        const g = buscarUnico(guias, guiaUsado, d.valor);
+        if (g && !("ambiguo" in g)) {
+          guiaUsado.add(g.idx);
+          const it = g.item;
           enriquecida = {
             ...d,
-            valor: g.valor,
+            valor: it.valor,
             origem: "guia-linha",
-            evidencia: `Pág ${g.paginaInicial} — guia ${g.tipo} (seg ${g.segmento}), linha ${g.linhaDigitavel.slice(0, 6)}…${g.linhaDigitavel.slice(-4)}`,
+            evidencia: `Pág ${it.paginaInicial} — guia ${it.tipo} (seg ${it.segmento}), linha ${it.linhaDigitavel.slice(0, 6)}…${it.linhaDigitavel.slice(-4)}`,
           };
+        } else if (
+          (nf && "ambiguo" in nf) ||
+          (bol && "ambiguo" in bol) ||
+          (g && "ambiguo" in g)
+        ) {
+          console.info(
+            `[pipeline] override pulado por ambiguidade de valor (R$ ${d.valor.toFixed(2)} — ${d.favorecido})`,
+          );
         }
       }
     }
