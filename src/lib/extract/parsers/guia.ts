@@ -19,7 +19,9 @@ export type GuiaParsed = {
   confidence: number;
 };
 
-const LINHA_RE = /\b8\d{10,11}[\s.-]?\d{11,12}[\s.-]?\d{11,12}[\s.-]?\d{11,12}\b/g;
+// Linha digitável de guia em 4 grupos de 12 dígitos (com separadores opcionais).
+// Estrita: começa com '8' e soma exatamente 48 dígitos.
+const LINHA_RE = /\b8\d{11}[\s.-]?\d{12}[\s.-]?\d{12}[\s.-]?\d{11}\b/g;
 
 function detectarTipo(texto: string): GuiaTipo {
   const u = texto.toUpperCase();
@@ -29,23 +31,34 @@ function detectarTipo(texto: string): GuiaTipo {
   return "DESCONHECIDO";
 }
 
-export function parseGuia(textoPagina: string, numeroPagina: number): GuiaParsed | null {
+/** Retorna todas as linhas digitáveis de guia válidas encontradas na página. */
+export function parseGuiaAll(textoPagina: string, numeroPagina: number): GuiaParsed[] {
+  const out: GuiaParsed[] = [];
+  const vistos = new Set<string>();
+  const tipo = detectarTipo(textoPagina);
   for (const m of textoPagina.matchAll(LINHA_RE)) {
     const digits = m[0].replace(/\D/g, "");
     if (digits.length !== 48 || digits[0] !== "8") continue;
+    if (vistos.has(digits)) continue;
+    vistos.add(digits);
     const segmento = digits[1];
     const tipoValor = digits[2]; // 6/7 = valor efetivo
     if (tipoValor !== "6" && tipoValor !== "7") continue;
     const valorRaw = Number(digits.slice(4, 15));
     if (!Number.isFinite(valorRaw) || valorRaw === 0) continue;
-    return {
+    out.push({
       paginaInicial: numeroPagina,
       linhaDigitavel: digits,
       segmento,
       valor: valorRaw / 100,
-      tipo: detectarTipo(textoPagina),
+      tipo,
       confidence: 0.92,
-    };
+    });
   }
-  return null;
+  return out;
+}
+
+/** Compatibilidade: primeira guia encontrada (ou null). */
+export function parseGuia(textoPagina: string, numeroPagina: number): GuiaParsed | null {
+  return parseGuiaAll(textoPagina, numeroPagina)[0] ?? null;
 }
