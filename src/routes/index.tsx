@@ -962,9 +962,9 @@ function DespesasTable({
         return (
           <Card
             key={d.uid}
-            className={`border-[1px] ${completa ? "border-emerald-500" : "border-amber-500"}`}
+            className={`border-[1px] ${completa ? "border-emerald-500" : "border-amber-500"} text-black [&_input]:text-black [&_button[role=combobox]]:text-black [&_textarea]:text-black`}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-black">
               <div className="grid grid-cols-12 gap-3">
                 {/* linha 1: ID + Data + remover */}
                 <div className="col-span-3 md:col-span-2">
