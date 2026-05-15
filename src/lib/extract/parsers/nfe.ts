@@ -29,13 +29,16 @@ function parseValorBR(s: string): number {
   return Number(s.replace(/\./g, "").replace(",", "."));
 }
 
-export function parseNFe(textoPagina: string, numeroPagina: number): NFeParsed | null {
-  // Captura apenas blocos de 44 dígitos contínuos (a chave normalmente está espaçada
-  // como 4 4 4 4 ... — extraímos versões sem espaço também).
+/** Retorna todas as NF-e válidas (chave de 44 dígitos) detectadas na página. */
+export function parseNFeAll(textoPagina: string, numeroPagina: number): NFeParsed[] {
   const semEspacos = textoPagina.replace(/\s+/g, "");
   const candidatos = new Set<string>();
   for (const m of textoPagina.matchAll(CHAVE_RE)) candidatos.add(m[1]);
   for (const m of semEspacos.matchAll(CHAVE_RE)) candidatos.add(m[1]);
+
+  const out: NFeParsed[] = [];
+  const valorMatch = textoPagina.match(VALOR_RE);
+  const valor = valorMatch ? parseValorBR(valorMatch[1]) : null;
 
   for (const chave of candidatos) {
     const cnpjEmit = chave.slice(6, 20);
@@ -44,18 +47,22 @@ export function parseNFe(textoPagina: string, numeroPagina: number): NFeParsed |
     const mm = Number(chave.slice(4, 6));
     if (mm < 1 || mm > 12) continue;
     const numeroNF = String(Number(chave.slice(25, 34)));
-    const valorMatch = textoPagina.match(VALOR_RE);
-    const valor = valorMatch ? parseValorBR(valorMatch[1]) : null;
-    return {
+    out.push({
       paginaInicial: numeroPagina,
       chave,
       cnpjEmit,
       numeroNF,
       aaaa: 2000 + aa,
       mm,
-      valor,
-      confidence: valor ? 0.98 : 0.85,
-    };
+      // Quando há múltiplas NF-e na mesma página o "VALOR TOTAL" capturado pode
+      // não ser desta nota — só aplicamos quando há exatamente uma NF-e na página.
+      valor: candidatos.size === 1 ? valor : null,
+      confidence: candidatos.size === 1 && valor ? 0.98 : 0.85,
+    });
   }
-  return null;
+  return out;
+}
+
+export function parseNFe(textoPagina: string, numeroPagina: number): NFeParsed | null {
+  return parseNFeAll(textoPagina, numeroPagina)[0] ?? null;
 }
