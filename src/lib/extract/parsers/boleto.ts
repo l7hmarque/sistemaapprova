@@ -29,23 +29,31 @@ function fatorParaData(fator: number): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function parseBoleto(textoPagina: string, numeroPagina: number): BoletoParsed | null {
+/** Retorna todos os boletos válidos (linha digitável de 47 dígitos) na página. */
+export function parseBoletoAll(textoPagina: string, numeroPagina: number): BoletoParsed[] {
+  const out: BoletoParsed[] = [];
+  const vistos = new Set<string>();
   for (const match of textoPagina.matchAll(LINHA_RE)) {
     const digits = match[0].replace(/\D/g, "");
     if (digits.length !== 47) continue;
+    if (vistos.has(digits)) continue;
+    vistos.add(digits);
     const banco = digits.slice(0, 3);
     const fator = Number(digits.slice(33, 37));
     const valorRaw = Number(digits.slice(37, 47));
     if (!Number.isFinite(valorRaw) || valorRaw === 0) continue;
-    const valor = valorRaw / 100;
-    return {
+    out.push({
       paginaInicial: numeroPagina,
       linhaDigitavel: digits,
       banco,
-      valor,
+      valor: valorRaw / 100,
       vencimento: fatorParaData(fator),
       confidence: 0.95,
-    };
+    });
   }
-  return null;
+  return out;
+}
+
+export function parseBoleto(textoPagina: string, numeroPagina: number): BoletoParsed | null {
+  return parseBoletoAll(textoPagina, numeroPagina)[0] ?? null;
 }
