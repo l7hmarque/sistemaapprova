@@ -34,7 +34,7 @@ export const despesaExtraidaSchema = z.object({
   descricao: z.string(),
   sugestaoCategoria: z.string().describe("Código natureza econômica (ex: 3.1.90.11.01)"),
   origem: z
-    .enum(["nfe-chave", "boleto-linha", "ia"])
+    .enum(["nfe-chave", "boleto-linha", "guia-linha", "favorecido-padrao", "ia"])
     .nullable()
     .optional()
     .describe("Origem da extração; preenchido pela pipeline determinística no servidor"),
