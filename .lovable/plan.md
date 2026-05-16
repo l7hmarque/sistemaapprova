@@ -1,36 +1,89 @@
-## Diagnóstico
+# Upload em lote + análise sob demanda + progresso real + regras
 
-Validei o checksum dos dois CNPJs do `Despesa_v4.txt`:
+## Objetivo
+Substituir o fluxo atual "arrasta 1 PDF → IA dispara automaticamente → texto 'analisando'" por um fluxo controlado:
 
+1. Usuário carrega **vários PDFs** (drag/drop ou seletor).
+2. Sistema apenas **lista os arquivos confirmados** (nome, tamanho, status: "pronto").
+3. Usuário pode abrir um painel **opcional** de "Pré-definições / Regras" (mês de referência, favorecido padrão extra, categoria padrão, prefixo idInterno etc.). Se não mexer, usa padrão.
+4. Usuário clica **"Iniciar análise com IA"**.
+5. Cada PDF é processado **sequencialmente** com **barra de progresso real** (status por arquivo: aguardando / lendo PDF / IA / pipeline / concluído / erro) e barra global (X de N).
+6. Despesas extraídas de todos os PDFs são **mescladas** na tabela de revisão.
 
-| Linha | Favorecido                       | CNPJ no arquivo      | Checksum                                                                                                                                                                                                                       |
-| ----- | -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 30    | MITRA DIOCESANA DE FOZ DO IGUACU | `77.945.152/0001-91` | ✅ válido (formato), mas o **/0001-91 não corresponde a nenhuma filial registrada** dessa razão social — as filiais conhecidas são `/0002-72`, `/0023-05`, `/0032-98` etc. O SIT consulta a Receita e rejeita CNPJ inexistente. |
-| 34    | SANEPAR                          | `76.484.013/0001-46` | ❌ **checksum inválido**. O CNPJ correto da Sanepar é `76.484.013/0001-45`.                                                                                                                                                     |
+## Plano em 4 partes
 
+### Parte 1 — UI de upload em lote (`src/routes/index.tsx`)
 
-Ou seja: a IA de extração inventou/leu errado os dois CNPJs. O Sanepar é correção determinística (`...46` → `...45`). O da Mitra precisa do número da paróquia certa do recibo de aluguel (qual paróquia recebeu o aluguel?), porque "Mitra Diocesana" tem várias filiais e a matriz `/0001-91` aparentemente não existe.
+- Substituir `UploadCard` por `BatchUploadCard`:
+  - Aceita múltiplos PDFs (`<input multiple>`, drop de N arquivos).
+  - Mantém estado local `arquivos: PdfJob[]` com `{ id, file, status, etapa, progresso, erro, resultado }`.
+  - Lista cada arquivo com nome, tamanho, ícone de status e botão "remover" (enquanto não estiver processando).
+  - Botão **"Iniciar análise (N arquivos)"** desabilitado se lista vazia ou já processando.
+  - Botão "Limpar lista".
+- Manter compatibilidade: se usuário soltar 1 PDF, mesmo fluxo (lista de 1 + botão).
 
-## Pergunta antes de gerar v5
+### Parte 2 — Progresso real
 
-Preciso confirmar o CNPJ correto da Mitra (linha 30, Recibo 17 - Aluguel R$ 2.500). Algumas possibilidades comuns em Foz:
+Como o endpoint `/api/extract` é síncrono (responde só no fim), o progresso "real" vem de **etapas observáveis no cliente** + **progresso por arquivo no lote**:
 
-- Paróquia São João Batista — `77.945.152/0002-72`
-- Paróquia Catedral N. Sra. de Guadalupe — `77.945.152/0023-05`
-- Paróquia N. Sra. do Perpétuo Socorro — `77.945.152/0032-98`
-- Outra (informar) = 77945152000191
+- Etapas exibidas por arquivo (cada uma com %):
+  - `upload` 0–20% (XHR `upload.onprogress` em vez de `fetch`, para ter bytes enviados).
+  - `analisando` 20–90% (timer com curva assintótica, capado em 90% até resposta — comum quando backend é caixa-preta; honesto desde que rotulado "estimado").
+  - `concluido` 100% ao receber JSON.
+- Barra **global**: `(arquivos_concluídos / total) * 100`, atualizada a cada arquivo.
+- Componente `JobProgress` com `<Progress />` (shadcn) + label da etapa atual ("Enviando PDF…", "IA extraindo… (~Xs)", "Mesclando…").
+- Tempo decorrido por arquivo (cronômetro mm:ss) para dar sensação de avanço.
 
-## Plano de correção (após confirmação)
+> Observação: progresso 100% real do lado IA exigiria streaming SSE no `/api/extract`. Fica fora do escopo desta iteração; rotularemos a fase de IA como "estimada" para ser honesto.
 
-1. **Gerar `/mnt/documents/Despesa_v5.txt**` com Python, mantendo as 38 linhas e ANSI/Win-1252:
-  - Linha 30: trocar coluna 7 do CNPJ da Mitra para o correto.
-  - Linha 34: trocar `76484013000146` → `76484013000145` (Sanepar).
-2. **Hardening no app** (`src/lib/sit/`):
-  - Criar `src/lib/sit/cnpjValidator.ts` com a função `isValidCNPJ` (algoritmo oficial dos 2 dígitos verificadores) — testada em `cnpjValidator.test.ts`.
-  - Em `formatLinhaSIT`, quando `tpDocumentoFavorecido === "CNPJ"` e o CNPJ falhar no checksum, **lançar erro** com a linha/favorecido para impedir gerar arquivo inválido.
-  - Adicionar override fixo da Sanepar em `catalogos.ts` (igual aos overrides DARF/GPS/GFIP) para o caso `nmFavorecido` contendo "SANEPAR" → CNPJ `76484013000145`. Evita repetir o erro em meses futuros.
-3. **Validação na UI** (`src/routes/index.tsx`): ao salvar/editar despesa com tipo CNPJ, marcar campo inválido em vermelho e bloquear o botão "Gerar Despesa.txt" enquanto houver CNPJ inválido. Toast lista as linhas problemáticas.
-4. **Teste** (`formatLinha.test.ts`): novo caso garantindo que CNPJ com checksum quebrado dispara erro.
-5. **Verificar** com `vitest`.
+### Parte 3 — Pré-definições opcionais (painel colapsável)
 
-Posso seguir com esse plano assim que você me disser qual paróquia da Mitra usar na linha 30.
+Painel `<details>` ou `Accordion` acima do botão "Iniciar análise", **fechado por padrão**:
+
+- **Mês de referência forçado** (sobrescreve o detectado pela IA). Default: vazio (usa IA).
+- **Categoria padrão** quando IA não sugerir (default: primeira de `CATEGORIAS`).
+- **Tipo de documento padrão** (default: 1 = NF).
+- **Prefixo de idInterno** para despesas sem código (default: `ext-`).
+- **Modalidade de compra padrão** (default: lógica atual `modalidadePadrao`).
+- **Favorecidos padrão extras** (textarea: `texto-chave => CNPJ;Nome`, uma por linha) — alimenta `aplicarFavorecidoPadrao` em runtime.
+
+Estado salvo em `localStorage` (`sit-regras-v1`) para reutilizar entre sessões. Botão "Restaurar padrão".
+
+Aplicação dessas regras acontece **no cliente**, dentro de `aplicarExtracao`, depois da resposta da IA — não muda o backend nem quebra o pipeline determinístico atual.
+
+### Parte 4 — Orquestrador de lote
+
+Nova função `processarLote(jobs)`:
+
+```text
+for (job of jobs) {
+  job.status = 'enviando';   render
+  const data = await uploadComProgresso(job, onProgress);
+  job.status = 'mesclando';  render
+  aplicarRegrasOpcionais(data, regras);
+  acumular(data);            // mescla com despesas existentes
+  job.status = 'concluido';  render
+}
+```
+
+- `uploadComProgresso` usa `XMLHttpRequest` para ter `upload.onprogress` real.
+- Erros por arquivo não abortam o lote — marca aquele job como `erro` e segue.
+- Toast final: "X de N PDFs processados, Y despesas adicionadas".
+
+## Arquivos afetados
+
+- `src/routes/index.tsx` — substituir `UploadCard`, adicionar `BatchUploadCard`, `JobProgress`, painel `RegrasOpcionaisCard`, orquestrador.
+- `src/lib/regrasUsuario.ts` (novo) — tipo `RegrasUsuario`, defaults, load/save no localStorage, função `aplicarRegrasUsuario(extracao, regras)`.
+- Nada muda em `/api/extract`, `pipeline.ts`, parsers, schema — o fluxo de geração de `.txt` continua idêntico.
+
+## O que NÃO muda
+
+- Endpoint, schema, pipeline determinístico, regras de holerite, geração de `Despesa.txt` — tudo intocado.
+- Comportamento de 1 PDF continua funcionando (lote de 1).
+- Layout geral da página e demais cards permanecem.
+
+## Riscos / mitigação
+
+- **Worker timeout (30s CPU)**: processar sequencialmente evita várias chamadas concorrentes saturando o Worker; cada PDF mantém o mesmo limite atual.
+- **Memória do cliente** com muitos PDFs grandes: limitamos a 10 arquivos por lote (avisa se exceder).
+- **Progresso "estimado" durante IA**: rotulado claramente, sem mentir 100%.
