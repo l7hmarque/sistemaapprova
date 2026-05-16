@@ -395,24 +395,85 @@ function AppPage() {
     );
   }
 
-  async function handleUpload(file: File) {
+  function mesclarExtracao(data: ExtracaoResultado, isFirst: boolean) {
+    if (isFirst) {
+      setMesRef(data.mesReferencia ?? "");
+      setReceitas(data.receitas ?? []);
+      setResumo({
+        saldoAnterior: data.resumo?.saldoAnterior ?? 0,
+        transferidos: data.resumo?.transferidos ?? 0,
+        rendimentos: data.resumo?.rendimentos ?? 0,
+        estornados: data.resumo?.estornados ?? 0,
+      });
+    }
+    const novas: Despesa[] = (data.despesas ?? []).map((d) => {
+      const tpDoc = migrarTipoLegacy(d.tipoDocumento, d.subtipoDocumento ?? null);
+      return {
+        uid: crypto.randomUUID(),
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || d.data,
+        favorecido: d.favorecido,
+        documento: d.documento || "0",
+        valor: Number(d.valor) || 0,
+        tpDocumentoDespesa: tpDoc,
+        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+        cdModalidadeCompra: modalidadePadrao(tpDoc),
+        tpDocumentoPagamento: 6,
+        origem: (d as { origem?: Despesa["origem"] }).origem ?? "ia",
+        evidencia: (d as { evidencia?: string | null }).evidencia ?? null,
+      };
+    });
+    if (isFirst) {
+      setDespesas(novas);
+    } else {
+      setDespesas((prev) => [...prev, ...novas]);
+    }
+  }
+
+  async function processarLote(
+    jobs: PdfJob[],
+    regras: RegrasUsuario,
+    onUpdate: (id: string, patch: Partial<PdfJob>) => void,
+  ): Promise<{ ok: number; fail: number; total: number }> {
     setExtraindo(true);
+    let ok = 0;
+    let fail = 0;
+    let total = 0;
+    let contador = 0;
+    let isFirst = despesas.length === 0;
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/extract", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? `Erro ${res.status}`);
+      for (const job of jobs) {
+        if (job.status === "concluido") continue;
+        onUpdate(job.id, { status: "enviando", etapa: "Enviando PDF…", progresso: 0, erro: null });
+        try {
+          const data = await uploadComProgresso(job.file, (pct) => {
+            onUpdate(job.id, { progresso: Math.min(20, pct * 0.2), etapa: "Enviando PDF…" });
+          }, (analisePct) => {
+            onUpdate(job.id, { progresso: 20 + analisePct * 0.7, etapa: "IA extraindo (estimado)…", status: "analisando" });
+          });
+          onUpdate(job.id, { status: "mesclando", etapa: "Aplicando regras…", progresso: 95 });
+          const { extracao, proximoContador } = aplicarRegrasUsuario(data, regras, contador);
+          contador = proximoContador;
+          mesclarExtracao(extracao, isFirst);
+          isFirst = false;
+          total += extracao.despesas?.length ?? 0;
+          ok += 1;
+          onUpdate(job.id, { status: "concluido", etapa: `${extracao.despesas?.length ?? 0} despesa(s)`, progresso: 100 });
+        } catch (e) {
+          fail += 1;
+          onUpdate(job.id, { status: "erro", etapa: null, erro: (e as Error).message, progresso: 0 });
+        }
       }
-      const data = (await res.json()) as ExtracaoResultado;
-      aplicarExtracao(data);
-      toast.success(`Extraídas ${data.despesas?.length ?? 0} despesas.`);
-    } catch (e) {
-      toast.error((e as Error).message);
+      if (ok > 0) toast.success(`${ok} de ${jobs.length} PDFs processados, ${total} despesa(s) adicionadas.`);
+      if (fail > 0) toast.error(`${fail} PDF(s) falharam.`);
     } finally {
       setExtraindo(false);
     }
+    return { ok, fail, total };
   }
 
   function buildExtracaoAtual(): ExtracaoResultado {
