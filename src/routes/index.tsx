@@ -235,6 +235,79 @@ async function copyTSV(rows: (string | number)[][], label: string) {
 const fmtNum = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+type PdfJobStatus = "pronto" | "enviando" | "analisando" | "mesclando" | "concluido" | "erro";
+
+type PdfJob = {
+  id: string;
+  file: File;
+  status: PdfJobStatus;
+  etapa: string | null;
+  progresso: number;
+  erro: string | null;
+};
+
+/**
+ * Upload via XHR para ter onprogress real no envio. Para a fase "IA" (caixa-preta),
+ * simula uma curva assintótica capada em ~99% até a resposta chegar — rotulado como
+ * "estimado" na UI.
+ */
+function uploadComProgresso(
+  file: File,
+  onUpload: (pct: number) => void,
+  onAnalise: (pct: number) => void,
+): Promise<ExtracaoResultado> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/extract");
+    xhr.responseType = "text";
+    let analiseTimer: ReturnType<typeof setInterval> | null = null;
+    let analiseInicio = 0;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
+    };
+    xhr.upload.onload = () => {
+      onUpload(100);
+      // começa fase IA: curva assintótica baseada em tempo
+      analiseInicio = Date.now();
+      analiseTimer = setInterval(() => {
+        const elapsedS = (Date.now() - analiseInicio) / 1000;
+        // Após ~25s chegamos perto de 95%
+        const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
+        onAnalise(pct);
+      }, 300);
+    };
+    const cleanup = () => {
+      if (analiseTimer) clearInterval(analiseTimer);
+    };
+    xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
+    xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
+    xhr.onload = () => {
+      cleanup();
+      onAnalise(100);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
+          resolve(data);
+        } catch (e) {
+          reject(new Error("Resposta inválida do servidor"));
+        }
+      } else {
+        let msg = `Erro ${xhr.status}`;
+        try {
+          const j = JSON.parse(xhr.responseText) as { error?: string };
+          if (j.error) msg = j.error;
+        } catch { /* noop */ }
+        reject(new Error(msg));
+      }
+    };
+    xhr.send(fd);
+  });
+}
+
+const MAX_LOTE = 10;
+
 function AppPage() {
   const [extraindo, setExtraindo] = useState(false);
   const [mesRef, setMesRef] = useState("");
