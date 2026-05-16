@@ -967,51 +967,262 @@ function AppPage() {
   );
 }
 
-function UploadCard({
-  onFile,
-  loading,
+function statusLabel(s: PdfJobStatus): string {
+  switch (s) {
+    case "pronto": return "Pronto";
+    case "enviando": return "Enviando";
+    case "analisando": return "IA (estimado)";
+    case "mesclando": return "Mesclando";
+    case "concluido": return "Concluído";
+    case "erro": return "Erro";
+  }
+}
+
+function BatchUploadCard({
+  onProcess,
+  processing,
 }: {
-  onFile: (f: File) => void;
-  loading: boolean;
+  onProcess: (
+    jobs: PdfJob[],
+    regras: RegrasUsuario,
+    onUpdate: (id: string, patch: Partial<PdfJob>) => void,
+  ) => Promise<{ ok: number; fail: number; total: number }>;
+  processing: boolean;
 }) {
   const [drag, setDrag] = useState(false);
+  const [jobs, setJobs] = useState<PdfJob[]>([]);
+  const [regras, setRegras] = useState<RegrasUsuario>(REGRAS_DEFAULT);
+  const [regrasAberto, setRegrasAberto] = useState(false);
+  const [favText, setFavText] = useState("");
+
+  useEffect(() => {
+    const r = loadRegras();
+    setRegras(r);
+    setFavText(favorecidosExtrasToText(r.favorecidosExtras));
+  }, []);
+
+  function addFiles(list: FileList | File[]) {
+    const arr = Array.from(list).filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+    if (arr.length === 0) {
+      toast.error("Selecione arquivos PDF.");
+      return;
+    }
+    setJobs((prev) => {
+      const restante = MAX_LOTE - prev.length;
+      if (restante <= 0) {
+        toast.error(`Limite de ${MAX_LOTE} PDFs por lote.`);
+        return prev;
+      }
+      const novos = arr.slice(0, restante).map<PdfJob>((f) => ({
+        id: crypto.randomUUID(),
+        file: f,
+        status: "pronto",
+        etapa: null,
+        progresso: 0,
+        erro: null,
+      }));
+      if (arr.length > restante) toast.warning(`${arr.length - restante} arquivo(s) ignorado(s) (limite ${MAX_LOTE}).`);
+      return [...prev, ...novos];
+    });
+  }
+
+  function removerJob(id: string) {
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+  }
+  function limpar() { setJobs([]); }
+
+  function patchJob(id: string, patch: Partial<PdfJob>) {
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  }
+
+  function salvarRegras(novas: RegrasUsuario) {
+    setRegras(novas);
+    saveRegras(novas);
+  }
+
+  async function iniciar() {
+    const pendentes = jobs.filter((j) => j.status !== "concluido");
+    if (pendentes.length === 0) return;
+    // sincroniza favorecidos extras a partir do texto
+    const fav = parseFavorecidosExtras(favText);
+    const regrasFinais = { ...regras, favorecidosExtras: fav };
+    salvarRegras(regrasFinais);
+    await onProcess(jobs, regrasFinais, patchJob);
+  }
+
+  const pendentes = jobs.filter((j) => j.status !== "concluido" && j.status !== "erro").length;
+
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="space-y-4 p-6">
         <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDrag(true);
-          }}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => {
             e.preventDefault();
             setDrag(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f) onFile(f);
+            if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
           }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
             drag ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
-          }`}
+          } ${processing ? "pointer-events-none opacity-60" : ""}`}
         >
           <Upload className="h-8 w-8 text-muted-foreground" />
-          <div className="font-medium">
-            {loading ? "Extraindo dados com IA…" : "Arraste o PDF de Despesas aqui"}
-          </div>
+          <div className="font-medium">Arraste PDFs aqui ou clique para selecionar</div>
           <div className="text-sm text-muted-foreground">
-            ou clique para selecionar (holerites, NFs, boletos, comprovantes)
+            Vários arquivos suportados (até {MAX_LOTE}). A análise só começa quando você clicar em “Iniciar”.
           </div>
           <input
             type="file"
             accept="application/pdf"
+            multiple
             className="hidden"
-            disabled={loading}
+            disabled={processing}
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onFile(f);
+              if (e.target.files?.length) addFiles(e.target.files);
+              e.target.value = "";
             }}
           />
         </label>
+
+        {jobs.length > 0 && (
+          <div className="space-y-2">
+            {jobs.map((j) => (
+              <div key={j.id} className="rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="truncate text-sm font-medium">{j.file.name}</div>
+                    <div className="shrink-0 text-xs text-muted-foreground">
+                      {(j.file.size / 1024).toFixed(0)} KB
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={`text-xs ${j.status === "erro" ? "text-destructive" : j.status === "concluido" ? "text-green-600" : "text-muted-foreground"}`}>
+                      {statusLabel(j.status)}
+                    </span>
+                    {j.status === "enviando" || j.status === "analisando" || j.status === "mesclando" ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : j.status === "concluido" ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : j.status === "erro" ? (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={processing}
+                        onClick={() => removerJob(j.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {(j.status !== "pronto" || j.progresso > 0) && (
+                  <div className="mt-2 space-y-1">
+                    <Progress value={j.progresso} />
+                    <div className="text-xs text-muted-foreground">
+                      {j.erro ? j.erro : j.etapa ?? ""}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-md border">
+          <button
+            type="button"
+            onClick={() => setRegrasAberto((v) => !v)}
+            className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-muted/40"
+          >
+            <span className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Regras de extração (opcional)
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${regrasAberto ? "rotate-180" : ""}`} />
+          </button>
+          {regrasAberto && (
+            <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Mês de referência forçado (MM/AAAA)</Label>
+                <Input
+                  placeholder="ex: 04/2025"
+                  value={regras.mesReferenciaForcado}
+                  onChange={(e) => setRegras({ ...regras, mesReferenciaForcado: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Categoria padrão (código)</Label>
+                <Input
+                  placeholder="ex: 3.3.90.30.99"
+                  value={regras.categoriaPadrao}
+                  onChange={(e) => setRegras({ ...regras, categoriaPadrao: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo de documento padrão</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={regras.tipoDocumentoPadrao}
+                  onChange={(e) => setRegras({ ...regras, tipoDocumentoPadrao: Number(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Prefixo idInterno</Label>
+                <Input
+                  value={regras.prefixoIdInterno}
+                  onChange={(e) => setRegras({ ...regras, prefixoIdInterno: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">
+                  Favorecidos padrão extras — uma por linha: <code>chave =&gt; CNPJ;Nome</code>
+                </Label>
+                <Textarea
+                  rows={3}
+                  placeholder={"sanepar => 76484013000145;Companhia de Saneamento do Paraná\ncopel => 76483817000120;Copel Distribuição S.A."}
+                  value={favText}
+                  onChange={(e) => setFavText(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRegras(REGRAS_DEFAULT);
+                    setFavText("");
+                    saveRegras(REGRAS_DEFAULT);
+                  }}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" /> Restaurar padrão
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm text-muted-foreground">
+            {jobs.length === 0
+              ? "Nenhum PDF carregado."
+              : `${jobs.length} arquivo(s) · ${pendentes} pendente(s)`}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={limpar} disabled={processing || jobs.length === 0}>
+              Limpar lista
+            </Button>
+            <Button onClick={iniciar} disabled={processing || pendentes === 0}>
+              <Play className="mr-1 h-4 w-4" />
+              {processing ? "Processando…" : `Iniciar análise${pendentes ? ` (${pendentes})` : ""}`}
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
