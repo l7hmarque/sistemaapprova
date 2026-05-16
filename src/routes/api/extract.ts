@@ -35,8 +35,10 @@ export const Route = createFileRoute("/api/extract")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
+        console.info("[api/extract] requisição recebida");
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) {
+          console.error("[api/extract] LOVABLE_API_KEY ausente");
           return new Response(
             JSON.stringify({ error: "LOVABLE_API_KEY ausente no servidor." }),
             { status: 500, headers: { "Content-Type": "application/json" } },
