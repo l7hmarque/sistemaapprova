@@ -128,7 +128,7 @@ export const Route = createFileRoute("/api/extract")({
           const parsed = JSON.parse(cleaned);
           const validated = extracaoSchema.parse(parsed);
           const comRegras = aplicarRegrasHolerite(validated);
-          let final: ExtracaoResultadoOuEnriquecida = comRegras;
+          let final: unknown = comRegras;
           if (pdfBytes) {
             try {
               final = await reforcarComDeterministico(pdfBytes, comRegras);
