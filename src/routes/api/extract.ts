@@ -35,8 +35,10 @@ export const Route = createFileRoute("/api/extract")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
+        console.info("[api/extract] requisição recebida");
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) {
+          console.error("[api/extract] LOVABLE_API_KEY ausente");
           return new Response(
             JSON.stringify({ error: "LOVABLE_API_KEY ausente no servidor." }),
             { status: 500, headers: { "Content-Type": "application/json" } },
@@ -81,6 +83,10 @@ export const Route = createFileRoute("/api/extract")({
         const model = gateway("google/gemini-3-flash-preview");
 
         try {
+          console.info(
+            `[api/extract] chamando IA — pdfBytes=${pdfBytes?.byteLength ?? 0}b, textLen=${pdfText.length}`,
+          );
+          const t0 = Date.now();
           const { text } = await generateText({
             model,
             system:
@@ -107,6 +113,7 @@ export const Route = createFileRoute("/api/extract")({
               },
             ],
           });
+          console.info(`[api/extract] IA respondeu em ${Date.now() - t0}ms, ${text.length} chars`);
 
           // Sanitize and parse JSON
           let cleaned = text.trim()
@@ -121,11 +128,17 @@ export const Route = createFileRoute("/api/extract")({
           const parsed = JSON.parse(cleaned);
           const validated = extracaoSchema.parse(parsed);
           const comRegras = aplicarRegrasHolerite(validated);
-          const final = pdfBytes
-            ? await reforcarComDeterministico(pdfBytes, comRegras)
-            : comRegras;
+          let final: unknown = comRegras;
+          if (pdfBytes) {
+            try {
+              final = await reforcarComDeterministico(pdfBytes, comRegras);
+            } catch (e) {
+              console.warn("[api/extract] pipeline determinístico falhou, retornando só IA", e);
+            }
+          }
           return Response.json(final);
         } catch (e: unknown) {
+          console.error("[api/extract] erro:", e);
           const err = e as { statusCode?: number; message?: string };
           const status = err.statusCode ?? 500;
           const msg =

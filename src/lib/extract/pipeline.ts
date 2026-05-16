@@ -61,13 +61,22 @@ export async function reforcarComDeterministico(
   const guias: GuiaParsed[] = [];
 
   try {
-    const paginas = await extrairTextoPorPagina(pdfBytes);
+    // Timeout defensivo: se unpdf travar no runtime do Worker, não bloqueia o retorno.
+    const paginas = await Promise.race([
+      extrairTextoPorPagina(pdfBytes),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("pdf-text timeout (10s)")), 10_000),
+      ),
+    ]);
     for (const p of paginas) {
       const txt = normalizarTexto(p.texto);
       nfes.push(...parseNFeAll(txt, p.numero));
       boletos.push(...parseBoletoAll(txt, p.numero));
       guias.push(...parseGuiaAll(txt, p.numero));
     }
+    console.info(
+      `[pipeline] texto extraído: ${nfes.length} NF-e, ${boletos.length} boletos, ${guias.length} guias`,
+    );
   } catch (e) {
     console.warn("[pipeline] falha extraindo texto do PDF, seguindo apenas com IA", e);
   }
