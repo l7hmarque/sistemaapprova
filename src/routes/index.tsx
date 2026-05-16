@@ -22,7 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload, Play, X, Loader2, Settings2, ChevronDown } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  loadRegras,
+  saveRegras,
+  REGRAS_DEFAULT,
+  parseFavorecidosExtras,
+  favorecidosExtrasToText,
+  aplicarRegrasUsuario,
+  type RegrasUsuario,
+} from "@/lib/regrasUsuario";
 import {
   Dialog,
   DialogContent,
@@ -224,6 +235,79 @@ async function copyTSV(rows: (string | number)[][], label: string) {
 const fmtNum = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+type PdfJobStatus = "pronto" | "enviando" | "analisando" | "mesclando" | "concluido" | "erro";
+
+type PdfJob = {
+  id: string;
+  file: File;
+  status: PdfJobStatus;
+  etapa: string | null;
+  progresso: number;
+  erro: string | null;
+};
+
+/**
+ * Upload via XHR para ter onprogress real no envio. Para a fase "IA" (caixa-preta),
+ * simula uma curva assintótica capada em ~99% até a resposta chegar — rotulado como
+ * "estimado" na UI.
+ */
+function uploadComProgresso(
+  file: File,
+  onUpload: (pct: number) => void,
+  onAnalise: (pct: number) => void,
+): Promise<ExtracaoResultado> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/extract");
+    xhr.responseType = "text";
+    let analiseTimer: ReturnType<typeof setInterval> | null = null;
+    let analiseInicio = 0;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
+    };
+    xhr.upload.onload = () => {
+      onUpload(100);
+      // começa fase IA: curva assintótica baseada em tempo
+      analiseInicio = Date.now();
+      analiseTimer = setInterval(() => {
+        const elapsedS = (Date.now() - analiseInicio) / 1000;
+        // Após ~25s chegamos perto de 95%
+        const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
+        onAnalise(pct);
+      }, 300);
+    };
+    const cleanup = () => {
+      if (analiseTimer) clearInterval(analiseTimer);
+    };
+    xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
+    xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
+    xhr.onload = () => {
+      cleanup();
+      onAnalise(100);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
+          resolve(data);
+        } catch (e) {
+          reject(new Error("Resposta inválida do servidor"));
+        }
+      } else {
+        let msg = `Erro ${xhr.status}`;
+        try {
+          const j = JSON.parse(xhr.responseText) as { error?: string };
+          if (j.error) msg = j.error;
+        } catch { /* noop */ }
+        reject(new Error(msg));
+      }
+    };
+    xhr.send(fd);
+  });
+}
+
+const MAX_LOTE = 10;
+
 function AppPage() {
   const [extraindo, setExtraindo] = useState(false);
   const [mesRef, setMesRef] = useState("");
@@ -384,24 +468,85 @@ function AppPage() {
     );
   }
 
-  async function handleUpload(file: File) {
+  function mesclarExtracao(data: ExtracaoResultado, isFirst: boolean) {
+    if (isFirst) {
+      setMesRef(data.mesReferencia ?? "");
+      setReceitas(data.receitas ?? []);
+      setResumo({
+        saldoAnterior: data.resumo?.saldoAnterior ?? 0,
+        transferidos: data.resumo?.transferidos ?? 0,
+        rendimentos: data.resumo?.rendimentos ?? 0,
+        estornados: data.resumo?.estornados ?? 0,
+      });
+    }
+    const novas: Despesa[] = (data.despesas ?? []).map((d) => {
+      const tpDoc = migrarTipoLegacy(d.tipoDocumento, d.subtipoDocumento ?? null);
+      return {
+        uid: crypto.randomUUID(),
+        idInterno: d.idInterno,
+        data: d.data,
+        dataEmissao: d.dataEmissao || d.data,
+        favorecido: d.favorecido,
+        documento: d.documento || "0",
+        valor: Number(d.valor) || 0,
+        tpDocumentoDespesa: tpDoc,
+        tpDocFav: (d.tpDocFav === "CNPJ" || d.tpDocFav === "EXT" ? d.tpDocFav : "CPF") as Despesa["tpDocFav"],
+        nrDocFav: d.nrDocFav,
+        descricao: d.descricao,
+        categoria: d.sugestaoCategoria || CATEGORIAS[0].codigo,
+        cdModalidadeCompra: modalidadePadrao(tpDoc),
+        tpDocumentoPagamento: 6,
+        origem: (d as { origem?: Despesa["origem"] }).origem ?? "ia",
+        evidencia: (d as { evidencia?: string | null }).evidencia ?? null,
+      };
+    });
+    if (isFirst) {
+      setDespesas(novas);
+    } else {
+      setDespesas((prev) => [...prev, ...novas]);
+    }
+  }
+
+  async function processarLote(
+    jobs: PdfJob[],
+    regras: RegrasUsuario,
+    onUpdate: (id: string, patch: Partial<PdfJob>) => void,
+  ): Promise<{ ok: number; fail: number; total: number }> {
     setExtraindo(true);
+    let ok = 0;
+    let fail = 0;
+    let total = 0;
+    let contador = 0;
+    let isFirst = despesas.length === 0;
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/extract", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? `Erro ${res.status}`);
+      for (const job of jobs) {
+        if (job.status === "concluido") continue;
+        onUpdate(job.id, { status: "enviando", etapa: "Enviando PDF…", progresso: 0, erro: null });
+        try {
+          const data = await uploadComProgresso(job.file, (pct) => {
+            onUpdate(job.id, { progresso: Math.min(20, pct * 0.2), etapa: "Enviando PDF…" });
+          }, (analisePct) => {
+            onUpdate(job.id, { progresso: 20 + analisePct * 0.7, etapa: "IA extraindo (estimado)…", status: "analisando" });
+          });
+          onUpdate(job.id, { status: "mesclando", etapa: "Aplicando regras…", progresso: 95 });
+          const { extracao, proximoContador } = aplicarRegrasUsuario(data, regras, contador);
+          contador = proximoContador;
+          mesclarExtracao(extracao, isFirst);
+          isFirst = false;
+          total += extracao.despesas?.length ?? 0;
+          ok += 1;
+          onUpdate(job.id, { status: "concluido", etapa: `${extracao.despesas?.length ?? 0} despesa(s)`, progresso: 100 });
+        } catch (e) {
+          fail += 1;
+          onUpdate(job.id, { status: "erro", etapa: null, erro: (e as Error).message, progresso: 0 });
+        }
       }
-      const data = (await res.json()) as ExtracaoResultado;
-      aplicarExtracao(data);
-      toast.success(`Extraídas ${data.despesas?.length ?? 0} despesas.`);
-    } catch (e) {
-      toast.error((e as Error).message);
+      if (ok > 0) toast.success(`${ok} de ${jobs.length} PDFs processados, ${total} despesa(s) adicionadas.`);
+      if (fail > 0) toast.error(`${fail} PDF(s) falharam.`);
     } finally {
       setExtraindo(false);
     }
+    return { ok, fail, total };
   }
 
   function buildExtracaoAtual(): ExtracaoResultado {
@@ -693,7 +838,7 @@ function AppPage() {
 
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
-        <UploadCard onFile={handleUpload} loading={extraindo} />
+        <BatchUploadCard onProcess={processarLote} processing={extraindo} />
 
         <ResumoCards
           resumo={resumo}
@@ -822,51 +967,262 @@ function AppPage() {
   );
 }
 
-function UploadCard({
-  onFile,
-  loading,
+function statusLabel(s: PdfJobStatus): string {
+  switch (s) {
+    case "pronto": return "Pronto";
+    case "enviando": return "Enviando";
+    case "analisando": return "IA (estimado)";
+    case "mesclando": return "Mesclando";
+    case "concluido": return "Concluído";
+    case "erro": return "Erro";
+  }
+}
+
+function BatchUploadCard({
+  onProcess,
+  processing,
 }: {
-  onFile: (f: File) => void;
-  loading: boolean;
+  onProcess: (
+    jobs: PdfJob[],
+    regras: RegrasUsuario,
+    onUpdate: (id: string, patch: Partial<PdfJob>) => void,
+  ) => Promise<{ ok: number; fail: number; total: number }>;
+  processing: boolean;
 }) {
   const [drag, setDrag] = useState(false);
+  const [jobs, setJobs] = useState<PdfJob[]>([]);
+  const [regras, setRegras] = useState<RegrasUsuario>(REGRAS_DEFAULT);
+  const [regrasAberto, setRegrasAberto] = useState(false);
+  const [favText, setFavText] = useState("");
+
+  useEffect(() => {
+    const r = loadRegras();
+    setRegras(r);
+    setFavText(favorecidosExtrasToText(r.favorecidosExtras));
+  }, []);
+
+  function addFiles(list: FileList | File[]) {
+    const arr = Array.from(list).filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+    if (arr.length === 0) {
+      toast.error("Selecione arquivos PDF.");
+      return;
+    }
+    setJobs((prev) => {
+      const restante = MAX_LOTE - prev.length;
+      if (restante <= 0) {
+        toast.error(`Limite de ${MAX_LOTE} PDFs por lote.`);
+        return prev;
+      }
+      const novos = arr.slice(0, restante).map<PdfJob>((f) => ({
+        id: crypto.randomUUID(),
+        file: f,
+        status: "pronto",
+        etapa: null,
+        progresso: 0,
+        erro: null,
+      }));
+      if (arr.length > restante) toast.warning(`${arr.length - restante} arquivo(s) ignorado(s) (limite ${MAX_LOTE}).`);
+      return [...prev, ...novos];
+    });
+  }
+
+  function removerJob(id: string) {
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+  }
+  function limpar() { setJobs([]); }
+
+  function patchJob(id: string, patch: Partial<PdfJob>) {
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  }
+
+  function salvarRegras(novas: RegrasUsuario) {
+    setRegras(novas);
+    saveRegras(novas);
+  }
+
+  async function iniciar() {
+    const pendentes = jobs.filter((j) => j.status !== "concluido");
+    if (pendentes.length === 0) return;
+    // sincroniza favorecidos extras a partir do texto
+    const fav = parseFavorecidosExtras(favText);
+    const regrasFinais = { ...regras, favorecidosExtras: fav };
+    salvarRegras(regrasFinais);
+    await onProcess(jobs, regrasFinais, patchJob);
+  }
+
+  const pendentes = jobs.filter((j) => j.status !== "concluido" && j.status !== "erro").length;
+
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="space-y-4 p-6">
         <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDrag(true);
-          }}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => {
             e.preventDefault();
             setDrag(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f) onFile(f);
+            if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
           }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
             drag ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
-          }`}
+          } ${processing ? "pointer-events-none opacity-60" : ""}`}
         >
           <Upload className="h-8 w-8 text-muted-foreground" />
-          <div className="font-medium">
-            {loading ? "Extraindo dados com IA…" : "Arraste o PDF de Despesas aqui"}
-          </div>
+          <div className="font-medium">Arraste PDFs aqui ou clique para selecionar</div>
           <div className="text-sm text-muted-foreground">
-            ou clique para selecionar (holerites, NFs, boletos, comprovantes)
+            Vários arquivos suportados (até {MAX_LOTE}). A análise só começa quando você clicar em “Iniciar”.
           </div>
           <input
             type="file"
             accept="application/pdf"
+            multiple
             className="hidden"
-            disabled={loading}
+            disabled={processing}
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onFile(f);
+              if (e.target.files?.length) addFiles(e.target.files);
+              e.target.value = "";
             }}
           />
         </label>
+
+        {jobs.length > 0 && (
+          <div className="space-y-2">
+            {jobs.map((j) => (
+              <div key={j.id} className="rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="truncate text-sm font-medium">{j.file.name}</div>
+                    <div className="shrink-0 text-xs text-muted-foreground">
+                      {(j.file.size / 1024).toFixed(0)} KB
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={`text-xs ${j.status === "erro" ? "text-destructive" : j.status === "concluido" ? "text-green-600" : "text-muted-foreground"}`}>
+                      {statusLabel(j.status)}
+                    </span>
+                    {j.status === "enviando" || j.status === "analisando" || j.status === "mesclando" ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : j.status === "concluido" ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : j.status === "erro" ? (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={processing}
+                        onClick={() => removerJob(j.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {(j.status !== "pronto" || j.progresso > 0) && (
+                  <div className="mt-2 space-y-1">
+                    <Progress value={j.progresso} />
+                    <div className="text-xs text-muted-foreground">
+                      {j.erro ? j.erro : j.etapa ?? ""}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-md border">
+          <button
+            type="button"
+            onClick={() => setRegrasAberto((v) => !v)}
+            className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-muted/40"
+          >
+            <span className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Regras de extração (opcional)
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${regrasAberto ? "rotate-180" : ""}`} />
+          </button>
+          {regrasAberto && (
+            <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Mês de referência forçado (MM/AAAA)</Label>
+                <Input
+                  placeholder="ex: 04/2025"
+                  value={regras.mesReferenciaForcado}
+                  onChange={(e) => setRegras({ ...regras, mesReferenciaForcado: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Categoria padrão (código)</Label>
+                <Input
+                  placeholder="ex: 3.3.90.30.99"
+                  value={regras.categoriaPadrao}
+                  onChange={(e) => setRegras({ ...regras, categoriaPadrao: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo de documento padrão</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={regras.tipoDocumentoPadrao}
+                  onChange={(e) => setRegras({ ...regras, tipoDocumentoPadrao: Number(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Prefixo idInterno</Label>
+                <Input
+                  value={regras.prefixoIdInterno}
+                  onChange={(e) => setRegras({ ...regras, prefixoIdInterno: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">
+                  Favorecidos padrão extras — uma por linha: <code>chave =&gt; CNPJ;Nome</code>
+                </Label>
+                <Textarea
+                  rows={3}
+                  placeholder={"sanepar => 76484013000145;Companhia de Saneamento do Paraná\ncopel => 76483817000120;Copel Distribuição S.A."}
+                  value={favText}
+                  onChange={(e) => setFavText(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRegras(REGRAS_DEFAULT);
+                    setFavText("");
+                    saveRegras(REGRAS_DEFAULT);
+                  }}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" /> Restaurar padrão
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm text-muted-foreground">
+            {jobs.length === 0
+              ? "Nenhum PDF carregado."
+              : `${jobs.length} arquivo(s) · ${pendentes} pendente(s)`}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={limpar} disabled={processing || jobs.length === 0}>
+              Limpar lista
+            </Button>
+            <Button onClick={iniciar} disabled={processing || pendentes === 0}>
+              <Play className="mr-1 h-4 w-4" />
+              {processing ? "Processando…" : `Iniciar análise${pendentes ? ` (${pendentes})` : ""}`}
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
