@@ -459,19 +459,27 @@ function NovoOrcamento() {
           </Table>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={handleGerar} disabled={enviando}>
             {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Gerar planilhas no Drive (1 por fornecedor)
+            Gerar planilhas no Drive
           </Button>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={gerarMapaJunto}
+              onChange={(e) => setGerarMapaJunto(e.target.checked)}
+            />
+            Gerar também o mapa comparativo
+          </label>
         </div>
 
-        {resultados.length > 0 && (
+        {(resultados.length > 0 || mapaResult) && (
           <div className="space-y-1 rounded-md border p-3 text-sm">
             <div className="mb-1 font-semibold">Resultado:</div>
             {resultados.map((r, i) => (
               <div key={i} className="flex items-center justify-between gap-2">
-                <span className="truncate">{r.razao}</span>
+                <span className="truncate">Orçamento — {r.razao}</span>
                 {r.url ? (
                   <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-primary hover:underline">
                     <ExternalLink className="mr-1 h-3 w-3" /> abrir
@@ -481,6 +489,18 @@ function NovoOrcamento() {
                 )}
               </div>
             ))}
+            {mapaResult && (
+              <div className="flex items-center justify-between gap-2 border-t pt-1">
+                <span className="truncate font-medium">Mapa comparativo</span>
+                {mapaResult.url ? (
+                  <a href={mapaResult.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-primary hover:underline">
+                    <ExternalLink className="mr-1 h-3 w-3" /> abrir
+                  </a>
+                ) : (
+                  <span className="text-destructive text-xs">{mapaResult.erro}</span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
