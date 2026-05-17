@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
 
+const OrcamentosRoute = OrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -25,32 +31,43 @@ const ApiExtractRoute = ApiExtractRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/extract'
+  fullPaths: '/' | '/orcamentos' | '/api/extract'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/extract'
-  id: '__root__' | '/' | '/api/extract'
+  to: '/' | '/orcamentos' | '/api/extract'
+  id: '__root__' | '/' | '/orcamentos' | '/api/extract'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OrcamentosRoute: typeof OrcamentosRoute
   ApiExtractRoute: typeof ApiExtractRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/orcamentos': {
+      id: '/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/orcamentos'
+      preLoaderRoute: typeof OrcamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -70,8 +87,19 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OrcamentosRoute: OrcamentosRoute,
   ApiExtractRoute: ApiExtractRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

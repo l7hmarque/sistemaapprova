@@ -1,0 +1,731 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExternalLink, Plus, Trash2, Save, FileDown, FileText, BarChart3, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  gerarOrcamentoNoDrive,
+  gerarMapaComparativoNoDrive,
+} from "@/lib/orcamentos.functions";
+
+export const Route = createFileRoute("/orcamentos")({
+  head: () => ({
+    meta: [
+      { title: "Orçamentos — SIT" },
+      { name: "description", content: "Geração de orçamentos e mapa comparativo no Drive a partir de modelos." },
+    ],
+  }),
+  component: OrcamentosPage,
+});
+
+type Fornecedor = {
+  id?: string;
+  cnpj: string;
+  razao_social: string;
+  representante_legal?: string | null;
+  cpf_representante?: string | null;
+};
+
+type Preset = {
+  id: string;
+  nome: string;
+  objeto: string | null;
+  termo: string | null;
+  itens: Array<{ descricao: string; qtd: number; unidade: string }>;
+  fornecedores_sugeridos: string[];
+};
+
+type OrcSalvo = {
+  id: string;
+  tipo: "cotacao" | "mapa_comparativo";
+  objeto: string | null;
+  termo: string | null;
+  mes_referencia: string | null;
+  drive_file_url: string | null;
+  criado_em: string;
+};
+
+const ENTIDADE_DEFAULT = {
+  razao: "Sociedade Civil Nossa Senhora Aparecida",
+  cnpj: "01.788.362/0001-51",
+  representante: "Raul Oscar Sena Velez",
+  cpf: "801.780.489-09",
+};
+
+function OrcamentosPage() {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Toaster richColors position="top-right" />
+      <div className="container mx-auto max-w-6xl px-4 py-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Orçamentos & Mapa Comparativo</h1>
+            <p className="text-sm text-muted-foreground">
+              Gera planilhas no Drive a partir dos modelos oficiais e salva o histórico.
+            </p>
+          </div>
+          <Link to="/" className="text-sm text-primary hover:underline">← voltar para extrações</Link>
+        </div>
+
+        <Tabs defaultValue="orcamento" className="w-full">
+          <TabsList>
+            <TabsTrigger value="orcamento"><FileText className="mr-1 h-4 w-4" /> Novo orçamento</TabsTrigger>
+            <TabsTrigger value="mapa"><BarChart3 className="mr-1 h-4 w-4" /> Mapa comparativo</TabsTrigger>
+            <TabsTrigger value="presets">Presets</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="orcamento" className="mt-4">
+            <NovoOrcamento />
+          </TabsContent>
+          <TabsContent value="mapa" className="mt-4">
+            <NovoMapa />
+          </TabsContent>
+          <TabsContent value="presets" className="mt-4">
+            <PresetsTab />
+          </TabsContent>
+          <TabsContent value="historico" className="mt-4">
+            <HistoricoTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+/* =========================== HOOKS DE DADOS =========================== */
+
+function useFornecedores() {
+  const [lista, setLista] = useState<Fornecedor[]>([]);
+  const recarregar = async () => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select("id, cnpj, razao_social, representante_legal, cpf_representante")
+      .order("razao_social", { ascending: true });
+    if (error) { toast.error("Falha ao listar fornecedores: " + error.message); return; }
+    setLista((data ?? []) as Fornecedor[]);
+  };
+  useEffect(() => { void recarregar(); }, []);
+  return { lista, recarregar };
+}
+
+function useObjetos() {
+  const [lista, setLista] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("objetos_cotacao")
+        .select("descricao")
+        .order("uso_count", { ascending: false })
+        .limit(50);
+      setLista((data ?? []).map((r: { descricao: string }) => r.descricao));
+    })();
+  }, []);
+  return lista;
+}
+
+async function upsertFornecedor(f: Omit<Fornecedor, "id">): Promise<void> {
+  const cnpj = f.cnpj.trim();
+  if (!cnpj) return;
+  const { data: existing } = await supabase
+    .from("fornecedores")
+    .select("id")
+    .eq("cnpj", cnpj)
+    .maybeSingle();
+  if (existing) return;
+  await supabase.from("fornecedores").insert({
+    cnpj,
+    razao_social: f.razao_social,
+    representante_legal: f.representante_legal ?? null,
+    cpf_representante: f.cpf_representante ?? null,
+  });
+}
+
+/* =========================== NOVO ORÇAMENTO =========================== */
+
+type ItemOrc = { descricao: string; qtd: number; unidade: string; precoUnitario: number };
+
+function NovoOrcamento() {
+  const objetos = useObjetos();
+  const { lista: fornecedores, recarregar: recarregarF } = useFornecedores();
+  const [entidade, setEntidade] = useState(ENTIDADE_DEFAULT);
+  const [termo, setTermo] = useState("001/2022");
+  const [fornecedor, setFornecedor] = useState<Fornecedor>({ cnpj: "", razao_social: "", representante_legal: "", cpf_representante: "" });
+  const [objeto, setObjeto] = useState("");
+  const [validadeDias, setValidadeDias] = useState(30);
+  const [data, setData] = useState(new Date().toLocaleDateString("pt-BR"));
+  const [mesRef, setMesRef] = useState(new Date().toISOString().slice(0, 7));
+  const [itens, setItens] = useState<ItemOrc[]>([
+    { descricao: "", qtd: 1, unidade: "un", precoUnitario: 0 },
+  ]);
+  const [enviando, setEnviando] = useState(false);
+  const [ultimoLink, setUltimoLink] = useState<string | null>(null);
+  const gerar = useServerFn(gerarOrcamentoNoDrive);
+
+  const totalItens = itens.length;
+  const totalGeral = useMemo(() => itens.reduce((s, i) => s + (i.qtd || 0) * (i.precoUnitario || 0), 0), [itens]);
+
+  const onPickFornecedor = (cnpj: string) => {
+    const f = fornecedores.find((x) => x.cnpj === cnpj);
+    if (f) setFornecedor({ ...f });
+  };
+
+  const onAddItem = () => setItens((x) => [...x, { descricao: "", qtd: 1, unidade: "un", precoUnitario: 0 }]);
+  const onDelItem = (i: number) => setItens((x) => x.filter((_, k) => k !== i));
+  const updItem = (i: number, patch: Partial<ItemOrc>) =>
+    setItens((x) => x.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+
+  const handleGerar = async () => {
+    if (!objeto.trim()) return toast.error("Informe o objeto.");
+    if (!fornecedor.razao_social.trim()) return toast.error("Informe a razão social do fornecedor.");
+    if (!fornecedor.cnpj.trim()) return toast.error("Informe o CNPJ do fornecedor.");
+    if (!itens.some((i) => i.descricao.trim())) return toast.error("Adicione ao menos 1 item.");
+
+    setEnviando(true);
+    setUltimoLink(null);
+    try {
+      const res = await gerar({
+        data: {
+          entidade: {
+            razao: entidade.razao,
+            cnpj: entidade.cnpj,
+            representante: entidade.representante,
+            cpf: entidade.cpf,
+          },
+          termo,
+          fornecedor: {
+            razao: fornecedor.razao_social,
+            cnpj: fornecedor.cnpj,
+            representante: fornecedor.representante_legal || "",
+            cpf: fornecedor.cpf_representante || "",
+          },
+          objeto,
+          validadeDias,
+          data,
+          mesReferencia: mesRef,
+          itens: itens
+            .filter((i) => i.descricao.trim())
+            .map((i) => ({
+              descricao: i.descricao,
+              qtd: Number(i.qtd) || 0,
+              unidade: i.unidade,
+              precoUnitario: Number(i.precoUnitario) || 0,
+            })),
+        },
+      });
+      setUltimoLink(res.url);
+      toast.success("Orçamento gerado no Drive.");
+      await upsertFornecedor({
+        cnpj: fornecedor.cnpj,
+        razao_social: fornecedor.razao_social,
+        representante_legal: fornecedor.representante_legal,
+        cpf_representante: fornecedor.cpf_representante,
+      });
+      void recarregarF();
+    } catch (e) {
+      toast.error("Falha: " + (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Solicitação de Cotação (Anexo I)</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <Label>Entidade</Label>
+            <Input value={entidade.razao} onChange={(e) => setEntidade({ ...entidade, razao: e.target.value })} />
+          </div>
+          <div>
+            <Label>CNPJ entidade</Label>
+            <Input value={entidade.cnpj} onChange={(e) => setEntidade({ ...entidade, cnpj: e.target.value })} />
+          </div>
+          <div>
+            <Label>Representante legal</Label>
+            <Input value={entidade.representante} onChange={(e) => setEntidade({ ...entidade, representante: e.target.value })} />
+          </div>
+          <div>
+            <Label>CPF representante</Label>
+            <Input value={entidade.cpf} onChange={(e) => setEntidade({ ...entidade, cpf: e.target.value })} />
+          </div>
+          <div>
+            <Label>Termo (Fomento/Colaboração) Nº</Label>
+            <Input value={termo} onChange={(e) => setTermo(e.target.value)} />
+          </div>
+          <div>
+            <Label>Mês de referência</Label>
+            <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="rounded-md border p-3">
+          <div className="mb-2 text-sm font-semibold">Fornecedor</div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <Label>Selecionar salvo</Label>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value=""
+                onChange={(e) => onPickFornecedor(e.target.value)}
+              >
+                <option value="">— escolher —</option>
+                {fornecedores.map((f) => (
+                  <option key={f.id} value={f.cnpj}>{f.razao_social} ({f.cnpj})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>CNPJ</Label>
+              <Input value={fornecedor.cnpj} onChange={(e) => setFornecedor({ ...fornecedor, cnpj: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <Label>Razão social</Label>
+              <Input value={fornecedor.razao_social} onChange={(e) => setFornecedor({ ...fornecedor, razao_social: e.target.value })} />
+            </div>
+            <div>
+              <Label>Representante</Label>
+              <Input value={fornecedor.representante_legal ?? ""} onChange={(e) => setFornecedor({ ...fornecedor, representante_legal: e.target.value })} />
+            </div>
+            <div>
+              <Label>CPF representante</Label>
+              <Input value={fornecedor.cpf_representante ?? ""} onChange={(e) => setFornecedor({ ...fornecedor, cpf_representante: e.target.value })} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <Label>Objeto da cotação</Label>
+            <Input list="objetos-list" value={objeto} onChange={(e) => setObjeto(e.target.value)} placeholder="ex: Gêneros de alimentação" />
+            <datalist id="objetos-list">
+              {objetos.map((o) => <option key={o} value={o} />)}
+            </datalist>
+          </div>
+          <div>
+            <Label>Validade (dias)</Label>
+            <Input type="number" min={1} value={validadeDias} onChange={(e) => setValidadeDias(Number(e.target.value) || 30)} />
+          </div>
+          <div>
+            <Label>Data</Label>
+            <Input value={data} onChange={(e) => setData(e.target.value)} placeholder="dd/mm/aaaa" />
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <Label>Itens ({totalItens})</Label>
+            <Button size="sm" variant="outline" onClick={onAddItem}><Plus className="mr-1 h-3 w-3" /> adicionar item</Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">#</TableHead>
+                <TableHead>Especificação</TableHead>
+                <TableHead className="w-20">Qtd</TableHead>
+                <TableHead className="w-24">Unidade</TableHead>
+                <TableHead className="w-28">Preço unit.</TableHead>
+                <TableHead className="w-28">Total</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {itens.map((it, i) => (
+                <TableRow key={i}>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>
+                    <Textarea rows={2} value={it.descricao} onChange={(e) => updItem(i, { descricao: e.target.value })} />
+                  </TableCell>
+                  <TableCell><Input type="number" value={it.qtd} onChange={(e) => updItem(i, { qtd: Number(e.target.value) || 0 })} /></TableCell>
+                  <TableCell><Input value={it.unidade} onChange={(e) => updItem(i, { unidade: e.target.value })} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precoUnitario} onChange={(e) => updItem(i, { precoUnitario: Number(e.target.value) || 0 })} /></TableCell>
+                  <TableCell>R$ {((it.qtd || 0) * (it.precoUnitario || 0)).toFixed(2)}</TableCell>
+                  <TableCell><Button size="icon" variant="ghost" onClick={() => onDelItem(i)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell colSpan={5} className="text-right font-semibold">Total geral</TableCell>
+                <TableCell className="font-semibold">R$ {totalGeral.toFixed(2)}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button onClick={handleGerar} disabled={enviando}>
+            {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            Gerar planilha no Drive
+          </Button>
+          {ultimoLink && (
+            <a href={ultimoLink} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm text-primary hover:underline">
+              <ExternalLink className="mr-1 h-3 w-3" /> abrir no Sheets
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* =========================== NOVO MAPA =========================== */
+
+type ItemMapa = { descricao: string; unidade: string; qtd: number; precos: [number, number, number] };
+
+function NovoMapa() {
+  const objetos = useObjetos();
+  const { lista: fornecedores } = useFornecedores();
+  const [entidade, setEntidade] = useState(ENTIDADE_DEFAULT);
+  const [termo, setTermo] = useState("001/2022");
+  const [objeto, setObjeto] = useState("");
+  const [mesRef, setMesRef] = useState(new Date().toISOString().slice(0, 7));
+  const [forns, setForns] = useState<Array<{ razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number }>>([
+    { razao: "", cnpj: "", dataEmissao: "", dataValidade: "", prazoDias: 0 },
+    { razao: "", cnpj: "", dataEmissao: "", dataValidade: "", prazoDias: 0 },
+    { razao: "", cnpj: "", dataEmissao: "", dataValidade: "", prazoDias: 0 },
+  ]);
+  const [itens, setItens] = useState<ItemMapa[]>([{ descricao: "", unidade: "un", qtd: 1, precos: [0, 0, 0] }]);
+  const [enviando, setEnviando] = useState(false);
+  const [ultimoLink, setUltimoLink] = useState<string | null>(null);
+  const gerar = useServerFn(gerarMapaComparativoNoDrive);
+
+  const updForn = (i: number, patch: Partial<typeof forns[number]>) =>
+    setForns((x) => x.map((f, k) => (k === i ? { ...f, ...patch } : f)));
+  const pickForn = (i: number, cnpj: string) => {
+    const f = fornecedores.find((x) => x.cnpj === cnpj);
+    if (f) updForn(i, { razao: f.razao_social, cnpj: f.cnpj });
+  };
+
+  const onAddItem = () => setItens((x) => [...x, { descricao: "", unidade: "un", qtd: 1, precos: [0, 0, 0] }]);
+  const onDelItem = (i: number) => setItens((x) => x.filter((_, k) => k !== i));
+  const updItem = (i: number, patch: Partial<ItemMapa>) => setItens((x) => x.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  const updPreco = (i: number, col: 0 | 1 | 2, v: number) =>
+    setItens((x) => x.map((it, k) => {
+      if (k !== i) return it;
+      const p = [...it.precos] as [number, number, number];
+      p[col] = v;
+      return { ...it, precos: p };
+    }));
+
+  const handleGerar = async () => {
+    if (!objeto.trim()) return toast.error("Informe o objeto.");
+    if (forns.some((f) => !f.razao.trim())) return toast.error("Preencha os 3 fornecedores.");
+    if (!itens.some((i) => i.descricao.trim())) return toast.error("Adicione ao menos 1 item.");
+
+    setEnviando(true);
+    setUltimoLink(null);
+    try {
+      const res = await gerar({
+        data: {
+          entidade: {
+            razao: entidade.razao,
+            cnpj: entidade.cnpj,
+            representante: entidade.representante,
+            cpf: entidade.cpf,
+          },
+          termo,
+          objeto,
+          mesReferencia: mesRef,
+          fornecedores: [
+            { ...forns[0], prazoDias: Number(forns[0].prazoDias) || 0 },
+            { ...forns[1], prazoDias: Number(forns[1].prazoDias) || 0 },
+            { ...forns[2], prazoDias: Number(forns[2].prazoDias) || 0 },
+          ],
+          itens: itens
+            .filter((i) => i.descricao.trim())
+            .map((i) => ({
+              descricao: i.descricao,
+              unidade: i.unidade,
+              qtd: Number(i.qtd) || 0,
+              precos: [
+                Number(i.precos[0]) || 0,
+                Number(i.precos[1]) || 0,
+                Number(i.precos[2]) || 0,
+              ] as [number, number, number],
+            })),
+        },
+      });
+      setUltimoLink(res.url);
+      toast.success("Mapa comparativo gerado no Drive.");
+      // Auto-salva fornecedores
+      for (const f of forns) {
+        if (f.cnpj && f.razao) await upsertFornecedor({ cnpj: f.cnpj, razao_social: f.razao });
+      }
+    } catch (e) {
+      toast.error("Falha: " + (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Mapa Comparativo (Anexo II)</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <Label>Entidade</Label>
+            <Input value={entidade.razao} onChange={(e) => setEntidade({ ...entidade, razao: e.target.value })} />
+          </div>
+          <div>
+            <Label>CNPJ entidade</Label>
+            <Input value={entidade.cnpj} onChange={(e) => setEntidade({ ...entidade, cnpj: e.target.value })} />
+          </div>
+          <div>
+            <Label>Representante legal</Label>
+            <Input value={entidade.representante} onChange={(e) => setEntidade({ ...entidade, representante: e.target.value })} />
+          </div>
+          <div>
+            <Label>CPF</Label>
+            <Input value={entidade.cpf} onChange={(e) => setEntidade({ ...entidade, cpf: e.target.value })} />
+          </div>
+          <div>
+            <Label>Termo</Label>
+            <Input value={termo} onChange={(e) => setTermo(e.target.value)} />
+          </div>
+          <div>
+            <Label>Mês de referência</Label>
+            <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Objeto da cotação</Label>
+            <Input list="objetos-list-mapa" value={objeto} onChange={(e) => setObjeto(e.target.value)} />
+            <datalist id="objetos-list-mapa">
+              {objetos.map((o) => <option key={o} value={o} />)}
+            </datalist>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Fornecedores (3)</Label>
+          {forns.map((f, i) => (
+            <div key={i} className="grid grid-cols-1 gap-2 rounded-md border p-3 md:grid-cols-6">
+              <div className="md:col-span-2">
+                <Label className="text-xs">Razão social</Label>
+                <Input value={f.razao} onChange={(e) => updForn(i, { razao: e.target.value })} />
+                <select
+                  className="mt-1 h-7 w-full rounded-md border border-input bg-background px-2 text-xs"
+                  value=""
+                  onChange={(e) => pickForn(i, e.target.value)}
+                >
+                  <option value="">salvos…</option>
+                  {fornecedores.map((x) => <option key={x.id} value={x.cnpj}>{x.razao_social}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">CNPJ</Label>
+                <Input value={f.cnpj} onChange={(e) => updForn(i, { cnpj: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Data emissão</Label>
+                <Input value={f.dataEmissao} onChange={(e) => updForn(i, { dataEmissao: e.target.value })} placeholder="dd/mm/aaaa" />
+              </div>
+              <div>
+                <Label className="text-xs">Validade</Label>
+                <Input value={f.dataValidade} onChange={(e) => updForn(i, { dataValidade: e.target.value })} placeholder="dd/mm/aaaa" />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo (dias)</Label>
+                <Input type="number" value={f.prazoDias} onChange={(e) => updForn(i, { prazoDias: Number(e.target.value) || 0 })} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <Label>Itens ({itens.length})</Label>
+            <Button size="sm" variant="outline" onClick={onAddItem}><Plus className="mr-1 h-3 w-3" /> adicionar item</Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">#</TableHead>
+                <TableHead>Especificação</TableHead>
+                <TableHead className="w-20">Unidade</TableHead>
+                <TableHead className="w-16">Qtd</TableHead>
+                <TableHead className="w-24">P. {forns[0].razao || "Forn. 1"}</TableHead>
+                <TableHead className="w-24">P. {forns[1].razao || "Forn. 2"}</TableHead>
+                <TableHead className="w-24">P. {forns[2].razao || "Forn. 3"}</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {itens.map((it, i) => (
+                <TableRow key={i}>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell><Textarea rows={2} value={it.descricao} onChange={(e) => updItem(i, { descricao: e.target.value })} /></TableCell>
+                  <TableCell><Input value={it.unidade} onChange={(e) => updItem(i, { unidade: e.target.value })} /></TableCell>
+                  <TableCell><Input type="number" value={it.qtd} onChange={(e) => updItem(i, { qtd: Number(e.target.value) || 0 })} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[0]} onChange={(e) => updPreco(i, 0, Number(e.target.value) || 0)} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[1]} onChange={(e) => updPreco(i, 1, Number(e.target.value) || 0)} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[2]} onChange={(e) => updPreco(i, 2, Number(e.target.value) || 0)} /></TableCell>
+                  <TableCell><Button size="icon" variant="ghost" onClick={() => onDelItem(i)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button onClick={handleGerar} disabled={enviando}>
+            {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            Gerar mapa no Drive
+          </Button>
+          {ultimoLink && (
+            <a href={ultimoLink} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm text-primary hover:underline">
+              <ExternalLink className="mr-1 h-3 w-3" /> abrir no Sheets
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* =========================== PRESETS =========================== */
+
+function PresetsTab() {
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [nome, setNome] = useState("");
+  const [objeto, setObjeto] = useState("");
+  const [termo, setTermo] = useState("001/2022");
+  const [itensTxt, setItensTxt] = useState("Carne bovina; kg; 10\nArroz tipo 1; kg; 20");
+
+  const recarregar = async () => {
+    const { data } = await supabase
+      .from("orcamento_presets")
+      .select("id, nome, objeto, termo, itens, fornecedores_sugeridos")
+      .order("criado_em", { ascending: false });
+    setPresets((data ?? []) as Preset[]);
+  };
+  useEffect(() => { void recarregar(); }, []);
+
+  const salvar = async () => {
+    if (!nome.trim()) return toast.error("Dê um nome ao preset.");
+    const itens = itensTxt
+      .split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+      .map((l) => {
+        const [desc, un = "un", qtd = "1"] = l.split(";").map((s) => s.trim());
+        return { descricao: desc, unidade: un, qtd: Number(qtd) || 1 };
+      });
+    const { error } = await supabase.from("orcamento_presets").insert({
+      nome, objeto, termo, itens, fornecedores_sugeridos: [],
+    });
+    if (error) return toast.error("Falha: " + error.message);
+    toast.success("Preset salvo.");
+    setNome("");
+    await recarregar();
+  };
+
+  const apagar = async (id: string) => {
+    await supabase.from("orcamento_presets").delete().eq("id", id);
+    await recarregar();
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Card>
+        <CardHeader><CardTitle>Novo preset</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex: Cesta básica mensal" /></div>
+          <div><Label>Objeto</Label><Input value={objeto} onChange={(e) => setObjeto(e.target.value)} /></div>
+          <div><Label>Termo</Label><Input value={termo} onChange={(e) => setTermo(e.target.value)} /></div>
+          <div>
+            <Label>Itens (uma linha = descrição; unidade; qtd)</Label>
+            <Textarea rows={8} value={itensTxt} onChange={(e) => setItensTxt(e.target.value)} />
+          </div>
+          <Button onClick={salvar}><Save className="mr-2 h-4 w-4" />Salvar preset</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Presets salvos ({presets.length})</CardTitle></CardHeader>
+        <CardContent>
+          {presets.length === 0 && <p className="text-sm text-muted-foreground">Nenhum preset ainda.</p>}
+          <ul className="space-y-2">
+            {presets.map((p) => (
+              <li key={p.id} className="flex items-start justify-between rounded-md border p-3">
+                <div className="text-sm">
+                  <div className="font-medium">{p.nome}</div>
+                  <div className="text-xs text-muted-foreground">{p.objeto} · {p.itens?.length ?? 0} itens</div>
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => apagar(p.id)}><Trash2 className="h-4 w-4" /></Button>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* =========================== HISTÓRICO =========================== */
+
+function HistoricoTab() {
+  const [lista, setLista] = useState<OrcSalvo[]>([]);
+  const recarregar = async () => {
+    const { data } = await supabase
+      .from("orcamentos_salvos")
+      .select("id, tipo, objeto, termo, mes_referencia, drive_file_url, criado_em")
+      .order("criado_em", { ascending: false })
+      .limit(100);
+    setLista((data ?? []) as OrcSalvo[]);
+  };
+  useEffect(() => { void recarregar(); }, []);
+
+  const apagar = async (id: string) => {
+    await supabase.from("orcamentos_salvos").delete().eq("id", id);
+    await recarregar();
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Orçamentos salvos ({lista.length})</CardTitle></CardHeader>
+      <CardContent>
+        {lista.length === 0 && <p className="text-sm text-muted-foreground">Nada salvo ainda.</p>}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Objeto</TableHead>
+              <TableHead>Mês ref.</TableHead>
+              <TableHead>Drive</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lista.map((o) => (
+              <TableRow key={o.id}>
+                <TableCell className="text-xs">{new Date(o.criado_em).toLocaleString("pt-BR")}</TableCell>
+                <TableCell className="text-xs">{o.tipo === "cotacao" ? "Orçamento" : "Mapa"}</TableCell>
+                <TableCell className="text-xs">{o.objeto}</TableCell>
+                <TableCell className="text-xs">{o.mes_referencia}</TableCell>
+                <TableCell>
+                  {o.drive_file_url && (
+                    <a href={o.drive_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs text-primary hover:underline">
+                      <ExternalLink className="mr-1 h-3 w-3" /> abrir
+                    </a>
+                  )}
+                </TableCell>
+                <TableCell><Button size="icon" variant="ghost" onClick={() => apagar(o.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
