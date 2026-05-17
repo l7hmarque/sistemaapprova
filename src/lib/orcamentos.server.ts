@@ -211,15 +211,15 @@ export const ABA_MAPA = "MapaComparativo";
 
 // Linhas no template (1-indexed para A1, 0-indexed para API)
 export const ORC_MODEL = {
-  linhaPrimeiroItem1: 13,
-  qtdLinhasExistentes: 5,
+  linhaPrimeiroItem1: 14, // 1 linha abaixo do que estava (corrige sobreposição com o cabeçalho da tabela)
+  qtdLinhasExistentes: 4,
   linhaTotais1: 18,
   colCount: 11, // A..K
 };
 
 export const MAPA_MODEL = {
-  linhaPrimeiroItem1: 19,
-  qtdLinhasExistentes: 3,
+  linhaPrimeiroItem1: 20, // 1 linha abaixo do que estava
+  qtdLinhasExistentes: 2,
   linhaTotais1: 23,
   colCount: 12, // A..L
 };

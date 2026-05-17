@@ -150,98 +150,141 @@ async function upsertFornecedor(f: Omit<Fornecedor, "id">): Promise<void> {
   });
 }
 
-/* =========================== NOVO ORÇAMENTO =========================== */
+/* =========================== NOVO ORÇAMENTO (3 fornecedores) =========================== */
 
-type ItemOrc = { descricao: string; qtd: number; unidade: string; precoUnitario: number };
+type FornInput = {
+  razao_social: string;
+  cnpj: string;
+  representante_legal: string;
+  cpf_representante: string;
+  validadeDias: number;
+};
+
+type ItemOrc3 = {
+  descricao: string;
+  qtd: number;
+  unidade: string;
+  precos: [number, number, number];
+};
+
+const FORN_VAZIO = (): FornInput => ({
+  razao_social: "",
+  cnpj: "",
+  representante_legal: "",
+  cpf_representante: "",
+  validadeDias: 30,
+});
 
 function NovoOrcamento() {
   const objetos = useObjetos();
   const { lista: fornecedores, recarregar: recarregarF } = useFornecedores();
   const [entidade, setEntidade] = useState(ENTIDADE_DEFAULT);
   const [termo, setTermo] = useState("001/2022");
-  const [fornecedor, setFornecedor] = useState<Fornecedor>({ cnpj: "", razao_social: "", representante_legal: "", cpf_representante: "" });
+  const [forns, setForns] = useState<FornInput[]>([FORN_VAZIO(), FORN_VAZIO(), FORN_VAZIO()]);
   const [objeto, setObjeto] = useState("");
-  const [validadeDias, setValidadeDias] = useState(30);
   const [data, setData] = useState(new Date().toLocaleDateString("pt-BR"));
   const [mesRef, setMesRef] = useState(new Date().toISOString().slice(0, 7));
-  const [itens, setItens] = useState<ItemOrc[]>([
-    { descricao: "", qtd: 1, unidade: "un", precoUnitario: 0 },
+  const [itens, setItens] = useState<ItemOrc3[]>([
+    { descricao: "", qtd: 1, unidade: "un", precos: [0, 0, 0] },
   ]);
   const [enviando, setEnviando] = useState(false);
-  const [ultimoLink, setUltimoLink] = useState<string | null>(null);
+  const [resultados, setResultados] = useState<Array<{ razao: string; url?: string; erro?: string }>>([]);
   const gerar = useServerFn(gerarOrcamentoNoDrive);
 
-  const totalItens = itens.length;
-  const totalGeral = useMemo(() => itens.reduce((s, i) => s + (i.qtd || 0) * (i.precoUnitario || 0), 0), [itens]);
+  const updForn = (i: number, patch: Partial<FornInput>) =>
+    setForns((x) => x.map((f, k) => (k === i ? { ...f, ...patch } : f)));
 
-  const onPickFornecedor = (cnpj: string) => {
+  const pickForn = (i: number, cnpj: string) => {
     const f = fornecedores.find((x) => x.cnpj === cnpj);
-    if (f) setFornecedor({ ...f });
+    if (f) updForn(i, {
+      razao_social: f.razao_social,
+      cnpj: f.cnpj,
+      representante_legal: f.representante_legal || "",
+      cpf_representante: f.cpf_representante || "",
+    });
   };
 
-  const onAddItem = () => setItens((x) => [...x, { descricao: "", qtd: 1, unidade: "un", precoUnitario: 0 }]);
+  const onAddItem = () => setItens((x) => [...x, { descricao: "", qtd: 1, unidade: "un", precos: [0, 0, 0] }]);
   const onDelItem = (i: number) => setItens((x) => x.filter((_, k) => k !== i));
-  const updItem = (i: number, patch: Partial<ItemOrc>) =>
+  const updItem = (i: number, patch: Partial<ItemOrc3>) =>
     setItens((x) => x.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  const updPreco = (i: number, col: 0 | 1 | 2, v: number) =>
+    setItens((x) => x.map((it, k) => {
+      if (k !== i) return it;
+      const p = [...it.precos] as [number, number, number];
+      p[col] = v;
+      return { ...it, precos: p };
+    }));
+
+  const totalPorForn = (col: 0 | 1 | 2) =>
+    itens.reduce((s, i) => s + (i.qtd || 0) * (i.precos[col] || 0), 0);
 
   const handleGerar = async () => {
     if (!objeto.trim()) return toast.error("Informe o objeto.");
-    if (!fornecedor.razao_social.trim()) return toast.error("Informe a razão social do fornecedor.");
-    if (!fornecedor.cnpj.trim()) return toast.error("Informe o CNPJ do fornecedor.");
+    const fornsValidos = forns.filter((f) => f.razao_social.trim() && f.cnpj.trim());
+    if (fornsValidos.length === 0) return toast.error("Preencha ao menos 1 fornecedor (razão + CNPJ).");
     if (!itens.some((i) => i.descricao.trim())) return toast.error("Adicione ao menos 1 item.");
 
     setEnviando(true);
-    setUltimoLink(null);
-    try {
-      const res = await gerar({
-        data: {
-          entidade: {
-            razao: entidade.razao,
-            cnpj: entidade.cnpj,
-            representante: entidade.representante,
-            cpf: entidade.cpf,
-          },
-          termo,
-          fornecedor: {
-            razao: fornecedor.razao_social,
-            cnpj: fornecedor.cnpj,
-            representante: fornecedor.representante_legal || "",
-            cpf: fornecedor.cpf_representante || "",
-          },
-          objeto,
-          validadeDias,
-          data,
-          mesReferencia: mesRef,
-          itens: itens
-            .filter((i) => i.descricao.trim())
-            .map((i) => ({
+    setResultados([]);
+    const itensValidos = itens.filter((i) => i.descricao.trim());
+
+    const tarefas = forns.map(async (f, idxOriginal) => {
+      if (!f.razao_social.trim() || !f.cnpj.trim()) return null;
+      try {
+        const res = await gerar({
+          data: {
+            entidade: {
+              razao: entidade.razao,
+              cnpj: entidade.cnpj,
+              representante: entidade.representante,
+              cpf: entidade.cpf,
+            },
+            termo,
+            fornecedor: {
+              razao: f.razao_social,
+              cnpj: f.cnpj,
+              representante: f.representante_legal || "",
+              cpf: f.cpf_representante || "",
+            },
+            objeto,
+            validadeDias: Number(f.validadeDias) || 30,
+            data,
+            mesReferencia: mesRef,
+            itens: itensValidos.map((i) => ({
               descricao: i.descricao,
               qtd: Number(i.qtd) || 0,
               unidade: i.unidade,
-              precoUnitario: Number(i.precoUnitario) || 0,
+              precoUnitario: Number(i.precos[idxOriginal as 0 | 1 | 2]) || 0,
             })),
-        },
-      });
-      setUltimoLink(res.url);
-      toast.success("Orçamento gerado no Drive.");
-      await upsertFornecedor({
-        cnpj: fornecedor.cnpj,
-        razao_social: fornecedor.razao_social,
-        representante_legal: fornecedor.representante_legal,
-        cpf_representante: fornecedor.cpf_representante,
-      });
-      void recarregarF();
-    } catch (e) {
-      toast.error("Falha: " + (e as Error).message);
-    } finally {
-      setEnviando(false);
-    }
+          },
+        });
+        await upsertFornecedor({
+          cnpj: f.cnpj,
+          razao_social: f.razao_social,
+          representante_legal: f.representante_legal,
+          cpf_representante: f.cpf_representante,
+        });
+        return { razao: f.razao_social, url: res.url };
+      } catch (e) {
+        return { razao: f.razao_social, erro: (e as Error).message };
+      }
+    });
+
+    const out = (await Promise.all(tarefas)).filter(Boolean) as Array<{ razao: string; url?: string; erro?: string }>;
+    setResultados(out);
+    const okCount = out.filter((r) => r.url).length;
+    const errCount = out.filter((r) => r.erro).length;
+    if (okCount > 0) toast.success(`${okCount} orçamento(s) gerado(s).`);
+    if (errCount > 0) toast.error(`${errCount} falha(s).`);
+    void recarregarF();
+    setEnviando(false);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Solicitação de Cotação (Anexo I)</CardTitle>
+        <CardTitle>Solicitação de Cotação (Anexo I) — até 3 fornecedores</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -262,51 +305,13 @@ function NovoOrcamento() {
             <Input value={entidade.cpf} onChange={(e) => setEntidade({ ...entidade, cpf: e.target.value })} />
           </div>
           <div>
-            <Label>Termo (Fomento/Colaboração) Nº</Label>
+            <Label>Termo Nº</Label>
             <Input value={termo} onChange={(e) => setTermo(e.target.value)} />
           </div>
           <div>
             <Label>Mês de referência</Label>
             <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} />
           </div>
-        </div>
-
-        <div className="rounded-md border p-3">
-          <div className="mb-2 text-sm font-semibold">Fornecedor</div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <Label>Selecionar salvo</Label>
-              <select
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value=""
-                onChange={(e) => onPickFornecedor(e.target.value)}
-              >
-                <option value="">— escolher —</option>
-                {fornecedores.map((f) => (
-                  <option key={f.id} value={f.cnpj}>{f.razao_social} ({f.cnpj})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>CNPJ</Label>
-              <Input value={fornecedor.cnpj} onChange={(e) => setFornecedor({ ...fornecedor, cnpj: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <Label>Razão social</Label>
-              <Input value={fornecedor.razao_social} onChange={(e) => setFornecedor({ ...fornecedor, razao_social: e.target.value })} />
-            </div>
-            <div>
-              <Label>Representante</Label>
-              <Input value={fornecedor.representante_legal ?? ""} onChange={(e) => setFornecedor({ ...fornecedor, representante_legal: e.target.value })} />
-            </div>
-            <div>
-              <Label>CPF representante</Label>
-              <Input value={fornecedor.cpf_representante ?? ""} onChange={(e) => setFornecedor({ ...fornecedor, cpf_representante: e.target.value })} />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="md:col-span-2">
             <Label>Objeto da cotação</Label>
             <Input list="objetos-list" value={objeto} onChange={(e) => setObjeto(e.target.value)} placeholder="ex: Gêneros de alimentação" />
@@ -315,18 +320,55 @@ function NovoOrcamento() {
             </datalist>
           </div>
           <div>
-            <Label>Validade (dias)</Label>
-            <Input type="number" min={1} value={validadeDias} onChange={(e) => setValidadeDias(Number(e.target.value) || 30)} />
-          </div>
-          <div>
             <Label>Data</Label>
             <Input value={data} onChange={(e) => setData(e.target.value)} placeholder="dd/mm/aaaa" />
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label>Fornecedores (até 3)</Label>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {forns.map((f, i) => (
+              <div key={i} className="space-y-2 rounded-md border p-3">
+                <div className="text-xs font-semibold text-muted-foreground">Fornecedor {i + 1}</div>
+                <select
+                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                  value=""
+                  onChange={(e) => pickForn(i, e.target.value)}
+                >
+                  <option value="">— salvos —</option>
+                  {fornecedores.map((x) => (
+                    <option key={x.id} value={x.cnpj}>{x.razao_social}</option>
+                  ))}
+                </select>
+                <div>
+                  <Label className="text-xs">Razão social</Label>
+                  <Input value={f.razao_social} onChange={(e) => updForn(i, { razao_social: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">CNPJ</Label>
+                  <Input value={f.cnpj} onChange={(e) => updForn(i, { cnpj: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Representante</Label>
+                  <Input value={f.representante_legal} onChange={(e) => updForn(i, { representante_legal: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">CPF representante</Label>
+                  <Input value={f.cpf_representante} onChange={(e) => updForn(i, { cpf_representante: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Validade (dias)</Label>
+                  <Input type="number" min={1} value={f.validadeDias} onChange={(e) => updForn(i, { validadeDias: Number(e.target.value) || 30 })} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <Label>Itens ({totalItens})</Label>
+            <Label>Itens ({itens.length}) — preço por fornecedor</Label>
             <Button size="sm" variant="outline" onClick={onAddItem}><Plus className="mr-1 h-3 w-3" /> adicionar item</Button>
           </div>
           <Table>
@@ -334,10 +376,11 @@ function NovoOrcamento() {
               <TableRow>
                 <TableHead className="w-10">#</TableHead>
                 <TableHead>Especificação</TableHead>
-                <TableHead className="w-20">Qtd</TableHead>
-                <TableHead className="w-24">Unidade</TableHead>
-                <TableHead className="w-28">Preço unit.</TableHead>
-                <TableHead className="w-28">Total</TableHead>
+                <TableHead className="w-16">Qtd</TableHead>
+                <TableHead className="w-20">Unid.</TableHead>
+                <TableHead className="w-28">P. {forns[0].razao_social || "Forn. 1"}</TableHead>
+                <TableHead className="w-28">P. {forns[1].razao_social || "Forn. 2"}</TableHead>
+                <TableHead className="w-28">P. {forns[2].razao_social || "Forn. 3"}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -345,19 +388,20 @@ function NovoOrcamento() {
               {itens.map((it, i) => (
                 <TableRow key={i}>
                   <TableCell>{i + 1}</TableCell>
-                  <TableCell>
-                    <Textarea rows={2} value={it.descricao} onChange={(e) => updItem(i, { descricao: e.target.value })} />
-                  </TableCell>
+                  <TableCell><Textarea rows={2} value={it.descricao} onChange={(e) => updItem(i, { descricao: e.target.value })} /></TableCell>
                   <TableCell><Input type="number" value={it.qtd} onChange={(e) => updItem(i, { qtd: Number(e.target.value) || 0 })} /></TableCell>
                   <TableCell><Input value={it.unidade} onChange={(e) => updItem(i, { unidade: e.target.value })} /></TableCell>
-                  <TableCell><Input type="number" step="0.01" value={it.precoUnitario} onChange={(e) => updItem(i, { precoUnitario: Number(e.target.value) || 0 })} /></TableCell>
-                  <TableCell>R$ {((it.qtd || 0) * (it.precoUnitario || 0)).toFixed(2)}</TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[0]} onChange={(e) => updPreco(i, 0, Number(e.target.value) || 0)} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[1]} onChange={(e) => updPreco(i, 1, Number(e.target.value) || 0)} /></TableCell>
+                  <TableCell><Input type="number" step="0.01" value={it.precos[2]} onChange={(e) => updPreco(i, 2, Number(e.target.value) || 0)} /></TableCell>
                   <TableCell><Button size="icon" variant="ghost" onClick={() => onDelItem(i)}><Trash2 className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-semibold">Total geral</TableCell>
-                <TableCell className="font-semibold">R$ {totalGeral.toFixed(2)}</TableCell>
+                <TableCell colSpan={4} className="text-right font-semibold">Total por fornecedor</TableCell>
+                <TableCell className="font-semibold">R$ {totalPorForn(0).toFixed(2)}</TableCell>
+                <TableCell className="font-semibold">R$ {totalPorForn(1).toFixed(2)}</TableCell>
+                <TableCell className="font-semibold">R$ {totalPorForn(2).toFixed(2)}</TableCell>
                 <TableCell />
               </TableRow>
             </TableBody>
@@ -367,14 +411,27 @@ function NovoOrcamento() {
         <div className="flex items-center gap-3">
           <Button onClick={handleGerar} disabled={enviando}>
             {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Gerar planilha no Drive
+            Gerar planilhas no Drive (1 por fornecedor)
           </Button>
-          {ultimoLink && (
-            <a href={ultimoLink} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm text-primary hover:underline">
-              <ExternalLink className="mr-1 h-3 w-3" /> abrir no Sheets
-            </a>
-          )}
         </div>
+
+        {resultados.length > 0 && (
+          <div className="space-y-1 rounded-md border p-3 text-sm">
+            <div className="mb-1 font-semibold">Resultado:</div>
+            {resultados.map((r, i) => (
+              <div key={i} className="flex items-center justify-between gap-2">
+                <span className="truncate">{r.razao}</span>
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-primary hover:underline">
+                    <ExternalLink className="mr-1 h-3 w-3" /> abrir
+                  </a>
+                ) : (
+                  <span className="text-destructive text-xs">{r.erro}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
