@@ -230,6 +230,7 @@ function NovoOrcamento() {
 
     setEnviando(true);
     setResultados([]);
+    setMapaResult(null);
     const itensValidos = itens.filter((i) => i.descricao.trim());
 
     const tarefas = forns.map(async (f, idxOriginal) => {
