@@ -251,23 +251,12 @@ async function safeFolder(parts: string[]): Promise<string[] | undefined> {
 }
 
 async function registrarObjeto(descricao: string): Promise<void> {
-  if (!descricao.trim()) return;
+  const d = descricao.trim();
+  if (!d) return;
+  // Tabela tem unique index em lower(descricao); insert duplicado simplesmente falha (sem update).
   try {
-    const { data: existing } = await supabase
-      .from("objetos_cotacao")
-      .select("id, uso_count")
-      .ilike("descricao", descricao.trim())
-      .limit(1)
-      .maybeSingle();
-    if (existing) {
-      await supabase
-        .from("objetos_cotacao")
-        .update({ uso_count: (existing.uso_count ?? 0) + 1 })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("objetos_cotacao").insert({ descricao: descricao.trim(), uso_count: 1 });
-    }
-  } catch (e) {
-    console.warn("registrarObjeto falhou:", e);
+    await supabase.from("objetos_cotacao").insert({ descricao: d, uso_count: 1 });
+  } catch {
+    /* duplicado — ignora */
   }
 }
