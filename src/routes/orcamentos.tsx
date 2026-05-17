@@ -188,8 +188,11 @@ function NovoOrcamento() {
     { descricao: "", qtd: 1, unidade: "un", precos: [0, 0, 0] },
   ]);
   const [enviando, setEnviando] = useState(false);
+  const [gerarMapaJunto, setGerarMapaJunto] = useState(true);
   const [resultados, setResultados] = useState<Array<{ razao: string; url?: string; erro?: string }>>([]);
+  const [mapaResult, setMapaResult] = useState<{ url?: string; erro?: string } | null>(null);
   const gerar = useServerFn(gerarOrcamentoNoDrive);
+  const gerarMapa = useServerFn(gerarMapaComparativoNoDrive);
 
   const updForn = (i: number, patch: Partial<FornInput>) =>
     setForns((x) => x.map((f, k) => (k === i ? { ...f, ...patch } : f)));
