@@ -281,6 +281,53 @@ function NovoOrcamento() {
     if (okCount > 0) toast.success(`${okCount} orçamento(s) gerado(s).`);
     if (errCount > 0) toast.error(`${errCount} falha(s).`);
     void recarregarF();
+
+    // Mapa comparativo a partir dos mesmos dados
+    if (gerarMapaJunto) {
+      const fornsM = forns.map((f) => ({
+        razao: f.razao_social || "",
+        cnpj: f.cnpj || "",
+        dataEmissao: data,
+        dataValidade: "",
+        prazoDias: Number(f.validadeDias) || 0,
+      })) as [
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+      ];
+      try {
+        const r = await gerarMapa({
+          data: {
+            entidade: {
+              razao: entidade.razao,
+              cnpj: entidade.cnpj,
+              representante: entidade.representante,
+              cpf: entidade.cpf,
+            },
+            termo,
+            objeto,
+            mesReferencia: mesRef,
+            fornecedores: fornsM,
+            itens: itensValidos.map((i) => ({
+              descricao: i.descricao,
+              unidade: i.unidade,
+              qtd: Number(i.qtd) || 0,
+              precos: [
+                Number(i.precos[0]) || 0,
+                Number(i.precos[1]) || 0,
+                Number(i.precos[2]) || 0,
+              ],
+            })),
+          },
+        });
+        setMapaResult({ url: r.url });
+        toast.success("Mapa comparativo gerado.");
+      } catch (e) {
+        setMapaResult({ erro: (e as Error).message });
+        toast.error("Falha no mapa: " + (e as Error).message);
+      }
+    }
+
     setEnviando(false);
   };
 
