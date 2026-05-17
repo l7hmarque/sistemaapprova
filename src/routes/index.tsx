@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -781,6 +781,11 @@ function AppPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/orcamentos">
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" /> Orçamentos
+              </Button>
+            </Link>
             <Button variant="outline" onClick={abrirCarregarOnline} className="gap-2">
               <CloudDownload className="h-4 w-4" /> Carregar online
             </Button>
