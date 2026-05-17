@@ -1,89 +1,119 @@
-# Upload em lote + análise sob demanda + progresso real + regras
 
-## Objetivo
-Substituir o fluxo atual "arrasta 1 PDF → IA dispara automaticamente → texto 'analisando'" por um fluxo controlado:
+# Plano — Aba de Orçamentos + Mapa Comparativo
 
-1. Usuário carrega **vários PDFs** (drag/drop ou seletor).
-2. Sistema apenas **lista os arquivos confirmados** (nome, tamanho, status: "pronto").
-3. Usuário pode abrir um painel **opcional** de "Pré-definições / Regras" (mês de referência, favorecido padrão extra, categoria padrão, prefixo idInterno etc.). Se não mexer, usa padrão.
-4. Usuário clica **"Iniciar análise com IA"**.
-5. Cada PDF é processado **sequencialmente** com **barra de progresso real** (status por arquivo: aguardando / lendo PDF / IA / pipeline / concluído / erro) e barra global (X de N).
-6. Despesas extraídas de todos os PDFs são **mescladas** na tabela de revisão.
+## Escopo
 
-## Plano em 4 partes
+Nova rota top-level `/orcamentos` com 4 sub-áreas:
 
-### Parte 1 — UI de upload em lote (`src/routes/index.tsx`)
+1. **Novo orçamento** — formulário que replica os campos da planilha modelo (Anexo I — Solicitação de Cotação).
+2. **Mapa comparativo** — formulário com objeto de cotação + 3 fornecedores + lista de itens com preço por fornecedor (Anexo II).
+3. **Presets** — modelos salvos de orçamentos recorrentes.
+4. **Histórico** — orçamentos/mapas já gerados, com link para a planilha no Drive.
 
-- Substituir `UploadCard` por `BatchUploadCard`:
-  - Aceita múltiplos PDFs (`<input multiple>`, drop de N arquivos).
-  - Mantém estado local `arquivos: PdfJob[]` com `{ id, file, status, etapa, progresso, erro, resultado }`.
-  - Lista cada arquivo com nome, tamanho, ícone de status e botão "remover" (enquanto não estiver processando).
-  - Botão **"Iniciar análise (N arquivos)"** desabilitado se lista vazia ou já processando.
-  - Botão "Limpar lista".
-- Manter compatibilidade: se usuário soltar 1 PDF, mesmo fluxo (lista de 1 + botão).
+Nada do fluxo atual de extração de PDF / geração de `Despesa.txt` muda.
 
-### Parte 2 — Progresso real
+## Fonte dos modelos
 
-Como o endpoint `/api/extract` é síncrono (responde só no fim), o progresso "real" vem de **etapas observáveis no cliente** + **progresso por arquivo no lote**:
+- **Orçamento (Anexo I)**: `1IDWjnJisXhVrRRHSEqIxrqqevXMnlQPj94i3PSNnyno`
+- **Mapa Comparativo (Anexo II)**: `1V_1THOUUWMhpVlb_4peuCmZcgQUno1GxJD2NIm-jooM`
 
-- Etapas exibidas por arquivo (cada uma com %):
-  - `upload` 0–20% (XHR `upload.onprogress` em vez de `fetch`, para ter bytes enviados).
-  - `analisando` 20–90% (timer com curva assintótica, capado em 90% até resposta — comum quando backend é caixa-preta; honesto desde que rotulado "estimado").
-  - `concluido` 100% ao receber JSON.
-- Barra **global**: `(arquivos_concluídos / total) * 100`, atualizada a cada arquivo.
-- Componente `JobProgress` com `<Progress />` (shadcn) + label da etapa atual ("Enviando PDF…", "IA extraindo… (~Xs)", "Mesclando…").
-- Tempo decorrido por arquivo (cronômetro mm:ss) para dar sensação de avanço.
+Estratégia: ao gerar, **copiar o arquivo modelo no Drive** (Drive API `files/{id}/copy`), depois preencher os ranges via Sheets API `values:batchUpdate` (`USER_ENTERED`, preserva fórmulas). Cada cópia recebe nome `Orcamento - {objeto} - {fornecedor} - {data}` (ou `MapaComparativo - {objeto} - {data}`) numa pasta `Orcamentos SIT/{AAAA-MM}` criada se não existir.
 
-> Observação: progresso 100% real do lado IA exigiria streaming SSE no `/api/extract`. Fica fora do escopo desta iteração; rotularemos a fase de IA como "estimada" para ser honesto.
+## Campos das planilhas
 
-### Parte 3 — Pré-definições opcionais (painel colapsável)
+**Orçamento (1 planilha por fornecedor)**
+- Cabeçalho fixo editável: Entidade, CNPJ entidade, Representante, CPF (linhas 6–7); Termo (linha 11).
+- Por orçamento: Fornecedor (razão+CNPJ+representante+CPF) linhas 8–9; Objeto, Validade (default 30), Data linha 10.
+- Itens a partir da linha 13: Item nº, Especificação, Qtd, Unidade, Preço Unitário (Total = fórmula existente).
 
-Painel `<details>` ou `Accordion` acima do botão "Iniciar análise", **fechado por padrão**:
+**Mapa Comparativo (1 planilha por cotação)**
+- Cabeçalho idem + Objeto.
+- 3 fornecedores nas linhas 12–14: Razão, CNPJ, Data Emissão, Data Validade, Prazo.
+- Itens a partir da linha 18: Item, Especificação, Unidade, Quantidade, Preço Unitário por fornecedor (3 colunas). Menor preço/total = fórmulas existentes.
 
-- **Mês de referência forçado** (sobrescreve o detectado pela IA). Default: vazio (usa IA).
-- **Categoria padrão** quando IA não sugerir (default: primeira de `CATEGORIAS`).
-- **Tipo de documento padrão** (default: 1 = NF).
-- **Prefixo de idInterno** para despesas sem código (default: `ext-`).
-- **Modalidade de compra padrão** (default: lógica atual `modalidadePadrao`).
-- **Favorecidos padrão extras** (textarea: `texto-chave => CNPJ;Nome`, uma por linha) — alimenta `aplicarFavorecidoPadrao` em runtime.
+## Linhas dinâmicas (sem limite fixo)
 
-Estado salvo em `localStorage` (`sit-regras-v1`) para reutilizar entre sessões. Botão "Restaurar padrão".
+Quando o número de itens excede o que o modelo já traz (5 no orçamento, 3 no mapa atual), inserimos linhas extras **antes de preencher**, mantendo formatação, mesclagens e fórmulas:
 
-Aplicação dessas regras acontece **no cliente**, dentro de `aplicarExtracao`, depois da resposta da IA — não muda o backend nem quebra o pipeline determinístico atual.
+1. Identificamos no template o `sheetId`, a `linhaUltimoItem` e a `linhaTotalGeral`.
+2. Se `qtdItens > qtdLinhasDisponiveis`, executamos `spreadsheets:batchUpdate` com:
+   - `insertDimension` (`ROWS`, `inheritFromBefore: true`) inserindo `N` linhas imediatamente **acima** da linha "Total Geral" (no orçamento) / linha "Totais" (no mapa). Isso herda formatação, bordas e mescla da última linha de item.
+   - `copyPaste` (`pasteType: PASTE_NORMAL`) replicando a linha do último item original sobre as linhas recém-inseridas, garantindo que fórmulas relativas (Preço Total = Qtd × Unitário; Menor preço) sejam estendidas corretamente.
+3. Depois disso, `values:batchUpdate` preenche todos os itens (originais + novos) usando a numeração sequencial `1..N` na coluna Item.
+4. As fórmulas de soma do "Total Geral" / "Totais" se ajustam automaticamente porque a inserção é **acima** da linha de totais (Sheets atualiza ranges).
 
-### Parte 4 — Orquestrador de lote
+Helper único: `expandirLinhasItens({ spreadsheetId, sheetId, linhaModeloItem, linhaTotais, qtdNecessaria, qtdExistente })` reaproveitado pelos dois fluxos.
 
-Nova função `processarLote(jobs)`:
+## Modelo de dados (Lovable Cloud)
 
 ```text
-for (job of jobs) {
-  job.status = 'enviando';   render
-  const data = await uploadComProgresso(job, onProgress);
-  job.status = 'mesclando';  render
-  aplicarRegrasOpcionais(data, regras);
-  acumular(data);            // mescla com despesas existentes
-  job.status = 'concluido';  render
-}
+fornecedores
+  id uuid pk, cnpj text unique, razao_social text,
+  representante_legal text, cpf_representante text,
+  endereco text, email text, telefone text, criado_em timestamptz
+
+objetos_cotacao
+  id uuid pk, descricao text, unidade_padrao text,
+  categoria text, uso_count int default 0, criado_em timestamptz
+
+orcamento_presets
+  id uuid pk, nome text, objeto text, termo text,
+  itens jsonb, fornecedores_sugeridos jsonb, criado_em timestamptz
+
+orcamentos_salvos
+  id uuid pk, tipo text ('cotacao'|'mapa_comparativo'),
+  objeto text, termo text, mes_referencia text,
+  fornecedor_id uuid null, dados jsonb,
+  drive_file_id text, drive_file_url text, criado_em timestamptz
 ```
 
-- `uploadComProgresso` usa `XMLHttpRequest` para ter `upload.onprogress` real.
-- Erros por arquivo não abortam o lote — marca aquele job como `erro` e segue.
-- Toast final: "X de N PDFs processados, Y despesas adicionadas".
+RLS: igual ao `extracoes_salvas` (public read/insert/delete anon).
 
-## Arquivos afetados
+Autocomplete de objetos: `upsert` em `objetos_cotacao` incrementando `uso_count` ao salvar; lista ordenada por `uso_count desc`. Fornecedores: busca por CNPJ/razão; cria se novo. Seed opcional a partir dos favorecidos já presentes em `favorecidosPadrao.ts` (não bloqueante).
 
-- `src/routes/index.tsx` — substituir `UploadCard`, adicionar `BatchUploadCard`, `JobProgress`, painel `RegrasOpcionaisCard`, orquestrador.
-- `src/lib/regrasUsuario.ts` (novo) — tipo `RegrasUsuario`, defaults, load/save no localStorage, função `aplicarRegrasUsuario(extracao, regras)`.
-- Nada muda em `/api/extract`, `pipeline.ts`, parsers, schema — o fluxo de geração de `.txt` continua idêntico.
+## Integração Drive + Sheets
+
+Connectors `google_drive` e `google_sheets` já linkados. Toda chamada via `createServerFn` (nunca do cliente).
+
+Server functions novas em `src/lib/orcamentos.functions.ts` (+ helpers em `src/lib/orcamentos.server.ts`):
+
+- `gerarOrcamentoNoDrive({ dados })` → copia template → `expandirLinhasItens` se preciso → `values:batchUpdate` → salva snapshot → retorna `{ fileId, url }`.
+- `gerarMapaComparativoNoDrive({ dados })` → idem.
+- CRUD: `listar/upsert Fornecedor`, `listarObjetos(q)`, `listar/salvar/apagar Preset`, `listar/salvar Orcamento`.
+
+Zod valida todos os payloads.
+
+## UI (`/orcamentos`)
+
+`src/routes/orcamentos.tsx` com tabs (shadcn):
+- **Novo Orçamento** — cabeçalho + fornecedor com autocomplete + lista de itens (add/remover linhas livremente) + botão "Gerar planilha no Drive". Após gerar: link "Abrir no Sheets" + salva snapshot.
+- **Mapa Comparativo** — cabeçalho + 3 fornecedores (autocomplete) + itens com preço por fornecedor. Botão "Importar de orçamentos salvos" pré-preenche a partir de 3 cotações do mesmo objeto.
+- **Presets** — listar/criar/editar/apagar; aplicar preset ao iniciar um novo orçamento.
+- **Histórico** — tabela com filtros (mês/tipo) + link Drive + ação "duplicar".
+
+Navegação: novo `<Link to="/orcamentos">` no header do `__root.tsx`.
+
+## Detalhes técnicos
+
+- `TEMPLATE_MAP` define por modelo: `sheetId`, células de cabeçalho, linha de início de itens, linha modelo (a copiar ao expandir), linha de totais.
+- Cliente usa `useServerFn` + TanStack Query.
+- Datas enviadas como `dd/mm/aaaa` string com `USER_ENTERED` (Sheets converte para data corretamente).
 
 ## O que NÃO muda
 
-- Endpoint, schema, pipeline determinístico, regras de holerite, geração de `Despesa.txt` — tudo intocado.
-- Comportamento de 1 PDF continua funcionando (lote de 1).
-- Layout geral da página e demais cards permanecem.
+- Upload/extração de PDF, geração de `.txt`, tabelas `extracoes_salvas`, endpoints `/api/extract`, parsers, pipeline, layout dos cards atuais da home.
 
 ## Riscos / mitigação
 
-- **Worker timeout (30s CPU)**: processar sequencialmente evita várias chamadas concorrentes saturando o Worker; cada PDF mantém o mesmo limite atual.
-- **Memória do cliente** com muitos PDFs grandes: limitamos a 10 arquivos por lote (avisa se exceder).
-- **Progresso "estimado" durante IA**: rotulado claramente, sem mentir 100%.
+- **Expansão de linhas**: `insertDimension` com `inheritFromBefore: true` + `copyPaste` da linha modelo garantem fórmulas e formatação corretas; testamos com 10+ itens no smoke test antes de finalizar.
+- **Mesclagens (merges)**: a linha 13 do orçamento tem células mescladas em "Especificação". `insertDimension` herda merges; validamos no teste e, se quebrar em algum caso, adicionamos `mergeCells` explicitamente no batch.
+- **Permissões Drive**: planilha gerada herda permissões da conta da conexão; retornamos `webViewLink`. Compartilhamento público explícito fica como botão futuro.
+- **Conta única**: todas as planilhas ficam no Drive do dono da conexão (consistente com padrão atual).
+- **Locale**: USER_ENTERED + locale pt-BR do template já cuidam de `R$` e datas.
+
+## Entrega em 4 passos (após aprovação)
+
+1. Migration: 4 tabelas + RLS.
+2. `orcamentos.server.ts` + `orcamentos.functions.ts` (Drive copy, expandir linhas, batchUpdate, CRUD).
+3. Rota `/orcamentos` com 4 tabs + componentes de formulário e autocomplete.
+4. Link no header + smoke test gerando 1 orçamento com 8 itens e 1 mapa com 6 itens (valida expansão de linhas).
