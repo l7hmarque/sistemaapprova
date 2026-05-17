@@ -188,8 +188,11 @@ function NovoOrcamento() {
     { descricao: "", qtd: 1, unidade: "un", precos: [0, 0, 0] },
   ]);
   const [enviando, setEnviando] = useState(false);
+  const [gerarMapaJunto, setGerarMapaJunto] = useState(true);
   const [resultados, setResultados] = useState<Array<{ razao: string; url?: string; erro?: string }>>([]);
+  const [mapaResult, setMapaResult] = useState<{ url?: string; erro?: string } | null>(null);
   const gerar = useServerFn(gerarOrcamentoNoDrive);
+  const gerarMapa = useServerFn(gerarMapaComparativoNoDrive);
 
   const updForn = (i: number, patch: Partial<FornInput>) =>
     setForns((x) => x.map((f, k) => (k === i ? { ...f, ...patch } : f)));
@@ -227,6 +230,7 @@ function NovoOrcamento() {
 
     setEnviando(true);
     setResultados([]);
+    setMapaResult(null);
     const itensValidos = itens.filter((i) => i.descricao.trim());
 
     const tarefas = forns.map(async (f, idxOriginal) => {
@@ -278,6 +282,53 @@ function NovoOrcamento() {
     if (okCount > 0) toast.success(`${okCount} orçamento(s) gerado(s).`);
     if (errCount > 0) toast.error(`${errCount} falha(s).`);
     void recarregarF();
+
+    // Mapa comparativo a partir dos mesmos dados
+    if (gerarMapaJunto) {
+      const fornsM = forns.map((f) => ({
+        razao: f.razao_social || "",
+        cnpj: f.cnpj || "",
+        dataEmissao: data,
+        dataValidade: "",
+        prazoDias: Number(f.validadeDias) || 0,
+      })) as [
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+        { razao: string; cnpj: string; dataEmissao: string; dataValidade: string; prazoDias: number },
+      ];
+      try {
+        const r = await gerarMapa({
+          data: {
+            entidade: {
+              razao: entidade.razao,
+              cnpj: entidade.cnpj,
+              representante: entidade.representante,
+              cpf: entidade.cpf,
+            },
+            termo,
+            objeto,
+            mesReferencia: mesRef,
+            fornecedores: fornsM,
+            itens: itensValidos.map((i) => ({
+              descricao: i.descricao,
+              unidade: i.unidade,
+              qtd: Number(i.qtd) || 0,
+              precos: [
+                Number(i.precos[0]) || 0,
+                Number(i.precos[1]) || 0,
+                Number(i.precos[2]) || 0,
+              ],
+            })),
+          },
+        });
+        setMapaResult({ url: r.url });
+        toast.success("Mapa comparativo gerado.");
+      } catch (e) {
+        setMapaResult({ erro: (e as Error).message });
+        toast.error("Falha no mapa: " + (e as Error).message);
+      }
+    }
+
     setEnviando(false);
   };
 
@@ -408,19 +459,27 @@ function NovoOrcamento() {
           </Table>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={handleGerar} disabled={enviando}>
             {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Gerar planilhas no Drive (1 por fornecedor)
+            Gerar planilhas no Drive
           </Button>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={gerarMapaJunto}
+              onChange={(e) => setGerarMapaJunto(e.target.checked)}
+            />
+            Gerar também o mapa comparativo
+          </label>
         </div>
 
-        {resultados.length > 0 && (
+        {(resultados.length > 0 || mapaResult) && (
           <div className="space-y-1 rounded-md border p-3 text-sm">
             <div className="mb-1 font-semibold">Resultado:</div>
             {resultados.map((r, i) => (
               <div key={i} className="flex items-center justify-between gap-2">
-                <span className="truncate">{r.razao}</span>
+                <span className="truncate">Orçamento — {r.razao}</span>
                 {r.url ? (
                   <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-primary hover:underline">
                     <ExternalLink className="mr-1 h-3 w-3" /> abrir
@@ -430,6 +489,18 @@ function NovoOrcamento() {
                 )}
               </div>
             ))}
+            {mapaResult && (
+              <div className="flex items-center justify-between gap-2 border-t pt-1">
+                <span className="truncate font-medium">Mapa comparativo</span>
+                {mapaResult.url ? (
+                  <a href={mapaResult.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-primary hover:underline">
+                    <ExternalLink className="mr-1 h-3 w-3" /> abrir
+                  </a>
+                ) : (
+                  <span className="text-destructive text-xs">{mapaResult.erro}</span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
