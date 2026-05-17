@@ -218,8 +218,8 @@ export const ORC_MODEL = {
 };
 
 export const MAPA_MODEL = {
-  linhaPrimeiroItem1: 20, // 1 linha abaixo do que estava
+  linhaPrimeiroItem1: 19, // 1 linha acima (ajuste solicitado)
   qtdLinhasExistentes: 2,
-  linhaTotais1: 23,
+  linhaTotais1: 22,
   colCount: 12, // A..L
 };
