@@ -38,6 +38,146 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          cnpj: string
+          cpf_representante: string | null
+          criado_em: string
+          email: string | null
+          endereco: string | null
+          id: string
+          razao_social: string
+          representante_legal: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cnpj: string
+          cpf_representante?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          razao_social: string
+          representante_legal?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cnpj?: string
+          cpf_representante?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          razao_social?: string
+          representante_legal?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      objetos_cotacao: {
+        Row: {
+          categoria: string | null
+          criado_em: string
+          descricao: string
+          id: string
+          unidade_padrao: string | null
+          uso_count: number
+        }
+        Insert: {
+          categoria?: string | null
+          criado_em?: string
+          descricao: string
+          id?: string
+          unidade_padrao?: string | null
+          uso_count?: number
+        }
+        Update: {
+          categoria?: string | null
+          criado_em?: string
+          descricao?: string
+          id?: string
+          unidade_padrao?: string | null
+          uso_count?: number
+        }
+        Relationships: []
+      }
+      orcamento_presets: {
+        Row: {
+          criado_em: string
+          fornecedores_sugeridos: Json
+          id: string
+          itens: Json
+          nome: string
+          objeto: string | null
+          termo: string | null
+        }
+        Insert: {
+          criado_em?: string
+          fornecedores_sugeridos?: Json
+          id?: string
+          itens?: Json
+          nome: string
+          objeto?: string | null
+          termo?: string | null
+        }
+        Update: {
+          criado_em?: string
+          fornecedores_sugeridos?: Json
+          id?: string
+          itens?: Json
+          nome?: string
+          objeto?: string | null
+          termo?: string | null
+        }
+        Relationships: []
+      }
+      orcamentos_salvos: {
+        Row: {
+          criado_em: string
+          dados: Json
+          drive_file_id: string | null
+          drive_file_url: string | null
+          fornecedor_id: string | null
+          id: string
+          mes_referencia: string | null
+          objeto: string | null
+          termo: string | null
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string
+          dados: Json
+          drive_file_id?: string | null
+          drive_file_url?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          mes_referencia?: string | null
+          objeto?: string | null
+          termo?: string | null
+          tipo: string
+        }
+        Update: {
+          criado_em?: string
+          dados?: Json
+          drive_file_id?: string | null
+          drive_file_url?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          mes_referencia?: string | null
+          objeto?: string | null
+          termo?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_salvos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
