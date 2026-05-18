@@ -74,6 +74,42 @@ export type Database = {
         }
         Relationships: []
       }
+      modelos_planilha: {
+        Row: {
+          aba: string
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          id: string
+          nome: string
+          params: Json
+          template_id: string
+          tipo: string
+        }
+        Insert: {
+          aba?: string
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome: string
+          params?: Json
+          template_id: string
+          tipo: string
+        }
+        Update: {
+          aba?: string
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome?: string
+          params?: Json
+          template_id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       objetos_cotacao: {
         Row: {
           categoria: string | null
