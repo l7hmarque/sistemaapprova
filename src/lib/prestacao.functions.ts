@@ -11,14 +11,15 @@ const GDOCS = "https://connector-gateway.lovable.dev/google_docs/v1";
 
 function gdocsHeaders(): HeadersInit {
   const lov = process.env.LOVABLE_API_KEY;
-  const drv = process.env.GOOGLE_DRIVE_API_KEY;
+  const docs = process.env.GOOGLE_DOCS_API_KEY;
   if (!lov) throw new Error("LOVABLE_API_KEY ausente");
-  if (!drv) throw new Error("GOOGLE_DRIVE_API_KEY ausente — conecte o Google Drive");
+  if (!docs) throw new Error("GOOGLE_DOCS_API_KEY ausente — conecte o Google Docs em Connectors.");
   return {
     Authorization: `Bearer ${lov}`,
-    "X-Connection-Api-Key": drv,
+    "X-Connection-Api-Key": docs,
   };
 }
+
 
 async function jsonOrThrow(res: Response, ctx: string): Promise<any> {
   const txt = await res.text();
