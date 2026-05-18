@@ -177,26 +177,30 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
 export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => DadosMapaSchema.parse(d))
   .handler(async ({ data }) => {
+    const modelo = await carregarModeloAtivo("mapa");
+    const templateId = modelo?.template_id || TEMPLATE_MAPA_ID;
+    const aba = modelo?.aba || ABA_MAPA;
+    const M = { ...MAPA_MODEL, ...(modelo?.params ?? {}) };
+
     const parents = await safeFolder(pastaDestino(data.mesReferencia));
     const nome = sanitizarNome(
       `MapaComparativo - ${data.objeto} - ${new Date().toLocaleDateString("pt-BR")}`,
     );
 
-    const copy = await driveCopyFile({ templateId: TEMPLATE_MAPA_ID, name: nome, parents });
+    const copy = await driveCopyFile({ templateId, name: nome, parents });
     const { sheetId } = await getFirstSheetId(copy.id);
-    try { await renameSheet(copy.id, sheetId, ABA_MAPA); } catch { /* */ }
+    try { await renameSheet(copy.id, sheetId, aba); } catch { /* */ }
 
     await expandirLinhasItens({
       spreadsheetId: copy.id,
       sheetId,
-      linhaPrimeiroItem0: MAPA_MODEL.linhaPrimeiroItem1 - 1,
-      qtdLinhasExistentes: MAPA_MODEL.qtdLinhasExistentes,
-      linhaTotais0: MAPA_MODEL.linhaTotais1 - 1,
+      linhaPrimeiroItem0: M.linhaPrimeiroItem1 - 1,
+      qtdLinhasExistentes: M.qtdLinhasExistentes,
+      linhaTotais0: M.linhaTotais1 - 1,
       qtdNecessaria: data.itens.length,
-      colCount: MAPA_MODEL.colCount,
+      colCount: M.colCount,
     });
 
-    const aba = ABA_MAPA;
     const updates: Array<{ range: string; values: (string | number | null)[][] }> = [
       { range: `${aba}!C6`, values: [[data.entidade.razao]] },
       { range: `${aba}!K6`, values: [[data.entidade.representante]] },
