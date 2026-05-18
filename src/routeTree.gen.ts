@@ -19,6 +19,7 @@ import { Route as AdminOrcamentosRouteImport } from './routes/admin.orcamentos'
 import { Route as AdminObjetosRouteImport } from './routes/admin.objetos'
 import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
+import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
 const OrcamentosRoute = OrcamentosRouteImport.update({
   id: '/orcamentos',
@@ -70,11 +71,17 @@ const AdminFornecedoresRoute = AdminFornecedoresRouteImport.update({
   path: '/fornecedores',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAgendaRoute = AdminAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/orcamentos'
+    | '/admin/agenda'
     | '/admin/fornecedores'
     | '/admin/modelos'
     | '/admin/objetos'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/orcamentos'
+    | '/admin/agenda'
     | '/admin/fornecedores'
     | '/admin/modelos'
     | '/admin/objetos'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/orcamentos'
+    | '/admin/agenda'
     | '/admin/fornecedores'
     | '/admin/modelos'
     | '/admin/objetos'
@@ -224,10 +236,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFornecedoresRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/agenda': {
+      id: '/admin/agenda'
+      path: '/agenda'
+      fullPath: '/admin/agenda'
+      preLoaderRoute: typeof AdminAgendaRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminAgendaRoute: typeof AdminAgendaRoute
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
   AdminModelosRoute: typeof AdminModelosRoute
   AdminObjetosRoute: typeof AdminObjetosRoute
@@ -237,6 +257,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAgendaRoute: AdminAgendaRoute,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
   AdminModelosRoute: AdminModelosRoute,
   AdminObjetosRoute: AdminObjetosRoute,
