@@ -226,7 +226,7 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     updates.push({ range: `${aba}!I17`, values: [[data.fornecedores[2].razao]] });
 
     // Itens: A=item, B=descrição, C=unidade, D=qtd, E/G/I=preço unit
-    const linha0 = MAPA_MODEL.linhaPrimeiroItem1;
+    const linha0 = M.linhaPrimeiroItem1;
     data.itens.forEach((it, i) => {
       const linha = linha0 + i;
       updates.push({ range: `${aba}!A${linha}`, values: [[i + 1]] });
