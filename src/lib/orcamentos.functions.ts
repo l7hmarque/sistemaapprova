@@ -90,31 +90,43 @@ function sanitizarNome(s: string): string {
 
 /* ============================ GERAR ORÇAMENTO ============================ */
 
+async function carregarModeloAtivo(tipo: "orcamento" | "mapa" | "controle_bancario") {
+  const { data } = await supabase
+    .from("modelos_planilha")
+    .select("template_id, aba, params")
+    .eq("tipo", tipo)
+    .eq("ativo", true)
+    .maybeSingle();
+  return data as { template_id: string; aba: string; params: any } | null;
+}
+
 export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => DadosOrcamentoSchema.parse(d))
   .handler(async ({ data }) => {
+    const modelo = await carregarModeloAtivo("orcamento");
+    const templateId = modelo?.template_id || TEMPLATE_ORCAMENTO_ID;
+    const aba = modelo?.aba || ABA_ORC;
+    const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
+
     const parents = await safeFolder(pastaDestino(data.mesReferencia));
     const nome = sanitizarNome(
       `Orcamento - ${data.objeto} - ${data.fornecedor.razao} - ${data.data || new Date().toLocaleDateString("pt-BR")}`,
     );
 
-    const copy = await driveCopyFile({ templateId: TEMPLATE_ORCAMENTO_ID, name: nome, parents });
+    const copy = await driveCopyFile({ templateId, name: nome, parents });
     const { sheetId } = await getFirstSheetId(copy.id);
-    try { await renameSheet(copy.id, sheetId, ABA_ORC); } catch { /* nome pode falhar se já existir */ }
+    try { await renameSheet(copy.id, sheetId, aba); } catch { /* nome pode falhar se já existir */ }
 
-    // Expande linhas se preciso
     await expandirLinhasItens({
       spreadsheetId: copy.id,
       sheetId,
-      linhaPrimeiroItem0: ORC_MODEL.linhaPrimeiroItem1 - 1,
-      qtdLinhasExistentes: ORC_MODEL.qtdLinhasExistentes,
-      linhaTotais0: ORC_MODEL.linhaTotais1 - 1,
+      linhaPrimeiroItem0: M.linhaPrimeiroItem1 - 1,
+      qtdLinhasExistentes: M.qtdLinhasExistentes,
+      linhaTotais0: M.linhaTotais1 - 1,
       qtdNecessaria: data.itens.length,
-      colCount: ORC_MODEL.colCount,
+      colCount: M.colCount,
     });
 
-    // Preenche cabeçalho (após renomear, a aba se chama ABA_ORC)
-    const aba = ABA_ORC;
     const updates: Array<{ range: string; values: (string | number | null)[][] }> = [
       { range: `${aba}!C7`, values: [[data.entidade.razao]] },
       { range: `${aba}!H7`, values: [[data.entidade.representante]] },
