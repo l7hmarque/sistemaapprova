@@ -1,119 +1,57 @@
+## Problema
 
-# Plano — Aba de Orçamentos + Mapa Comparativo
+Nos logs do servidor:
 
-## Escopo
-
-Nova rota top-level `/orcamentos` com 4 sub-áreas:
-
-1. **Novo orçamento** — formulário que replica os campos da planilha modelo (Anexo I — Solicitação de Cotação).
-2. **Mapa comparativo** — formulário com objeto de cotação + 3 fornecedores + lista de itens com preço por fornecedor (Anexo II).
-3. **Presets** — modelos salvos de orçamentos recorrentes.
-4. **Histórico** — orçamentos/mapas já gerados, com link para a planilha no Drive.
-
-Nada do fluxo atual de extração de PDF / geração de `Despesa.txt` muda.
-
-## Fonte dos modelos
-
-- **Orçamento (Anexo I)**: `1IDWjnJisXhVrRRHSEqIxrqqevXMnlQPj94i3PSNnyno`
-- **Mapa Comparativo (Anexo II)**: `1V_1THOUUWMhpVlb_4peuCmZcgQUno1GxJD2NIm-jooM`
-
-Estratégia: ao gerar, **copiar o arquivo modelo no Drive** (Drive API `files/{id}/copy`), depois preencher os ranges via Sheets API `values:batchUpdate` (`USER_ENTERED`, preserva fórmulas). Cada cópia recebe nome `Orcamento - {objeto} - {fornecedor} - {data}` (ou `MapaComparativo - {objeto} - {data}`) numa pasta `Orcamentos SIT/{AAAA-MM}` criada se não existir.
-
-## Campos das planilhas
-
-**Orçamento (1 planilha por fornecedor)**
-- Cabeçalho fixo editável: Entidade, CNPJ entidade, Representante, CPF (linhas 6–7); Termo (linha 11).
-- Por orçamento: Fornecedor (razão+CNPJ+representante+CPF) linhas 8–9; Objeto, Validade (default 30), Data linha 10.
-- Itens a partir da linha 13: Item nº, Especificação, Qtd, Unidade, Preço Unitário (Total = fórmula existente).
-
-**Mapa Comparativo (1 planilha por cotação)**
-- Cabeçalho idem + Objeto.
-- 3 fornecedores nas linhas 12–14: Razão, CNPJ, Data Emissão, Data Validade, Prazo.
-- Itens a partir da linha 18: Item, Especificação, Unidade, Quantidade, Preço Unitário por fornecedor (3 colunas). Menor preço/total = fórmulas existentes.
-
-## Linhas dinâmicas (sem limite fixo)
-
-Quando o número de itens excede o que o modelo já traz (5 no orçamento, 3 no mapa atual), inserimos linhas extras **antes de preencher**, mantendo formatação, mesclagens e fórmulas:
-
-1. Identificamos no template o `sheetId`, a `linhaUltimoItem` e a `linhaTotalGeral`.
-2. Se `qtdItens > qtdLinhasDisponiveis`, executamos `spreadsheets:batchUpdate` com:
-   - `insertDimension` (`ROWS`, `inheritFromBefore: true`) inserindo `N` linhas imediatamente **acima** da linha "Total Geral" (no orçamento) / linha "Totais" (no mapa). Isso herda formatação, bordas e mescla da última linha de item.
-   - `copyPaste` (`pasteType: PASTE_NORMAL`) replicando a linha do último item original sobre as linhas recém-inseridas, garantindo que fórmulas relativas (Preço Total = Qtd × Unitário; Menor preço) sejam estendidas corretamente.
-3. Depois disso, `values:batchUpdate` preenche todos os itens (originais + novos) usando a numeração sequencial `1..N` na coluna Item.
-4. As fórmulas de soma do "Total Geral" / "Totais" se ajustam automaticamente porque a inserção é **acima** da linha de totais (Sheets atualiza ranges).
-
-Helper único: `expandirLinhasItens({ spreadsheetId, sheetId, linhaModeloItem, linhaTotais, qtdNecessaria, qtdExistente })` reaproveitado pelos dois fluxos.
-
-## Modelo de dados (Lovable Cloud)
-
-```text
-fornecedores
-  id uuid pk, cnpj text unique, razao_social text,
-  representante_legal text, cpf_representante text,
-  endereco text, email text, telefone text, criado_em timestamptz
-
-objetos_cotacao
-  id uuid pk, descricao text, unidade_padrao text,
-  categoria text, uso_count int default 0, criado_em timestamptz
-
-orcamento_presets
-  id uuid pk, nome text, objeto text, termo text,
-  itens jsonb, fornecedores_sugeridos jsonb, criado_em timestamptz
-
-orcamentos_salvos
-  id uuid pk, tipo text ('cotacao'|'mapa_comparativo'),
-  objeto text, termo text, mes_referencia text,
-  fornecedor_id uuid null, dados jsonb,
-  drive_file_id text, drive_file_url text, criado_em timestamptz
+```
+[api/extract] chamando IA — pdfBytes=45865439b, textLen=0
+POST /api/extract → 502
 ```
 
-RLS: igual ao `extracoes_salvas` (public read/insert/delete anon).
+O PDF tem ~46 MB e está sendo enviado inteiro como anexo binário (`type: "file"`) para o Lovable AI Gateway. O gateway/modelo rejeita/encerra a conexão (502) porque:
 
-Autocomplete de objetos: `upsert` em `objetos_cotacao` incrementando `uso_count` ao salvar; lista ordenada por `uso_count desc`. Fornecedores: busca por CNPJ/razão; cria se novo. Seed opcional a partir dos favorecidos já presentes em `favorecidosPadrao.ts` (não bloqueante).
+1. Excede o limite prático de payload multimodal do modelo.
+2. Mesmo cabendo, o tempo de upload + processamento estoura o timeout da Edge/Worker.
 
-## Integração Drive + Sheets
+Hoje só existe fallback se vier `text` no JSON — mas o front sempre manda `file`, então não há caminho de recuperação.
 
-Connectors `google_drive` e `google_sheets` já linkados. Toda chamada via `createServerFn` (nunca do cliente).
+## Solução (sem quebrar nada que já funciona)
 
-Server functions novas em `src/lib/orcamentos.functions.ts` (+ helpers em `src/lib/orcamentos.server.ts`):
+Dois ajustes complementares: **limite + pré-extração de texto no cliente** e **mensagem de erro decente** no servidor.
 
-- `gerarOrcamentoNoDrive({ dados })` → copia template → `expandirLinhasItens` se preciso → `values:batchUpdate` → salva snapshot → retorna `{ fileId, url }`.
-- `gerarMapaComparativoNoDrive({ dados })` → idem.
-- CRUD: `listar/upsert Fornecedor`, `listarObjetos(q)`, `listar/salvar/apagar Preset`, `listar/salvar Orcamento`.
+### 1. Extrair texto do PDF no cliente antes de enviar
 
-Zod valida todos os payloads.
+No componente que faz upload em `/` (Home), trocar o envio bruto do `File` por:
 
-## UI (`/orcamentos`)
+- Ler o PDF com `pdfjs-dist` (já dá pra rodar no browser, sem instalar binários no Worker).
+- Se a extração de texto resultar em conteúdo significativo (> ~500 chars), enviar como `application/json` com `{ text }` para `/api/extract` — caminho que já existe e funciona.
+- Se o texto extraído for muito curto (PDF é escaneado/imagem), aí sim enviar o binário, mas:
+  - apenas se `file.size <= 8 MB` (limite seguro para multimodal),
+  - caso contrário mostrar mensagem clara: "PDF muito grande para análise por imagem (X MB). Limite: 8 MB. Sugestão: dividir o arquivo ou usar um PDF com texto selecionável."
 
-`src/routes/orcamentos.tsx` com tabs (shadcn):
-- **Novo Orçamento** — cabeçalho + fornecedor com autocomplete + lista de itens (add/remover linhas livremente) + botão "Gerar planilha no Drive". Após gerar: link "Abrir no Sheets" + salva snapshot.
-- **Mapa Comparativo** — cabeçalho + 3 fornecedores (autocomplete) + itens com preço por fornecedor. Botão "Importar de orçamentos salvos" pré-preenche a partir de 3 cotações do mesmo objeto.
-- **Presets** — listar/criar/editar/apagar; aplicar preset ao iniciar um novo orçamento.
-- **Histórico** — tabela com filtros (mês/tipo) + link Drive + ação "duplicar".
+Isso resolve 95% dos casos (PDFs de prestação de contas normalmente têm texto), sem mexer no pipeline determinístico nem nas regras de holerite.
 
-Navegação: novo `<Link to="/orcamentos">` no header do `__root.tsx`.
+### 2. Endurecer `src/routes/api/extract.ts`
 
-## Detalhes técnicos
+- Adicionar guard no início do handler: se `pdfBytes && pdfBytes.byteLength > 8 * 1024 * 1024`, retornar 413 com mensagem amigável em vez de chamar a IA e estourar 502.
+- No `catch`, tratar `statusCode` 502/504/413 com mensagem específica ("PDF muito grande ou demorou demais. Tente um arquivo menor ou cole o texto").
 
-- `TEMPLATE_MAP` define por modelo: `sheetId`, células de cabeçalho, linha de início de itens, linha modelo (a copiar ao expandir), linha de totais.
-- Cliente usa `useServerFn` + TanStack Query.
-- Datas enviadas como `dd/mm/aaaa` string com `USER_ENTERED` (Sheets converte para data corretamente).
+### 3. (Opcional, só se necessário) compressão
+
+Se ainda assim alguns PDFs grandes-mas-com-texto falharem na extração local, dá pra adicionar um passo de "rasterizar página a página em JPEG" no cliente — mas só implemento se aparecer o caso. Por ora não é preciso.
 
 ## O que NÃO muda
 
-- Upload/extração de PDF, geração de `.txt`, tabelas `extracoes_salvas`, endpoints `/api/extract`, parsers, pipeline, layout dos cards atuais da home.
+- Pipeline determinístico (`reforcarComDeterministico`), schema, regras holerite, categorias, salvamento em `extracoes_salvas`, geração de `.txt`, planilhas, mapa comparativo — tudo intacto.
+- A rota `/api/extract` continua aceitando `file` (caminho binário) para PDFs pequenos/escaneados.
 
-## Riscos / mitigação
+## Detalhes técnicos
 
-- **Expansão de linhas**: `insertDimension` com `inheritFromBefore: true` + `copyPaste` da linha modelo garantem fórmulas e formatação corretas; testamos com 10+ itens no smoke test antes de finalizar.
-- **Mesclagens (merges)**: a linha 13 do orçamento tem células mescladas em "Especificação". `insertDimension` herda merges; validamos no teste e, se quebrar em algum caso, adicionamos `mergeCells` explicitamente no batch.
-- **Permissões Drive**: planilha gerada herda permissões da conta da conexão; retornamos `webViewLink`. Compartilhamento público explícito fica como botão futuro.
-- **Conta única**: todas as planilhas ficam no Drive do dono da conexão (consistente com padrão atual).
-- **Locale**: USER_ENTERED + locale pt-BR do template já cuidam de `R$` e datas.
+- Dependência nova: `pdfjs-dist` (browser-only, ~2 MB gzip, sem nativo). Worker fica de fora.
+- Arquivo a editar no front: o componente de upload da Home (provavelmente `src/routes/index.tsx` ou um componente em `src/components/`). Confirmo ao implementar.
+- Arquivo a editar no back: `src/routes/api/extract.ts` (guard + mensagens).
 
-## Entrega em 4 passos (após aprovação)
+## Fases
 
-1. Migration: 4 tabelas + RLS.
-2. `orcamentos.server.ts` + `orcamentos.functions.ts` (Drive copy, expandir linhas, batchUpdate, CRUD).
-3. Rota `/orcamentos` com 4 tabs + componentes de formulário e autocomplete.
-4. Link no header + smoke test gerando 1 orçamento com 8 itens e 1 mapa com 6 itens (valida expansão de linhas).
+1. Adicionar guard de 8 MB e mensagens de erro no servidor (5 min, já evita o 502 silencioso).
+2. Instalar `pdfjs-dist` e extrair texto no cliente antes do POST (caminho principal).
+3. Testar com o mesmo PDF de 46 MB.
