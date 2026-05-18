@@ -143,7 +143,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
     ];
 
     // Itens: A=número, B=descrição, H=qtd, I=unidade, J=preço unit
-    const linha0 = ORC_MODEL.linhaPrimeiroItem1;
+    const linha0 = M.linhaPrimeiroItem1;
     data.itens.forEach((it, i) => {
       const linha = linha0 + i;
       updates.push({ range: `${aba}!A${linha}`, values: [[i + 1]] });
