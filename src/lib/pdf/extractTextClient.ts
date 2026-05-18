@@ -4,7 +4,6 @@
 
 import * as pdfjsLib from "pdfjs-dist";
 // Worker via URL do bundler (Vite resolve para um asset servido).
-// @ts-expect-error - import de worker como URL
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 // Configura uma vez
