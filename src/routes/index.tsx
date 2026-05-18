@@ -257,52 +257,92 @@ function uploadComProgresso(
   onAnalise: (pct: number) => void,
 ): Promise<ExtracaoResultado> {
   return new Promise((resolve, reject) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/extract");
-    xhr.responseType = "text";
-    let analiseTimer: ReturnType<typeof setInterval> | null = null;
-    let analiseInicio = 0;
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
-    };
-    xhr.upload.onload = () => {
-      onUpload(100);
-      // começa fase IA: curva assintótica baseada em tempo
-      analiseInicio = Date.now();
-      analiseTimer = setInterval(() => {
-        const elapsedS = (Date.now() - analiseInicio) / 1000;
-        // Após ~25s chegamos perto de 95%
-        const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
-        onAnalise(pct);
-      }, 300);
-    };
-    const cleanup = () => {
-      if (analiseTimer) clearInterval(analiseTimer);
-    };
-    xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
-    xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
-    xhr.onload = () => {
-      cleanup();
-      onAnalise(100);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
-          resolve(data);
-        } catch (e) {
-          reject(new Error("Resposta inválida do servidor"));
-        }
-      } else {
-        let msg = `Erro ${xhr.status}`;
-        try {
-          const j = JSON.parse(xhr.responseText) as { error?: string };
-          if (j.error) msg = j.error;
-        } catch { /* noop */ }
-        reject(new Error(msg));
+    const MAX_BIN = 8 * 1024 * 1024;
+
+    const enviar = (body: BodyInit, headers: Record<string, string> | null) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/extract");
+      if (headers) {
+        for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
       }
+      xhr.responseType = "text";
+      let analiseTimer: ReturnType<typeof setInterval> | null = null;
+      let analiseInicio = 0;
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
+      };
+      xhr.upload.onload = () => {
+        onUpload(100);
+        analiseInicio = Date.now();
+        analiseTimer = setInterval(() => {
+          const elapsedS = (Date.now() - analiseInicio) / 1000;
+          const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
+          onAnalise(pct);
+        }, 300);
+      };
+      const cleanup = () => {
+        if (analiseTimer) clearInterval(analiseTimer);
+      };
+      xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
+      xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
+      xhr.onload = () => {
+        cleanup();
+        onAnalise(100);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
+            resolve(data);
+          } catch {
+            reject(new Error("Resposta inválida do servidor"));
+          }
+        } else {
+          let msg = `Erro ${xhr.status}`;
+          try {
+            const j = JSON.parse(xhr.responseText) as { error?: string };
+            if (j.error) msg = j.error;
+          } catch { /* noop */ }
+          reject(new Error(msg));
+        }
+      };
+      xhr.send(body);
     };
-    xhr.send(fd);
+
+    // 1) Tenta extrair texto no cliente (rápido e evita upload pesado p/ IA)
+    (async () => {
+      try {
+        const { extractPdfText } = await import("@/lib/pdf/extractTextClient");
+        onUpload(5);
+        const texto = await extractPdfText(file);
+        if (texto && texto.length > 500) {
+          enviar(JSON.stringify({ text: texto }), { "Content-Type": "application/json" });
+          return;
+        }
+        // Texto insuficiente — PDF provavelmente escaneado. Cai pro binário.
+        if (file.size > MAX_BIN) {
+          reject(new Error(
+            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB) e sem texto selecionável. ` +
+            `Limite para análise por imagem: 8 MB. Divida o arquivo ou use um PDF com texto.`
+          ));
+          return;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        enviar(fd, null);
+      } catch (e) {
+        // Falhou extrair texto — tenta binário se couber
+        console.warn("[upload] extração local falhou, tentando binário", e);
+        if (file.size > MAX_BIN) {
+          reject(new Error(
+            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). ` +
+            `Limite: 8 MB. Divida o arquivo ou use um PDF com texto selecionável.`
+          ));
+          return;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        enviar(fd, null);
+      }
+    })();
   });
 }
 
