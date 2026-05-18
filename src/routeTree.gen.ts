@@ -10,12 +10,26 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
+import { Route as AdminPrestacaoRouteImport } from './routes/admin.prestacao'
+import { Route as AdminOrcamentosRouteImport } from './routes/admin.orcamentos'
+import { Route as AdminObjetosRouteImport } from './routes/admin.objetos'
+import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
+import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
 const OrcamentosRoute = OrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -23,38 +37,141 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiExtractRoute = ApiExtractRouteImport.update({
   id: '/api/extract',
   path: '/api/extract',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPrestacaoRoute = AdminPrestacaoRouteImport.update({
+  id: '/prestacao',
+  path: '/prestacao',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrcamentosRoute = AdminOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminObjetosRoute = AdminObjetosRouteImport.update({
+  id: '/objetos',
+  path: '/objetos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminModelosRoute = AdminModelosRouteImport.update({
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFornecedoresRoute = AdminFornecedoresRouteImport.update({
+  id: '/fornecedores',
+  path: '/fornecedores',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAgendaRoute = AdminAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/objetos': typeof AdminObjetosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
+  '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/objetos': typeof AdminObjetosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
+  '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/objetos': typeof AdminObjetosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
+  '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/orcamentos' | '/api/extract'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/orcamentos'
+    | '/admin/agenda'
+    | '/admin/configuracoes'
+    | '/admin/fornecedores'
+    | '/admin/modelos'
+    | '/admin/objetos'
+    | '/admin/orcamentos'
+    | '/admin/prestacao'
+    | '/api/extract'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/orcamentos' | '/api/extract'
-  id: '__root__' | '/' | '/orcamentos' | '/api/extract'
+  to:
+    | '/'
+    | '/orcamentos'
+    | '/admin/agenda'
+    | '/admin/configuracoes'
+    | '/admin/fornecedores'
+    | '/admin/modelos'
+    | '/admin/objetos'
+    | '/admin/orcamentos'
+    | '/admin/prestacao'
+    | '/api/extract'
+    | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/orcamentos'
+    | '/admin/agenda'
+    | '/admin/configuracoes'
+    | '/admin/fornecedores'
+    | '/admin/modelos'
+    | '/admin/objetos'
+    | '/admin/orcamentos'
+    | '/admin/prestacao'
+    | '/api/extract'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   OrcamentosRoute: typeof OrcamentosRoute
   ApiExtractRoute: typeof ApiExtractRoute
 }
@@ -68,12 +185,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrcamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/api/extract': {
       id: '/api/extract'
@@ -82,11 +213,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExtractRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/prestacao': {
+      id: '/admin/prestacao'
+      path: '/prestacao'
+      fullPath: '/admin/prestacao'
+      preLoaderRoute: typeof AdminPrestacaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orcamentos': {
+      id: '/admin/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/admin/orcamentos'
+      preLoaderRoute: typeof AdminOrcamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/objetos': {
+      id: '/admin/objetos'
+      path: '/objetos'
+      fullPath: '/admin/objetos'
+      preLoaderRoute: typeof AdminObjetosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/modelos': {
+      id: '/admin/modelos'
+      path: '/modelos'
+      fullPath: '/admin/modelos'
+      preLoaderRoute: typeof AdminModelosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/fornecedores': {
+      id: '/admin/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/admin/fornecedores'
+      preLoaderRoute: typeof AdminFornecedoresRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/agenda': {
+      id: '/admin/agenda'
+      path: '/agenda'
+      fullPath: '/admin/agenda'
+      preLoaderRoute: typeof AdminAgendaRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminAgendaRoute: typeof AdminAgendaRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminFornecedoresRoute: typeof AdminFornecedoresRoute
+  AdminModelosRoute: typeof AdminModelosRoute
+  AdminObjetosRoute: typeof AdminObjetosRoute
+  AdminOrcamentosRoute: typeof AdminOrcamentosRoute
+  AdminPrestacaoRoute: typeof AdminPrestacaoRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAgendaRoute: AdminAgendaRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminFornecedoresRoute: AdminFornecedoresRoute,
+  AdminModelosRoute: AdminModelosRoute,
+  AdminObjetosRoute: AdminObjetosRoute,
+  AdminOrcamentosRoute: AdminOrcamentosRoute,
+  AdminPrestacaoRoute: AdminPrestacaoRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   OrcamentosRoute: OrcamentosRoute,
   ApiExtractRoute: ApiExtractRoute,
 }
