@@ -16,6 +16,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
 import { Route as AdminOrcamentosRouteImport } from './routes/admin.orcamentos'
 import { Route as AdminObjetosRouteImport } from './routes/admin.objetos'
+import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
 
 const OrcamentosRoute = OrcamentosRouteImport.update({
@@ -53,6 +54,11 @@ const AdminObjetosRoute = AdminObjetosRouteImport.update({
   path: '/objetos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminModelosRoute = AdminModelosRouteImport.update({
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminFornecedoresRoute = AdminFornecedoresRouteImport.update({
   id: '/fornecedores',
   path: '/fornecedores',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
+  '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/orcamentos'
     | '/admin/fornecedores'
+    | '/admin/modelos'
     | '/admin/objetos'
     | '/admin/orcamentos'
     | '/api/extract'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/orcamentos'
     | '/admin/fornecedores'
+    | '/admin/modelos'
     | '/admin/objetos'
     | '/admin/orcamentos'
     | '/api/extract'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/orcamentos'
     | '/admin/fornecedores'
+    | '/admin/modelos'
     | '/admin/objetos'
     | '/admin/orcamentos'
     | '/api/extract'
@@ -179,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminObjetosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/modelos': {
+      id: '/admin/modelos'
+      path: '/modelos'
+      fullPath: '/admin/modelos'
+      preLoaderRoute: typeof AdminModelosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/fornecedores': {
       id: '/admin/fornecedores'
       path: '/fornecedores'
@@ -191,6 +210,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
+  AdminModelosRoute: typeof AdminModelosRoute
   AdminObjetosRoute: typeof AdminObjetosRoute
   AdminOrcamentosRoute: typeof AdminOrcamentosRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -198,6 +218,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminFornecedoresRoute: AdminFornecedoresRoute,
+  AdminModelosRoute: AdminModelosRoute,
   AdminObjetosRoute: AdminObjetosRoute,
   AdminOrcamentosRoute: AdminOrcamentosRoute,
   AdminIndexRoute: AdminIndexRoute,
