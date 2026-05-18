@@ -79,6 +79,17 @@ export const Route = createFileRoute("/api/extract")({
           );
         }
 
+        const MAX_PDF_BYTES = 8 * 1024 * 1024;
+        if (pdfBytes && pdfBytes.byteLength > MAX_PDF_BYTES) {
+          const mb = (pdfBytes.byteLength / 1024 / 1024).toFixed(1);
+          return new Response(
+            JSON.stringify({
+              error: `PDF muito grande para análise por imagem (${mb} MB). Limite: 8 MB. Dica: use um PDF com texto selecionável (o app extrai o texto antes de enviar) ou divida o arquivo.`,
+            }),
+            { status: 413, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         const gateway = createLovableAiGatewayProvider(apiKey);
         const model = gateway("google/gemini-3-flash-preview");
 
@@ -146,7 +157,9 @@ export const Route = createFileRoute("/api/extract")({
               ? "Limite de requisições atingido. Tente novamente em instantes."
               : status === 402
                 ? "Créditos esgotados na workspace Lovable AI. Adicione créditos em Settings > Workspace > Usage."
-                : err.message ?? "Falha ao extrair dados do PDF.";
+                : status === 502 || status === 504
+                  ? "O PDF é muito grande ou a IA demorou demais para responder. Tente um PDF com texto selecionável ou divida o arquivo em partes menores."
+                  : err.message ?? "Falha ao extrair dados do PDF.";
           return new Response(JSON.stringify({ error: msg }), {
             status,
             headers: { "Content-Type": "application/json" },
