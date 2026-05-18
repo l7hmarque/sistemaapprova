@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
+import { Route as AdminOrcamentosRouteImport } from './routes/admin.orcamentos'
 
 const OrcamentosRoute = OrcamentosRouteImport.update({
   id: '/orcamentos',
@@ -40,17 +41,24 @@ const ApiExtractRoute = ApiExtractRouteImport.update({
   path: '/api/extract',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminOrcamentosRoute = AdminOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -59,15 +67,29 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/orcamentos': typeof OrcamentosRoute
+  '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/orcamentos' | '/api/extract' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/orcamentos'
+    | '/admin/orcamentos'
+    | '/api/extract'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/orcamentos' | '/api/extract' | '/admin'
-  id: '__root__' | '/' | '/admin' | '/orcamentos' | '/api/extract' | '/admin/'
+  to: '/' | '/orcamentos' | '/admin/orcamentos' | '/api/extract' | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/orcamentos'
+    | '/admin/orcamentos'
+    | '/api/extract'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -114,14 +136,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExtractRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/orcamentos': {
+      id: '/admin/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/admin/orcamentos'
+      preLoaderRoute: typeof AdminOrcamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminOrcamentosRoute: typeof AdminOrcamentosRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrcamentosRoute: AdminOrcamentosRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
