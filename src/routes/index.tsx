@@ -821,6 +821,11 @@ function AppPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/admin">
+              <Button variant="ghost" className="gap-2">
+                <Settings2 className="h-4 w-4" /> Admin
+              </Button>
+            </Link>
             <Link to="/orcamentos">
               <Button variant="outline" className="gap-2">
                 <FileText className="h-4 w-4" /> Orçamentos
