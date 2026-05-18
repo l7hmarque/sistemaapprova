@@ -157,7 +157,9 @@ export const Route = createFileRoute("/api/extract")({
               ? "Limite de requisições atingido. Tente novamente em instantes."
               : status === 402
                 ? "Créditos esgotados na workspace Lovable AI. Adicione créditos em Settings > Workspace > Usage."
-                : err.message ?? "Falha ao extrair dados do PDF.";
+                : status === 502 || status === 504
+                  ? "O PDF é muito grande ou a IA demorou demais para responder. Tente um PDF com texto selecionável ou divida o arquivo em partes menores."
+                  : err.message ?? "Falha ao extrair dados do PDF.";
           return new Response(JSON.stringify({ error: msg }), {
             status,
             headers: { "Content-Type": "application/json" },
