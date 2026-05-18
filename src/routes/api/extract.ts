@@ -79,6 +79,17 @@ export const Route = createFileRoute("/api/extract")({
           );
         }
 
+        const MAX_PDF_BYTES = 8 * 1024 * 1024;
+        if (pdfBytes && pdfBytes.byteLength > MAX_PDF_BYTES) {
+          const mb = (pdfBytes.byteLength / 1024 / 1024).toFixed(1);
+          return new Response(
+            JSON.stringify({
+              error: `PDF muito grande para análise por imagem (${mb} MB). Limite: 8 MB. Dica: use um PDF com texto selecionável (o app extrai o texto antes de enviar) ou divida o arquivo.`,
+            }),
+            { status: 413, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         const gateway = createLovableAiGatewayProvider(apiKey);
         const model = gateway("google/gemini-3-flash-preview");
 
