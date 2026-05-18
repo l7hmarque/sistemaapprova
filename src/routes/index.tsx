@@ -259,7 +259,7 @@ function uploadComProgresso(
   return new Promise((resolve, reject) => {
     const MAX_BIN = 8 * 1024 * 1024;
 
-    const enviar = (body: BodyInit, headers: Record<string, string> | null) => {
+    const enviar = (body: XMLHttpRequestBodyInit, headers: Record<string, string> | null) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/extract");
       if (headers) {
