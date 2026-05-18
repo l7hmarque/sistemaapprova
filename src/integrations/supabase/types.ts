@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      configuracoes: {
+        Row: {
+          atualizado_em: string
+          chave: string
+          valor: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          chave: string
+          valor?: Json
+        }
+        Update: {
+          atualizado_em?: string
+          chave?: string
+          valor?: Json
+        }
+        Relationships: []
+      }
       extracoes_salvas: {
         Row: {
           criada_em: string
@@ -213,6 +231,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      prestacao_documentos: {
+        Row: {
+          arquivo_url: string | null
+          atualizado_em: string
+          criado_em: string
+          data_emissao: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          drive_file_id: string | null
+          id: string
+          mes_referencia: string | null
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          arquivo_url?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          drive_file_id?: string | null
+          id?: string
+          mes_referencia?: string | null
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          arquivo_url?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          drive_file_id?: string | null
+          id?: string
+          mes_referencia?: string | null
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
       }
     }
     Views: {
