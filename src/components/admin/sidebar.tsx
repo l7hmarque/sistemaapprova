@@ -10,7 +10,8 @@ import {
   Settings,
 } from "lucide-react";
 
-const ITEMS = [
+type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/admin/fornecedores", label: "Fornecedores", icon: Users },
@@ -19,7 +20,7 @@ const ITEMS = [
   { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck },
   { to: "/admin/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
-] as const;
+];
 
 export function AdminSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
