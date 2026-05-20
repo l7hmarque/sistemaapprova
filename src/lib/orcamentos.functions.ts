@@ -47,7 +47,7 @@ const DadosOrcamentoSchema = z.object({
 });
 
 const FornecedorMapaSchema = z.object({
-  razao: z.string().min(1).max(255),
+  razao: z.string().max(255).default(""),
   cnpj: z.string().max(40).default(""),
   dataEmissao: z.string().max(20).default(""),
   dataValidade: z.string().max(20).default(""),
