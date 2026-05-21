@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
+import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/prestacao")({ component: PrestacaoPage });
 
@@ -27,6 +29,16 @@ type Doc = {
   data_emissao: string | null;
   data_vencimento: string | null;
   mes_referencia: string | null;
+};
+
+type Snapshot = {
+  id: string;
+  titulo: string | null;
+  assinatura_hash: string;
+  total_eventos: number;
+  total_documentos: number;
+  gerado_em: string;
+  pdf_path: string | null;
 };
 
 const mesAtual = new Date().toISOString().slice(0, 7);
@@ -43,11 +55,29 @@ function PrestacaoPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("prestacao_documentos")
-      .select("*")
-      .eq("mes_referencia", mes)
-      .order("ordem", { ascending: true });
+  const [edit, setEdit] = useState<Partial<Doc> | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const gerar = useServerFn(gerarPrestacaoContas);
+  const abrirSnap = useServerFn(obterUrlSnapshot);
+
+  const carregar = async () => {
+    setLoading(true);
+    const [{ data, error }, snap] = await Promise.all([
+      supabase
+        .from("prestacao_documentos")
+        .select("*")
+        .eq("mes_referencia", mes)
+        .order("ordem", { ascending: true }),
+      supabase
+        .from("prestacoes_snapshot")
+        .select("id, titulo, assinatura_hash, total_eventos, total_documentos, gerado_em, pdf_path")
+        .eq("mes_referencia", mes)
+        .order("gerado_em", { ascending: false }),
+    ]);
     if (error) toast.error("Erro: " + error.message);
     setDocs((data as any) ?? []);
+    setSnapshots((snap.data as any) ?? []);
     setLoading(false);
   };
 
