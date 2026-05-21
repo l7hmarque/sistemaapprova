@@ -175,6 +175,56 @@ const FORN_VAZIO = (): FornInput => ({
   validadeDias: 30,
 });
 
+/* =========================== Rascunhos (localStorage) =========================== */
+
+const RASCUNHO_AUTO_KEY = "orcamentos:rascunho:auto";
+const RASCUNHO_NOMEADO_PREFIX = "orcamentos:rascunho:nomeado:";
+
+type RascunhoPayload = {
+  entidade?: typeof ENTIDADE_DEFAULT;
+  termo?: string;
+  forns?: FornInput[];
+  objeto?: string;
+  data?: string;
+  mesRef?: string;
+  itens?: ItemOrc3[];
+};
+
+function listarRascunhos(): Array<{ nome: string; salvoEm: string }> {
+  if (typeof window === "undefined") return [];
+  const out: Array<{ nome: string; salvoEm: string }> = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(RASCUNHO_NOMEADO_PREFIX)) continue;
+    try {
+      const v = JSON.parse(localStorage.getItem(k) || "{}");
+      out.push({ nome: k.slice(RASCUNHO_NOMEADO_PREFIX.length), salvoEm: v.__salvoEm || "" });
+    } catch { /* noop */ }
+  }
+  return out.sort((a, b) => (a.salvoEm < b.salvoEm ? 1 : -1));
+}
+
+function salvarRascunhoNomeado(nome: string, payload: RascunhoPayload) {
+  try {
+    localStorage.setItem(
+      RASCUNHO_NOMEADO_PREFIX + nome,
+      JSON.stringify({ ...payload, __salvoEm: new Date().toISOString() }),
+    );
+  } catch { /* noop */ }
+}
+
+function lerRascunhoNomeado(nome: string): RascunhoPayload | null {
+  try {
+    const raw = localStorage.getItem(RASCUNHO_NOMEADO_PREFIX + nome);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function apagarRascunhoNomeado(nome: string) {
+  try { localStorage.removeItem(RASCUNHO_NOMEADO_PREFIX + nome); } catch { /* noop */ }
+}
+
+
 function NovoOrcamento() {
   const objetos = useObjetos();
   const { lista: fornecedores, recarregar: recarregarF } = useFornecedores();
