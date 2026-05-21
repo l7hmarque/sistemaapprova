@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FerramentaRouteImport } from './routes/ferramenta'
+import { Route as ContadoresRouteImport } from './routes/contadores'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -39,6 +40,11 @@ const LoginRoute = LoginRouteImport.update({
 const FerramentaRoute = FerramentaRouteImport.update({
   id: '/ferramenta',
   path: '/ferramenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContadoresRoute = ContadoresRouteImport.update({
+  id: '/contadores',
+  path: '/contadores',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -110,6 +116,7 @@ const AdminAgendaRoute = AdminAgendaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/contadores': typeof ContadoresRoute
   '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contadores': typeof ContadoresRoute
   '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/contadores': typeof ContadoresRoute
   '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/contadores'
     | '/ferramenta'
     | '/login'
     | '/orcamentos'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contadores'
     | '/ferramenta'
     | '/login'
     | '/orcamentos'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/contadores'
     | '/ferramenta'
     | '/login'
     | '/orcamentos'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  ContadoresRoute: typeof ContadoresRoute
   FerramentaRoute: typeof FerramentaRoute
   LoginRoute: typeof LoginRoute
   OrcamentosRoute: typeof OrcamentosRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/ferramenta'
       fullPath: '/ferramenta'
       preLoaderRoute: typeof FerramentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contadores': {
+      id: '/contadores'
+      path: '/contadores'
+      fullPath: '/contadores'
+      preLoaderRoute: typeof ContadoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -374,6 +394,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  ContadoresRoute: ContadoresRoute,
   FerramentaRoute: FerramentaRoute,
   LoginRoute: LoginRoute,
   OrcamentosRoute: OrcamentosRoute,
