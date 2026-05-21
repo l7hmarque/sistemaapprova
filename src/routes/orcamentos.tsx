@@ -576,6 +576,10 @@ function NovoOrcamento() {
             {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
             Gerar planilhas no Drive
           </Button>
+          <Button type="button" variant="outline" onClick={salvarComoRascunho}>
+            <Save className="mr-2 h-4 w-4" />
+            Deixar em aberto
+          </Button>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -585,6 +589,37 @@ function NovoOrcamento() {
             Gerar também o mapa comparativo
           </label>
         </div>
+
+        {rascunhos.length > 0 && (
+          <div className="rounded-md border p-3 text-sm">
+            <div className="mb-2 flex items-center gap-2 font-semibold">
+              <FolderOpen className="h-4 w-4" /> Rascunhos em aberto
+            </div>
+            <div className="space-y-1">
+              {rascunhos.map((r) => (
+                <div key={r.nome} className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => carregarRascunho(r.nome)}
+                    className="truncate text-left text-primary hover:underline"
+                  >
+                    {r.nome}
+                  </button>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {r.salvoEm && <span>{new Date(r.salvoEm).toLocaleString("pt-BR")}</span>}
+                    <Button size="icon" variant="ghost" onClick={() => apagarRascunho(r.nome)} title="Apagar rascunho">
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Dica: o que você está editando agora também é salvo automaticamente e restaurado se a página recarregar.
+            </div>
+          </div>
+        )}
+
 
         {(resultados.length > 0 || mapaResult) && (
           <div className="space-y-1 rounded-md border p-3 text-sm">
