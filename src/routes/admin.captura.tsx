@@ -328,7 +328,7 @@ function CapturaPage() {
         <div>
           <h1 className="text-3xl uppercase">Captura de documentos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload, foto ou scanner. IA extrai dados e vincula automaticamente ao evento do mês.
+            Upload, foto ou scanner. Os dados são reconhecidos automaticamente e vinculados ao evento do mês.
           </p>
         </div>
         <div className="flex items-end gap-3">
