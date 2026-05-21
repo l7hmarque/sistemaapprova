@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FerramentaRouteImport } from './routes/ferramenta'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -33,6 +34,11 @@ const OrcamentosRoute = OrcamentosRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FerramentaRoute = FerramentaRouteImport.update({
+  id: '/ferramenta',
+  path: '/ferramenta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -104,6 +110,7 @@ const AdminAgendaRoute = AdminAgendaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ferramenta': typeof FerramentaRoute
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ferramenta'
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ferramenta'
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ferramenta'
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
@@ -208,6 +220,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  FerramentaRoute: typeof FerramentaRoute
   LoginRoute: typeof LoginRoute
   OrcamentosRoute: typeof OrcamentosRoute
   ApiExtractRoute: typeof ApiExtractRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ferramenta': {
+      id: '/ferramenta'
+      path: '/ferramenta'
+      fullPath: '/ferramenta'
+      preLoaderRoute: typeof FerramentaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -354,6 +374,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  FerramentaRoute: FerramentaRoute,
   LoginRoute: LoginRoute,
   OrcamentosRoute: OrcamentosRoute,
   ApiExtractRoute: ApiExtractRoute,
@@ -361,3 +382,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
