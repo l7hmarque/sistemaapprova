@@ -78,13 +78,13 @@ export function PlanCards({ publico }: { publico?: "contador" | "gestor" }) {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
+      <div className="mt-16 grid gap-10 md:gap-6 md:grid-cols-3 items-start">
         {PLANOS.map((p) => (
           <div
             key={p.id}
             className={
               p.destaque
-                ? "relative rounded-2xl bg-brand-navy text-white p-8 shadow-2xl ring-1 ring-brand-navy md:-translate-y-3"
+                ? "relative rounded-2xl bg-brand-navy text-white p-8 shadow-2xl ring-1 ring-brand-navy"
                 : "relative rounded-2xl bg-white border border-brand-line p-8"
             }
           >
