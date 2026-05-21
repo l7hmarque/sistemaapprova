@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Plus, Trash2, Save, FileDown, FileText, BarChart3, Loader2 } from "lucide-react";
+import { ExternalLink, Plus, Trash2, Save, FileDown, FileText, BarChart3, Loader2, FolderOpen, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   gerarOrcamentoNoDrive,
