@@ -248,7 +248,6 @@ function CapturaPage() {
           metadata: {
             nome_original: it.file.name,
             descricao: dados?.descricao ?? null,
-            modelo: modeloUsado || null,
           },
         })
         .select("id")
