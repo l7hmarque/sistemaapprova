@@ -31,6 +31,7 @@ import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
+import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
@@ -144,6 +145,11 @@ const AdminCapturaRoute = AdminCapturaRouteImport.update({
   path: '/captura',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAprovacoesRoute = AdminAprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/agenda'
     | '/admin/analytics'
+    | '/admin/aprovacoes'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/agenda'
     | '/admin/analytics'
+    | '/admin/aprovacoes'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin/agenda'
     | '/admin/analytics'
+    | '/admin/aprovacoes'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -485,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCapturaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/aprovacoes': {
+      id: '/admin/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/admin/aprovacoes'
+      preLoaderRoute: typeof AdminAprovacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -505,6 +524,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminAprovacoesRoute: typeof AdminAprovacoesRoute
   AdminCapturaRoute: typeof AdminCapturaRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
@@ -519,6 +539,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAgendaRoute: AdminAgendaRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminAprovacoesRoute: AdminAprovacoesRoute,
   AdminCapturaRoute: AdminCapturaRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminFornecedoresRoute: AdminFornecedoresRoute,

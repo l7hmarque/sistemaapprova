@@ -3,21 +3,21 @@ import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
 import previewUpload from "@/assets/preview-upload.png";
-import previewDashboard from "@/assets/preview-dashboard.png";
+import previewRevisao from "@/assets/preview-revisao.png";
 import previewRelatorio from "@/assets/preview-relatorio.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SynSIT — Gestão financeira e prestação de contas para OSCs" },
-      { name: "description", content: "Plataforma para organizações da sociedade civil e escritórios contábeis do terceiro setor. Centralize lançamentos, prestação de contas e exportação SIT. Demonstração gratuita de 30 dias." },
-      { property: "og:title", content: "SynSIT — Gestão para o terceiro setor" },
-      { property: "og:description", content: "Centralize prestação de contas, lançamentos e relatórios. 30 dias grátis." },
+      { title: "SynSIT — Prestação de contas de Termo de Fomento (TCE-PR)" },
+      { name: "description", content: "Importe o PDF mensal do seu termo de fomento, revise lançamentos com IA, anexe comprovantes e exporte direto no padrão SIT/TCE-PR. 30 dias grátis." },
+      { property: "og:title", content: "SynSIT — Prestação de contas para OSCs" },
+      { property: "og:description", content: "Revise lançamentos, anexe comprovantes e exporte no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/" },
-      { property: "og:image", content: "https://synsit.lovable.app" + previewDashboard },
+      { property: "og:image", content: "https://synsit.lovable.app" + previewRevisao },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://synsit.lovable.app" + previewDashboard },
+      { name: "twitter:image", content: "https://synsit.lovable.app" + previewRevisao },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
     scripts: [{
@@ -45,12 +45,12 @@ function HomePage() {
               Plataforma SynSIT · por 3RD TECH
             </p>
             <h1 className="mt-4 text-4xl md:text-6xl font-serif text-brand-navy leading-[1.05]">
-              Gestão financeira sem fricção <em className="not-italic text-brand-blue">para o terceiro setor</em>.
+              Prestação de contas do seu Termo de Fomento <em className="not-italic text-brand-blue">sem fricção</em>.
             </h1>
             <p className="mt-6 text-lg text-brand-muted max-w-xl leading-relaxed">
-              Da entrada do documento à prestação de contas mensal — em um único fluxo,
-              pensado para organizações da sociedade civil e escritórios contábeis que
-              atendem OSCs.
+              Importe o PDF mensal, revise os lançamentos extraídos por IA, anexe
+              comprovantes com aprovação em duas mãos e exporte direto no padrão
+              SIT/TCE-PR — sem planilhas paralelas.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -77,8 +77,8 @@ function HomePage() {
             <div className="absolute -inset-4 bg-brand-blue/5 rounded-3xl blur-2xl" aria-hidden="true" />
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
-                src={previewDashboard}
-                alt="Painel da entidade no SynSIT mostrando execução de R$ 312.450 no exercício, 4 projetos ativos, execução por projeto e próximos prazos de prestação de contas."
+                src={previewRevisao}
+                alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no SynSIT, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
                 width={1600}
                 height={896}
                 className="w-full h-auto"
@@ -93,10 +93,10 @@ function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Como funciona</p>
             <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
-              Do recibo até a prestação de contas — sem planilhas paralelas.
+              Do PDF da prestação até o arquivo SIT — em três etapas.
             </h2>
             <p className="mt-4 text-brand-muted leading-relaxed">
-              Três etapas, um único histórico auditável por projeto, rubrica e termo.
+              Um histórico auditável por termo, mês e categoria — com comprovação documental anexa.
             </p>
           </div>
 
@@ -105,7 +105,7 @@ function HomePage() {
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
                   src={previewUpload}
-                  alt="Tela de lançamentos do SynSIT com recibos e NF-e categorizados por projeto (Educa+ Comunidade, Saúde na Periferia, Mães Acolhidas) e rubrica."
+                  alt="Tela de importação do PDF mensal de prestação de contas no SynSIT, com lançamentos sendo lidos automaticamente pela IA."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -114,18 +114,18 @@ function HomePage() {
               </div>
               <div className="mt-5 flex items-baseline gap-3">
                 <span className="text-brand-blue font-serif text-2xl">01</span>
-                <h3 className="text-xl font-serif text-brand-navy">Lance e categorize</h3>
+                <h3 className="text-xl font-serif text-brand-navy">Importe o PDF mensal</h3>
               </div>
               <p className="mt-2 text-brand-muted leading-relaxed">
-                Cada despesa é amarrada a um projeto, rubrica e termo de fomento.
-                Sem campos soltos, sem retrabalho no fechamento.
+                A IA lê NF-e, boletos, guias e holerites do seu PDF e devolve cada
+                despesa já categorizada — pronta para revisão.
               </p>
             </li>
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewDashboard}
-                  alt="Painel da OSC com KPIs de execução orçamentária, saldo disponível, projetos ativos e próximos prazos."
+                  src={previewRevisao}
+                  alt="Tabela de despesas com colunas de comprovante anexado, status de aprovação pendente/aprovado e revisão em duas mãos."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -134,11 +134,11 @@ function HomePage() {
               </div>
               <div className="mt-5 flex items-baseline gap-3">
                 <span className="text-brand-blue font-serif text-2xl">02</span>
-                <h3 className="text-xl font-serif text-brand-navy">Acompanhe execução e prazos</h3>
+                <h3 className="text-xl font-serif text-brand-navy">Revise, anexe e aprove</h3>
               </div>
               <p className="mt-2 text-brand-muted leading-relaxed">
-                Veja em tempo real o quanto cada projeto já executou, o saldo
-                disponível e o que precisa ser entregue nas próximas semanas.
+                Anexe o comprovante a cada despesa e aprove em duas mãos. O painel
+                mostra o que ainda falta documentar e o que está pendente de revisão.
               </p>
             </li>
             <li>
@@ -154,11 +154,11 @@ function HomePage() {
               </div>
               <div className="mt-5 flex items-baseline gap-3">
                 <span className="text-brand-blue font-serif text-2xl">03</span>
-                <h3 className="text-xl font-serif text-brand-navy">Preste contas com lastro</h3>
+                <h3 className="text-xl font-serif text-brand-navy">Exporte para o TCE-PR</h3>
               </div>
               <p className="mt-2 text-brand-muted leading-relaxed">
-                Relatório consolidado por termo, com comprovação documental anexa
-                e exportação direta no padrão SIT/TCE-PR.
+                Um clique gera o <code>Despesa.txt</code> no padrão SIT do TCE-PR, com
+                CNPJs validados, categorias certas e encoding correto.
               </p>
             </li>
           </ol>
@@ -173,8 +173,8 @@ function HomePage() {
           <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">Para escritórios contábeis</div>
           <h2 className="mt-3 text-3xl font-serif text-brand-navy">Contadores que atendem OSCs</h2>
           <p className="mt-3 text-brand-muted leading-relaxed">
-            Padronize prestações de contas de várias entidades. Reduza retrabalho com
-            modelos prontos para os principais editais e termos.
+            Padronize a prestação mensal dos seus clientes do terceiro setor. Menos
+            retrabalho, mais lastro auditável.
           </p>
           <div className="mt-6 text-brand-blue font-medium group-hover:underline underline-offset-4">
             Ver vantagens para contadores →
@@ -185,10 +185,10 @@ function HomePage() {
           className="group rounded-2xl border border-brand-line p-10 hover:border-brand-navy transition-colors"
         >
           <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">Para a sua OSC</div>
-          <h2 className="mt-3 text-3xl font-serif text-brand-navy">Gestores e equipes financeiras de OSCs</h2>
+          <h2 className="mt-3 text-3xl font-serif text-brand-navy">Gestores e equipes financeiras</h2>
           <p className="mt-3 text-brand-muted leading-relaxed">
-            Menos tempo com papelada, mais tempo com a causa. Acompanhe orçamento,
-            cumprimento de metas e prazos sem planilhas paralelas.
+            Feche o mês do seu termo em horas, não em dias. Comprovante anexado,
+            aprovação registrada e exportação pronta para o controle.
           </p>
           <div className="mt-6 text-brand-blue font-medium group-hover:underline underline-offset-4">
             Ver vantagens para gestores →
@@ -201,8 +201,8 @@ function HomePage() {
       <FaqAccordion items={[
         { q: "A demonstração é mesmo gratuita?", a: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." },
         { q: "Preciso instalar algo?", a: "Não. SynSIT é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." },
-        { q: "Meus dados ficam seguros?", a: "Sim. Toda a infraestrutura é criptografada, com backups diários. Acesso por usuário com autenticação individual." },
-        { q: "Atende a quais editais e legislações?", a: "Atendemos os principais formatos exigidos por órgãos de controle do terceiro setor no Brasil, incluindo exportações no padrão SIT/TCE-PR. Outros formatos podem ser adicionados conforme necessidade." },
+        { q: "Meus dados ficam seguros?", a: "Sim. Toda a infraestrutura é criptografada, com backups diários. Acesso por usuário com autenticação individual e trilha de aprovação de despesas." },
+        { q: "Atende a quais editais e legislações?", a: "Hoje exportamos no padrão SIT/TCE-PR, com CNPJs validados, encoding ANSI Win-1252 e catálogo de naturezas econômicas oficiais. Outros formatos podem ser adicionados conforme necessidade." },
         { q: "Posso trocar de plano depois?", a: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." },
       ]} />
     </MarketingLayout>

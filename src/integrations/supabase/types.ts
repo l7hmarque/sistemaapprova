@@ -205,6 +205,7 @@ export type Database = {
         Row: {
           criada_em: string
           dados: Json
+          hash_arquivo: string | null
           id: string
           mes_referencia: string | null
           nome_arquivo: string | null
@@ -212,6 +213,7 @@ export type Database = {
         Insert: {
           criada_em?: string
           dados: Json
+          hash_arquivo?: string | null
           id?: string
           mes_referencia?: string | null
           nome_arquivo?: string | null
@@ -219,6 +221,7 @@ export type Database = {
         Update: {
           criada_em?: string
           dados?: Json
+          hash_arquivo?: string | null
           id?: string
           mes_referencia?: string | null
           nome_arquivo?: string | null
@@ -502,45 +505,77 @@ export type Database = {
       }
       prestacao_documentos: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           arquivo_url: string | null
           atualizado_em: string
           criado_em: string
           data_emissao: string | null
           data_vencimento: string | null
           descricao: string | null
+          despesa_uid: string | null
           drive_file_id: string | null
+          extracao_id: string | null
           id: string
           mes_referencia: string | null
+          mime_type: string | null
           nome: string
+          observacao_aprovacao: string | null
           ordem: number
+          status_aprovacao: string
+          tamanho_bytes: number | null
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           arquivo_url?: string | null
           atualizado_em?: string
           criado_em?: string
           data_emissao?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          despesa_uid?: string | null
           drive_file_id?: string | null
+          extracao_id?: string | null
           id?: string
           mes_referencia?: string | null
+          mime_type?: string | null
           nome: string
+          observacao_aprovacao?: string | null
           ordem?: number
+          status_aprovacao?: string
+          tamanho_bytes?: number | null
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           arquivo_url?: string | null
           atualizado_em?: string
           criado_em?: string
           data_emissao?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          despesa_uid?: string | null
           drive_file_id?: string | null
+          extracao_id?: string | null
           id?: string
           mes_referencia?: string | null
+          mime_type?: string | null
           nome?: string
+          observacao_aprovacao?: string | null
           ordem?: number
+          status_aprovacao?: string
+          tamanho_bytes?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prestacao_documentos_extracao_id_fkey"
+            columns: ["extracao_id"]
+            isOneToOne: false
+            referencedRelation: "extracoes_salvas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prestacoes_snapshot: {
         Row: {

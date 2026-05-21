@@ -12,6 +12,7 @@ import {
   Wallet,
   Camera,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,6 +29,7 @@ const ITEMS: Item[] = [
   { to: "/admin/objetos", label: "Objetos", icon: Package },
   { to: "/admin/modelos", label: "Modelos", icon: FileCog },
   { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck },
+  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck },
   { to: "/admin/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];

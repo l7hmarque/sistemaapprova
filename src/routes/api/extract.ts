@@ -2,10 +2,11 @@ import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
-import { extracaoSchema } from "@/lib/extract/schema";
+import { extracaoSchema, type ExtracaoResultado } from "@/lib/extract/schema";
 import { CATEGORIAS } from "@/lib/sit/catalogos";
 import { aplicarRegrasHolerite } from "@/lib/sit/regrasHolerite";
 import { reforcarComDeterministico } from "@/lib/extract/pipeline";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SYSTEM_PROMPT = `Você é um assistente especializado em prestações de contas de Termos de Fomento (TCE-PR / padrão SIT).
 
@@ -30,6 +31,69 @@ ${CATEGORIAS.map((c) => `  ${c.codigo} — ${c.nome}`).join("\n")}
 - Pagamentos a funcionários (salários) → 3.1.90.11.01. Rescisão → 3.1.90.94.00. INSS → 3.1.90.13.02. FGTS → 3.1.90.13.01. Energia → 3.3.90.39.43. Água → 3.3.90.39.44. Combustível → 3.3.90.30.01. Aluguel → 3.3.90.36.15. Transporte escolar → 3.3.90.33.03. Telefonia/internet → 3.3.90.40.97.
 - descricao: curta e objetiva, no máximo 120 caracteres. Ex.: "Aluguel mar/2025", "Energia março", "Salário João mar/2025". NÃO use frases como "Pagamento referente a..." ou "Conforme nota fiscal nº...".
 - Inclua TODAS as despesas; não resuma nem agrupe.`;
+
+const JSON_SHAPE_HINT =
+  `\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido (sem markdown, sem \`\`\`), conforme este shape:\n` +
+  `{\n  "mesReferencia": "MM/AAAA",\n  "receitas": [{"numeroParcela": number|null, "valor": number, "dataRecebimento": "AAAA-MM-DD"}],\n  "despesas": [{"idInterno": string, "data": "AAAA-MM-DD", "dataEmissao": "AAAA-MM-DD"|null, "favorecido": string, "documento": string, "valor": number, "tipoDocumento": number, "subtipoDocumento": number|null, "tpDocFav": "CPF"|"CNPJ"|"EXT", "nrDocFav": string, "descricao": string, "sugestaoCategoria": string}],\n  "resumo": {"saldoAnterior": number, "transferidos": number, "rendimentos": number, "estornados": number}\n}`;
+
+async function sha256Hex(input: Uint8Array | string): Promise<string> {
+  const buf =
+    typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const ab = new ArrayBuffer(buf.byteLength);
+  new Uint8Array(ab).set(buf);
+  const digest = await crypto.subtle.digest("SHA-256", ab);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function sanitizeJson(text: string): string {
+  let cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start !== -1 && end > start) cleaned = cleaned.slice(start, end + 1);
+  return cleaned;
+}
+
+async function chamarIA(args: {
+  apiKey: string;
+  modelo: string;
+  pdfBytes: Uint8Array | null;
+  pdfText: string;
+  mimeType: string;
+}): Promise<ExtracaoResultado> {
+  const gateway = createLovableAiGatewayProvider(args.apiKey);
+  const model = gateway(args.modelo);
+  const { text } = await generateText({
+    model,
+    system: SYSTEM_PROMPT + JSON_SHAPE_HINT,
+    messages: [
+      {
+        role: "user",
+        content: args.pdfBytes
+          ? [
+              {
+                type: "text",
+                text: "Extraia receitas, despesas e resumo desta prestação de contas. Retorne SOMENTE o JSON.",
+              },
+              { type: "file", data: args.pdfBytes, mediaType: args.mimeType },
+            ]
+          : [
+              {
+                type: "text",
+                text: `Extraia receitas, despesas e resumo deste texto de prestação de contas. Retorne SOMENTE o JSON.\n\n${args.pdfText}`,
+              },
+            ],
+      },
+    ],
+  });
+  return extracaoSchema.parse(JSON.parse(sanitizeJson(text)));
+}
 
 export const Route = createFileRoute("/api/extract")({
   server: {
@@ -90,63 +154,92 @@ export const Route = createFileRoute("/api/extract")({
           );
         }
 
-        const gateway = createLovableAiGatewayProvider(apiKey);
-        const model = gateway("google/gemini-3-flash-preview");
+        // ─── Cache por hash ──────────────────────────────────────────
+        const hash = await sha256Hex(pdfBytes ?? pdfText);
+        try {
+          const { data: cached } = await supabaseAdmin
+            .from("extracoes_salvas")
+            .select("dados")
+            .eq("hash_arquivo", hash)
+            .order("criada_em", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (cached?.dados) {
+            console.info(`[api/extract] cache HIT (hash=${hash.slice(0, 8)})`);
+            return new Response(JSON.stringify(cached.dados), {
+              status: 200,
+              headers: { "Content-Type": "application/json", "X-Cache": "hit" },
+            });
+          }
+        } catch (e) {
+          console.warn("[api/extract] cache lookup falhou, seguindo", e);
+        }
 
         try {
           console.info(
-            `[api/extract] chamando IA — pdfBytes=${pdfBytes?.byteLength ?? 0}b, textLen=${pdfText.length}`,
+            `[api/extract] chamando IA — pdfBytes=${pdfBytes?.byteLength ?? 0}b, textLen=${pdfText.length}, hash=${hash.slice(0, 8)}`,
           );
           const t0 = Date.now();
-          const { text } = await generateText({
-            model,
-            system:
-              SYSTEM_PROMPT +
-              `\n\nIMPORTANTE: Responda APENAS com um objeto JSON válido (sem markdown, sem \`\`\`), conforme este shape:\n` +
-              `{\n  "mesReferencia": "MM/AAAA",\n  "receitas": [{"numeroParcela": number|null, "valor": number, "dataRecebimento": "AAAA-MM-DD"}],\n  "despesas": [{"idInterno": string, "data": "AAAA-MM-DD", "dataEmissao": "AAAA-MM-DD"|null, "favorecido": string, "documento": string, "valor": number, "tipoDocumento": number, "subtipoDocumento": number|null, "tpDocFav": "CPF"|"CNPJ"|"EXT", "nrDocFav": string, "descricao": string, "sugestaoCategoria": string}],\n  "resumo": {"saldoAnterior": number, "transferidos": number, "rendimentos": number, "estornados": number}\n}`,
-            messages: [
-              {
-                role: "user",
-                content: pdfBytes
-                  ? [
-                      {
-                        type: "text",
-                        text: "Extraia receitas, despesas e resumo desta prestação de contas. Retorne SOMENTE o JSON.",
-                      },
-                      { type: "file", data: pdfBytes, mediaType: mimeType },
-                    ]
-                  : [
-                      {
-                        type: "text",
-                        text: `Extraia receitas, despesas e resumo deste texto de prestação de contas. Retorne SOMENTE o JSON.\n\n${pdfText}`,
-                      },
-                    ],
-              },
-            ],
+          let validated = await chamarIA({
+            apiKey,
+            modelo: "google/gemini-3-flash-preview",
+            pdfBytes,
+            pdfText,
+            mimeType,
           });
-          console.info(`[api/extract] IA respondeu em ${Date.now() - t0}ms, ${text.length} chars`);
+          console.info(`[api/extract] flash respondeu em ${Date.now() - t0}ms`);
 
-          // Sanitize and parse JSON
-          let cleaned = text.trim()
-            .replace(/^```json\s*/i, "")
-            .replace(/^```\s*/i, "")
-            .replace(/```\s*$/i, "")
-            .trim();
-          const start = cleaned.indexOf("{");
-          const end = cleaned.lastIndexOf("}");
-          if (start !== -1 && end > start) cleaned = cleaned.slice(start, end + 1);
-
-          const parsed = JSON.parse(cleaned);
-          const validated = extracaoSchema.parse(parsed);
-          const comRegras = aplicarRegrasHolerite(validated);
-          let final: unknown = comRegras;
-          if (pdfBytes) {
+          // Retry no Pro quando Flash devolve vazio com contexto rico
+          const temContextoRico = !!pdfBytes || pdfText.length > 500;
+          if (validated.despesas.length === 0 && temContextoRico) {
+            console.info("[api/extract] flash devolveu 0 despesas, tentando Pro");
             try {
-              final = await reforcarComDeterministico(pdfBytes, comRegras);
+              const t1 = Date.now();
+              const pro = await chamarIA({
+                apiKey,
+                modelo: "google/gemini-2.5-pro",
+                pdfBytes,
+                pdfText,
+                mimeType,
+              });
+              console.info(
+                `[api/extract] pro respondeu em ${Date.now() - t1}ms, ${pro.despesas.length} despesas`,
+              );
+              if (pro.despesas.length > 0) validated = pro;
             } catch (e) {
-              console.warn("[api/extract] pipeline determinístico falhou, retornando só IA", e);
+              console.warn("[api/extract] fallback Pro falhou", e);
             }
           }
+
+          const comRegras = aplicarRegrasHolerite(validated);
+          let final: ExtracaoResultado = comRegras;
+          if (pdfBytes) {
+            try {
+              final = (await reforcarComDeterministico(
+                pdfBytes,
+                comRegras,
+              )) as ExtracaoResultado;
+            } catch (e) {
+              console.warn(
+                "[api/extract] pipeline determinístico falhou, retornando só IA",
+                e,
+              );
+            }
+          }
+
+          // Persistir cache (best effort; falhas não bloqueiam resposta)
+          supabaseAdmin
+            .from("extracoes_salvas")
+            .insert({
+              dados: final,
+              hash_arquivo: hash,
+              mes_referencia: final.mesReferencia ?? null,
+              nome_arquivo: `cache-${hash.slice(0, 8)}`,
+            })
+            .then(({ error }) => {
+              if (error) console.warn("[api/extract] cache insert falhou", error.message);
+            });
+
           return Response.json(final);
         } catch (e: unknown) {
           console.error("[api/extract] erro:", e);
