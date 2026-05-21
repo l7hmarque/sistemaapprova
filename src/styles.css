@@ -190,12 +190,20 @@
 }
 
 .marketing-theme .bg-brand-navy { background-color: var(--brand-navy); }
+.marketing-theme .bg-brand-navy-soft { background-color: var(--brand-navy-soft); }
 .marketing-theme .bg-brand-cream { background-color: var(--brand-cream); }
 .marketing-theme .bg-brand-cream-soft { background-color: var(--brand-cream-soft); }
+.marketing-theme .bg-brand-accent { background-color: var(--brand-accent); }
+.marketing-theme .hover\:bg-brand-navy-soft:hover { background-color: var(--brand-navy-soft); }
+.marketing-theme .hover\:bg-brand-cream:hover { background-color: var(--brand-cream); }
 .marketing-theme .text-brand-navy { color: var(--brand-navy); }
 .marketing-theme .text-brand-blue { color: var(--brand-blue); }
 .marketing-theme .text-brand-muted { color: var(--brand-muted); }
 .marketing-theme .text-brand-accent { color: var(--brand-accent); }
+.marketing-theme .hover\:text-brand-blue:hover { color: var(--brand-blue); }
 .marketing-theme .border-brand-line { border-color: var(--brand-line); }
 .marketing-theme .border-brand-navy { border-color: var(--brand-navy); }
+.marketing-theme .hover\:border-brand-navy:hover { border-color: var(--brand-navy); }
+.marketing-theme .ring-brand-navy { --tw-ring-color: var(--brand-navy); }
+.marketing-theme .decoration-brand-line { text-decoration-color: var(--brand-line); }
 
