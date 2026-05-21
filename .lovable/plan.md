@@ -157,16 +157,15 @@ Email/senha + Google. `profiles` + `user_roles` + RLS por role. Sem mudanças.
 ## 8. Ordem de execução revisada
 
 
-| #   | Frente                                                     | Por quê primeiro                             |
+| #   | Frente                                                     | Status                                       |
 | --- | ---------------------------------------------------------- | -------------------------------------------- |
-| 1   | Quick wins (rascunho, "em aberto", rename, presets livres) | Resolve dor já hoje, baixo risco             |
-| 2   | Login + roles + RLS                                        | Pré-requisito de tudo que vem depois         |
-| 3   | **Evento Financeiro + Painel**                             | Núcleo — sem isso, captura não tem onde cair |
-| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | Cobre 80% do problema sem depender de Gmail  |
-| 5   | Gmail OAuth (label-filtered)                               | Automatiza o que sobrou                      |
-| 6   | Prestação V1 (1 modelo, geração por snapshot)              | Fecha o ciclo                                |
-| 7   | Prestação modular configurável                             | Só quando precisar                           |
-
+| 1   | Quick wins (rascunho, "em aberto")                         | ✅ feito                                      |
+| 2   | Login + roles + RLS                                        | ✅ feito (auth e-mail/senha + Google + RLS)   |
+| 3   | **Evento Financeiro + Painel**                             | ✅ schema + Painel CRUD em /admin/painel      |
+| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | próximo                                      |
+| 5   | Gmail OAuth (label-filtered)                               | depois                                       |
+| 6   | Prestação V1 (1 modelo, geração por snapshot)              | depois                                       |
+| 7   | Prestação modular configurável                             | só quando precisar                           |
 
 ---
 
