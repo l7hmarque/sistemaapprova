@@ -150,6 +150,57 @@ export type Database = {
           },
         ]
       }
+      eventos_visita: {
+        Row: {
+          country: string | null
+          created_at: string
+          evento: string
+          id: string
+          payload: Json
+          referrer: string | null
+          rota: string
+          session_id: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          evento: string
+          id?: string
+          payload?: Json
+          referrer?: string | null
+          rota: string
+          session_id: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          evento?: string
+          id?: string
+          payload?: Json
+          referrer?: string | null
+          rota?: string
+          session_id?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
       extracoes_salvas: {
         Row: {
           criada_em: string

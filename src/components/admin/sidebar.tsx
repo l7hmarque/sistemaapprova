@@ -11,6 +11,7 @@ import {
   LogOut,
   Wallet,
   Camera,
+  BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/painel", label: "Painel financeiro", icon: Wallet },
   { to: "/admin/captura", label: "Captura", icon: Camera },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },

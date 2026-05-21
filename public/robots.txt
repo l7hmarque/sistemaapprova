@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /obrigado
+Disallow: /ferramenta
+Disallow: /orcamentos
+
+Sitemap: https://synsit.lovable.app/sitemap.xml
