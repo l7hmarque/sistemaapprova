@@ -257,7 +257,8 @@ function CapturaPage() {
         .single();
       if (insertRes.error) throw insertRes.error;
 
-      if (insertRes.error) throw insertRes.error;
+
+
 
       if (eventoId) {
         await supabase
