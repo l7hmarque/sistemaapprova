@@ -9,9 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
+import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GestoresRouteImport } from './routes/gestores'
 import { Route as FerramentaRouteImport } from './routes/ferramenta'
+import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,9 +32,24 @@ import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configura
 import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrcamentosRoute = OrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObrigadoRoute = ObrigadoRouteImport.update({
+  id: '/obrigado',
+  path: '/obrigado',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -37,9 +57,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GestoresRoute = GestoresRouteImport.update({
+  id: '/gestores',
+  path: '/gestores',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FerramentaRoute = FerramentaRouteImport.update({
   id: '/ferramenta',
   path: '/ferramenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemonstracaoRoute = DemonstracaoRouteImport.update({
+  id: '/demonstracao',
+  path: '/demonstracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContadoresRoute = ContadoresRouteImport.update({
@@ -117,9 +147,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/contadores': typeof ContadoresRoute
+  '/demonstracao': typeof DemonstracaoRoute
   '/ferramenta': typeof FerramentaRoute
+  '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
+  '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -135,9 +170,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contadores': typeof ContadoresRoute
+  '/demonstracao': typeof DemonstracaoRoute
   '/ferramenta': typeof FerramentaRoute
+  '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
+  '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -155,9 +195,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/contadores': typeof ContadoresRoute
+  '/demonstracao': typeof DemonstracaoRoute
   '/ferramenta': typeof FerramentaRoute
+  '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
+  '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -176,9 +221,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/contadores'
+    | '/demonstracao'
     | '/ferramenta'
+    | '/gestores'
     | '/login'
+    | '/obrigado'
     | '/orcamentos'
+    | '/privacidade'
+    | '/termos'
     | '/admin/agenda'
     | '/admin/captura'
     | '/admin/configuracoes'
@@ -194,9 +244,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/contadores'
+    | '/demonstracao'
     | '/ferramenta'
+    | '/gestores'
     | '/login'
+    | '/obrigado'
     | '/orcamentos'
+    | '/privacidade'
+    | '/termos'
     | '/admin/agenda'
     | '/admin/captura'
     | '/admin/configuracoes'
@@ -213,9 +268,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/contadores'
+    | '/demonstracao'
     | '/ferramenta'
+    | '/gestores'
     | '/login'
+    | '/obrigado'
     | '/orcamentos'
+    | '/privacidade'
+    | '/termos'
     | '/admin/agenda'
     | '/admin/captura'
     | '/admin/configuracoes'
@@ -233,19 +293,45 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   ContadoresRoute: typeof ContadoresRoute
+  DemonstracaoRoute: typeof DemonstracaoRoute
   FerramentaRoute: typeof FerramentaRoute
+  GestoresRoute: typeof GestoresRoute
   LoginRoute: typeof LoginRoute
+  ObrigadoRoute: typeof ObrigadoRoute
   OrcamentosRoute: typeof OrcamentosRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   ApiExtractRoute: typeof ApiExtractRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orcamentos': {
       id: '/orcamentos'
       path: '/orcamentos'
       fullPath: '/orcamentos'
       preLoaderRoute: typeof OrcamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/obrigado': {
+      id: '/obrigado'
+      path: '/obrigado'
+      fullPath: '/obrigado'
+      preLoaderRoute: typeof ObrigadoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -255,11 +341,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gestores': {
+      id: '/gestores'
+      path: '/gestores'
+      fullPath: '/gestores'
+      preLoaderRoute: typeof GestoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ferramenta': {
       id: '/ferramenta'
       path: '/ferramenta'
       fullPath: '/ferramenta'
       preLoaderRoute: typeof FerramentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demonstracao': {
+      id: '/demonstracao'
+      path: '/demonstracao'
+      fullPath: '/demonstracao'
+      preLoaderRoute: typeof DemonstracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contadores': {
@@ -395,9 +495,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   ContadoresRoute: ContadoresRoute,
+  DemonstracaoRoute: DemonstracaoRoute,
   FerramentaRoute: FerramentaRoute,
+  GestoresRoute: GestoresRoute,
   LoginRoute: LoginRoute,
+  ObrigadoRoute: ObrigadoRoute,
   OrcamentosRoute: OrcamentosRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   ApiExtractRoute: ApiExtractRoute,
 }
 export const routeTree = rootRouteImport
