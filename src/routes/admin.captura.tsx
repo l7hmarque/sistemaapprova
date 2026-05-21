@@ -225,10 +225,10 @@ function CapturaPage() {
 
 
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      const path = `${hash}-${it.file.name}`.slice(0, 200);
-      const up = await supabase.storage.from("documentos").upload(path, it.file, {
+      const path = `${hash}-${arquivo.name}`.slice(0, 200);
+      const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
-        contentType: it.file.type || undefined,
+        contentType: arquivo.type || undefined,
       });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
@@ -247,10 +247,16 @@ function CapturaPage() {
           data_extraida: dados?.data ?? null,
           origem: "manual",
           evento_id: eventoId,
-          metadata: { nome_original: it.file.name, descricao: dados?.descricao ?? null },
+          metadata: {
+            nome_original: it.file.name,
+            descricao: dados?.descricao ?? null,
+            modelo: modeloUsado || null,
+          },
         })
         .select("id")
         .single();
+      if (insertRes.error) throw insertRes.error;
+
       if (insertRes.error) throw insertRes.error;
 
       if (eventoId) {
