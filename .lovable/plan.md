@@ -1,136 +1,216 @@
-# Plano consolidado — próximas frentes
+# Plano A (revisado) — mais simples, mais barato, mesmo resultado
 
-## 1. Orçamentos — robustez
+Avaliei o plano anterior (mantido como **Plano B**) e identifiquei 4 oportunidades de otimização sem perder funcionalidade:
 
-- **Rascunho automático** no `localStorage` (debounce 500ms) do formulário de orçamento. Restaura ao montar, limpa só após sucesso.
-- **"Deixar em aberto":** nova coluna `orcamentos_salvos.status` (`aberto` | `gerado`). Lista de abertos em `/admin/orcamentos`, permite reabrir, editar e regerar planilha.
-- **Renomear "despesa" → "despesa prevista"** em rótulos e payload (orçamento ≠ pagamento efetivado). Ajustar mapa/controle bancário.
-- **Presets flexíveis:** aceitar preset "livre" (apenas nome + itens), sem forçar formato SIT. Editor com preview.
 
-## 2. Login
+| Problema no Plano B                                                                | Solução no Plano A revisado                                                              |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 3 entidades separadas (despesa, documento_fiscal, comprovante) com joins complexos | **1 entidade única: "Evento Financeiro" com anexos 1:N**                                 |
+| Toda extração via IA → custo cresce linear                                         | **Pipeline em camadas: hash → OCR local → IA leve → IA pro** (90% nunca chega na IA pro) |
+| Prestação modular configurável já no MVP                                           | **1 modelo bem feito agora, modular fica para V2**                                       |
+| Comprovantes só por scanner em lote                                                | **Scanner em lote + foto pelo celular** (mesmo pipeline, custo zero a mais)              |
 
-- Email/senha + Google. Conta inicial: `l7hmarque@gmail.com`.
-- Tabelas `profiles` + `user_roles` (enum `app_role`: admin, user) — padrão seguro.
-- Migrar RLS atual (hoje liberada para `anon`) para `authenticated` + checagem por role.
-- Rotas `/login`, `/reset-password`, layout `_authenticated`.
 
-## 3. Cofre de Documentos Fiscais (nova frente — núcleo da nova prestação)
+---
 
-Tabela central que unifica documentos vindos do **Gmail** e de **uploads manuais**, com identificação consistente.
+## 1. Núcleo: Evento Financeiro (unifica Cofre + Painel + Despesa)
 
-### 3.1 Modelo de dados
+Em vez de 3 tabelas, **uma só** com anexos:
 
 ```text
-documentos_fiscais
+eventos_financeiros
   id, mes_referencia
-  tipo_documento      (boleto | nota_fiscal | fatura | holerite | comprovante_pgto)
-  fornecedor_id (fk), fornecedor_nome_extraido
-  cnpj_extraido
-  numero_documento    (NF, linha digitável boleto)
-  data_emissao, data_vencimento, data_pagamento
-  valor
-  arquivo_url         (Drive)
-  arquivo_hash        (sha256 do PDF — chave de deduplicação)
-  origem              (gmail | upload | bancario_manual)
-  gmail_message_id    (nullable)
-  despesa_id (fk)     (vínculo opcional com a despesa)
-  status              (pendente_revisao | vinculado | orfão | ignorado)
+  fornecedor_id, categoria (energia | agua | salario | compra_eventual | servico ...)
+  descricao
+  valor_previsto, valor_efetivo
+  data_vencimento, data_pagamento
+  origem (orcamento | manual | gmail | foto)
+  status_documental  -- CALCULADO: completo | faltando | divergente | duplicata_suspeita
+  prestacao_snapshot_id  -- nullable; preenchido quando mês é fechado
+
+documentos_anexos
+  id, evento_id (fk), tipo (boleto | nf | fatura | holerite | comprovante_pgto | orcamento | mapa | certidao)
+  arquivo_url, arquivo_hash (sha256)
+  cnpj_extraido, valor_extraido, data_extraida, numero_extraido
+  origem, gmail_message_id (nullable)
   criado_em
 ```
 
-### 3.2 Nomeação padronizada (no Drive)
+**Ganho:** o Painel é só `SELECT * FROM eventos_financeiros`. O Cofre é só `SELECT * FROM documentos_anexos`. Mesma fonte de verdade. Detecção de duplicata vira `UNIQUE(cnpj, valor, data, tipo)` parcial + alerta.
 
-Ao salvar/renomear: `{tipoDocumento}_{fornecedorSlug}_{dd-mm-aa}_{valor}.pdf`  
-ex.: `boleto_sanepar_15-03-26_348,72.pdf  ---nao pode ter virgula no nome`
+### Status documental automático por categoria
 
-### 3.3 Deduplicação
+Configurável por OSC, mas com defaults inteligentes:
 
-- Hash SHA-256 do arquivo bloqueia duplicata exata.
-- Match fuzzy (mesmo CNPJ + mesmo valor + mesma data ±2 dias + mesmo tipo) marca como "possível duplicata" para revisão.
 
-## 4. Inbox Gmail
+| Categoria                           | Docs esperados                                |
+| ----------------------------------- | --------------------------------------------- |
+| Energia / água / internet           | boleto + comprovante                          |
+| Salário                             | holerite + comprovante                        |
+| Serviço recorrente                  | NF + comprovante                              |
+| Compra eventual / pesquisa de preço | 3 orçamentos + mapa + NF/fatura + comprovante |
+
+
+O sistema avisa o que falta sem o usuário decorar.
+
+---
+
+## 2. Captura unificada (3 origens, 1 pipeline)
 
 ```text
-Gmail → cron 15min → filtra anexos PDF → pipeline extract (já existe)
-   → cria linha em documentos_fiscais (status: pendente_revisao)
-   → UI /admin/inbox: revisar, vincular a despesa, lançar em lote
+[Gmail OAuth user]   [Upload manual]   [Foto celular / Scanner lote]
+         \                |                       /
+          \               v                      /
+           →→→  fila: documentos_pendentes  ←←←
+                          ↓
+              pipeline extração em camadas
+                          ↓
+               auto-vínculo a evento
+                          ↓
+              [vinculado | duplicata | órfão]
 ```
 
-- Connector Gmail (decidir: conta única da OSC ou per-user OAuth). - per user
-- Reusa `src/lib/extract/` para extrair tipo, valor, CNPJ, datas.
-- Badge de pendentes no header.
+### Pipeline de extração em camadas (otimização principal de custo)
 
-## 5. Painel de Despesas — tabela de acompanhamento
+```text
+1. hash SHA-256       → já existe? reusa metadados      (grátis, instantâneo)
+2. OCR cliente        → pdf.js text extract             (grátis, ~80% dos PDFs digitais)
+3. IA Flash Lite      → classifica + estrutura JSON     (~R$ 0,003/doc, padrão)
+4. IA Pro             → só se Flash falha               (~R$ 0,05/doc, raro)
+```
 
-Visão central por mês, formato tabela:
+Cache por hash bloqueia reprocessamento. **OSC pequena (~50 docs/mês) ≈ R$ 1–3 de IA por mês.**
+
+### Auto-vínculo (regra simples, sem ML)
+
+```sql
+match WHERE evento.fornecedor_cnpj = doc.cnpj_extraido
+  AND ABS(evento.valor_previsto - doc.valor_extraido) <= 0.50
+  AND doc.data_extraida BETWEEN evento.vencimento - 3d AND evento.vencimento + 3d
+```
+
+Casou → vincula. Não casou → fica órfão na fila para revisão. Mais de um match → marca duplicata.
+
+---
+
+## 3. Gmail (otimização: filtro por label, sem polling pesado)
+
+Em vez de cron lendo a caixa inteira:
+
+- Usuário cria label no Gmail (ex: `OSC/contas`)
+- Cria filtro: "anexo PDF + remetente conhecido" → aplica label
+- Nosso cron lê **só mensagens com aquela label** (`q=label:OSC/contas is:unread`)
+- Marca como lida após processar
+
+**Resultado:** poucas chamadas à API, respeita privacidade, e o usuário escolhe o que entra. Per-user OAuth confirmado.
+
+---
+
+## 4. Captura por foto (PWA)
+
+Para comprovantes impressos:
+
+- Componente câmera com `<input capture="environment">` (sem app nativo)
+- Resize cliente para 1024px + JPEG 80% → 10x menos bytes na IA
+- Upload em fila com indicador de progresso
+- Auto-vínculo igual ao pipeline acima
+
+**Caso de uso real:** financeiro entrega lote de comprovantes impressos → assistente tira 30 fotos em sequência → sistema vincula automaticamente 25 e deixa 5 para revisão manual.
+
+Bonus: o mesmo componente serve para "scanner em lote" (1 PDF multipágina → split automático por página → processa cada página como doc independente).
+
+---
+
+## 5. Prestação V1 — 1 modelo, alimentado pelo Painel
+
+Sem `prestacao_modelos` ainda. **Um modelo fixo bem feito**, com seções na ordem padrão:
+
+1. Documentos institucionais fixos
+2. Documentos institucionais recorrentes
+3. Comprovantes fiscais (gerados automaticamente do Painel: para cada evento, monta página A4 com comprovante + boleto + NF/fatura)
+4. Orçamentos + mapas comparativos do mês
+5. Upload livre (anexos extras)
+
+Geração = merge `pdf-lib` na ordem. Snapshot imutável (hash + manifest) salvo em `prestacoes`. Reabrir mostra exatamente o que foi entregue.
+
+**Prestação modular configurável → V2**, quando o usuário disser "preciso de outro modelo".
+
+---
+
+## 6. Quick wins (manter do Plano B)
+
+Esses entram primeiro porque são baratos e resolvem dor imediata:
+
+- Rascunho automático no localStorage (debounce)
+- Botão "Deixar em aberto" (status no `orcamentos_salvos`)
+- Renomear "despesa" → "despesa prevista" em orçamentos
+- Preset livre (sem formato SIT obrigatório) MAS QUE VAI SER INCLUSO NO .TXT SIT NO FORMATO SIT
+
+---
+
+## 7. Login (igual ao Plano B)
+
+Email/senha + Google. `profiles` + `user_roles` + RLS por role. Sem mudanças.
+
+---
+
+## 8. Ordem de execução revisada
 
 
-| Despesa               | Fornecedor | Valor  | Vencimento | Boleto | NF  | Comprov. pgto | Status            |
-| --------------------- | ---------- | ------ | ---------- | ------ | --- | ------------- | ----------------- |
-| Energia 03/26         | Copel      | R$ 412 | 10/03      | ✅      | n/a | ❌             | falta comprovante |
-| Mat. limpeza          | Acme       | R$ 188 | 15/03      | ✅      | ✅   | ✅             | completa          |
-| ⚠️ Possível duplicata | Sanepar    | R$ 348 | 15/03      | 2x     | —   | —             | revisar           |
+| #   | Frente                                                     | Por quê primeiro                             |
+| --- | ---------------------------------------------------------- | -------------------------------------------- |
+| 1   | Quick wins (rascunho, "em aberto", rename, presets livres) | Resolve dor já hoje, baixo risco             |
+| 2   | Login + roles + RLS                                        | Pré-requisito de tudo que vem depois         |
+| 3   | **Evento Financeiro + Painel**                             | Núcleo — sem isso, captura não tem onde cair |
+| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | Cobre 80% do problema sem depender de Gmail  |
+| 5   | Gmail OAuth (label-filtered)                               | Automatiza o que sobrou                      |
+| 6   | Prestação V1 (1 modelo, geração por snapshot)              | Fecha o ciclo                                |
+| 7   | Prestação modular configurável                             | Só quando precisar                           |
 
 
-- Cada linha = despesa; ícones mostram quais documentos do cofre estão vinculados.
-- Alerta visual quando falta documento esperado para o tipo da despesa.
-- Detecção de duplicidades aproveita o mesmo cruzamento (CNPJ + valor + data).
-- Ações: anexar manualmente, abrir PDF, marcar "sem NF" (justificativa), agrupar duplicatas.
-  &nbsp;
-  --> LEMBRE-SE QUE PODE SER FATURA TAMBEM NO LUGAR DA NF! BEM COMO ALGUMAS DESPESAS  PODEM EXIGIR CERTIDOES NEGATIVAS, ORCAMENTOS E MAPA COMPARATIVO -> PRINCIPALMENTE COMPRAS FEITAS A PARTIR DE PESQUISA DE PRECO.
+---
 
-**Resposta direta:** sim, essa estrutura sustenta deteção de duplicidades — basta indexar por `(cnpj, valor, data, tipo)` e flagar conflitos no momento da inserção.
+## 9. Custos estimados (OSC pequena, ~50 docs/mês)
 
-## 6. Comprovantes de pagamento bancários (impressos do financeiro)
 
-**Problema:** chegam em papel, sem PDF nativo.
+| Item                                               | Custo/mês                |
+| -------------------------------------------------- | ------------------------ |
+| Lovable AI (Gemini Flash Lite + cache + OCR local) | R$ 1–3                   |
+| Drive / Sheets                                     | já incluso               |
+| Gmail API                                          | grátis (dentro da quota) |
+| Hosting                                            | já pago                  |
+| **Total incremental**                              | **~R$ 3**                |
 
-**Estratégia em camadas, do mais simples ao mais automático:**
 
-### 6.1 MVP — digitalização em lote
+Crescimento linear: 500 docs/mês ≈ R$ 15. Continua barato.
 
-- Tela "Importar comprovantes" aceita 1 PDF multipágina (scanner do financeiro escaneia tudo de uma vez) **ou foto pelo celular** (PWA, `<input capture>`).
-- Sistema **divide automaticamente** em 1 comprovante por página.
-- Para cada página: OCR (pdfjs se digital, Tesseract.js no browser ou pipeline IA atual se imagem) → extrai valor, data, favorecido, banco.
-- Cria entradas em `documentos_fiscais` (tipo `comprovante_pgto`) e **tenta auto-vincular** à despesa correspondente (match por valor + data ±3 dias + nome favorecido).
-- Não casou → fica órfão na tela para vínculo manual.
+---
 
-### 6.2 Médio prazo — captura por foto avulsa
+## 10. O que CORTAR do Plano B (para simplificar)
 
-- App PWA: financeiro tira foto do comprovante na hora do pagamento → upload direto → mesmo pipeline.
+- ❌ Cofre + Painel como entidades separadas → ✅ Evento Financeiro unificado  
+- ❌ Prestação 100% modular no MVP → ✅ 1 modelo bem feito + modular em V2  
+- ❌ IA em todo doc → ✅ Hash + OCR local primeiro, IA só quando precisa  
+- ❌ Cron Gmail varrendo caixa inteira → ✅ Cron lê só mensagens com label
 
-### 6.3 Futuro (não agora)
+---
 
-- Integração com Open Finance / extrato bancário (CNAB, OFX) para conciliar pagamentos sem precisar do papel. Fica para depois.
+## Comparação rápida
 
-**Recomendação:** começar com 6.1 (scanner em lote + split automático + OCR + auto-vínculo). Resolve hoje sem mudar processo do financeiro.
 
-## 7. Prestação de Contas modular
+| &nbsp;                        | Plano B (anterior)                   | Plano A revisado        |
+| ----------------------------- | ------------------------------------ | ----------------------- |
+| Entidades centrais            | 3 (despesa, documento_fiscal, anexo) | 1 (evento + anexos 1:N) |
+| Custo IA/mês (50 docs)        | R$ 10–30                             | R$ 1–3                  |
+| Prestação configurável no MVP | sim                                  | só V2                   |
+| Captura por foto              | "médio prazo"                        | desde o MVP             |
+| Detecção duplicata            | hash + fuzzy                         | igual                   |
+| Auto-vínculo                  | sim                                  | sim, mais central       |
+| Linhas de código estimadas    | ~3500                                | ~2200                   |
 
-Mantida do plano anterior, agora alimentada pelo Cofre (3) e Painel (5):
 
-- `prestacao_modelos`: estrutura configurável em seções ordenáveis (cada OSC tem o seu).
-- Tipos de seção: documento_fixo, documento_recorrente, certidoes_institucionais, **comprovantes_fiscais** (gera automaticamente A4 com [comprovante + boleto + NF] por despesa, puxando do cofre), orcamentos_mapas, upload_livre.
-- Documentos institucionais com validade extraída por IA + alerta de renovação.
-- Geração final = merge de PDFs (pdf-lib) seguindo a ordem do modelo.
-- **Certidões automáticas por CNPJ: adiadas** (você vai pensar em outra estratégia).
+---
 
-## 8. Ordem sugerida
+## Pergunta única para destravar
 
-1. Correções rápidas: rascunho + "deixar em aberto" + renomear "despesa prevista" + presets flexíveis.
-2. Login + roles + RLS.
-3. **Cofre de documentos fiscais** (3) — base de tudo que vem.
-4. **Painel de Despesas** (5) — visão e deduplicação.
-5. **Inbox Gmail** (4) — alimenta o cofre.
-6. **Comprovantes em lote** (6.1) — fecha o ciclo de captura.
-7. Prestação modular (7) — consome cofre + painel.
-
-## Perguntas para destravar implementação
-
-1. **Gmail:** 1 conta única da OSC (mais simples) ou cada usuário conecta a sua? -- CADA USUARIO CONECTA A SUA
-2. **Drive:** pode reaproveitar a estrutura atual de pastas para o cofre, ou criar pasta nova `Cofre Fiscal / {ano} / {mês}`? NOVA
-3. **Comprovantes bancários:** o financeiro topa escanear em lote no fim do dia/semana, ou a foto pelo celular é mais realista? TOPA ESCANEAR
-4. **Login:** Google + email/senha está OK, ou só Google? ESTA OK
-
-Por qual frente começamos?  
-- ANALISE ESSAS IDEIAS, AVALIE E ME SUGIRA ALGO QUE POSSA SER MELHOR DO QUE ESTOU FALANDO, SEM ELEVAO DE CUSTOS E QUE SEJA BEM OTIMIZADO. ME ENTREGUE EM NOVO PLANO MAS SALVE ESSE COMO PLANO B SE EU NAO GOSTAR DO SEU
+Topa esse Plano A revisado? Se sim, começo pelo item 1 (quick wins) imediatamente, já que são edits pequenos e isolados. Plano B fica salvo aqui em `.lovable/plan.md` para referência se mudarmos de ideia.
