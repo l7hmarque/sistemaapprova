@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/hooks/use-auth";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -62,10 +64,23 @@ const ENTIDADE_DEFAULT = {
 };
 
 function OrcamentosPage() {
+  const { user, loading } = useAuth();
+  const nav = useNavigate();
+  useEffect(() => {
+    if (!loading && !user) nav({ to: "/login", search: { redirect: "/orcamentos" }, replace: true });
+  }, [loading, user, nav]);
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Toaster richColors position="top-right" />
       <div className="container mx-auto max-w-6xl px-4 py-6">
+
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Orçamentos & Mapa Comparativo</h1>
