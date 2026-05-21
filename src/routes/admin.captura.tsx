@@ -146,8 +146,11 @@ function CapturaPage() {
       atualiza(it.id, { mensagem: "interpretando com IA" });
       let dados: Item["dados"] = {};
       if (texto.trim().length > 20) {
-        const r = await extrair({ data: { texto, nomeArquivo: it.file.name } });
-        if (r.ok) dados = r.dados as Item["dados"];
+        const r = (await extrair({ data: { texto, nomeArquivo: it.file.name } })) as
+          | { ok: true; dados: Item["dados"] }
+          | { ok: false; erro: string };
+        if (r.ok) dados = r.dados;
+
       } else {
         dados = { descricao: it.file.name, tipo: "outro" };
       }
