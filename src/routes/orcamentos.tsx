@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Plus, Trash2, Save, FileDown, FileText, BarChart3, Loader2 } from "lucide-react";
+import { ExternalLink, Plus, Trash2, Save, FileDown, FileText, BarChart3, Loader2, FolderOpen, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   gerarOrcamentoNoDrive,
@@ -191,8 +191,70 @@ function NovoOrcamento() {
   const [gerarMapaJunto, setGerarMapaJunto] = useState(true);
   const [resultados, setResultados] = useState<Array<{ razao: string; url?: string; erro?: string }>>([]);
   const [mapaResult, setMapaResult] = useState<{ url?: string; erro?: string } | null>(null);
+  const [rascunhos, setRascunhos] = useState<Array<{ nome: string; salvoEm: string }>>([]);
+  const [hidratado, setHidratado] = useState(false);
   const gerar = useServerFn(gerarOrcamentoNoDrive);
   const gerarMapa = useServerFn(gerarMapaComparativoNoDrive);
+
+  // Restaura rascunho automático na montagem
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RASCUNHO_AUTO_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.entidade) setEntidade(s.entidade);
+        if (s.termo) setTermo(s.termo);
+        if (s.forns) setForns(s.forns);
+        if (s.objeto) setObjeto(s.objeto);
+        if (s.data) setData(s.data);
+        if (s.mesRef) setMesRef(s.mesRef);
+        if (s.itens) setItens(s.itens);
+      }
+    } catch { /* noop */ }
+    setRascunhos(listarRascunhos());
+    setHidratado(true);
+  }, []);
+
+  // Auto-save (debounced)
+  useEffect(() => {
+    if (!hidratado) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          RASCUNHO_AUTO_KEY,
+          JSON.stringify({ entidade, termo, forns, objeto, data, mesRef, itens }),
+        );
+      } catch { /* noop */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [hidratado, entidade, termo, forns, objeto, data, mesRef, itens]);
+
+  const salvarComoRascunho = () => {
+    const nome = window.prompt("Nome do rascunho (para reabrir depois):", objeto || "Orçamento em aberto");
+    if (!nome?.trim()) return;
+    salvarRascunhoNomeado(nome.trim(), { entidade, termo, forns, objeto, data, mesRef, itens });
+    setRascunhos(listarRascunhos());
+    toast.success(`Rascunho "${nome.trim()}" salvo. Reabra pelo menu abaixo.`);
+  };
+
+  const carregarRascunho = (nome: string) => {
+    const s = lerRascunhoNomeado(nome);
+    if (!s) return toast.error("Rascunho não encontrado.");
+    if (s.entidade) setEntidade(s.entidade);
+    if (s.termo) setTermo(s.termo);
+    if (s.forns) setForns(s.forns);
+    if (s.objeto) setObjeto(s.objeto);
+    if (s.data) setData(s.data);
+    if (s.mesRef) setMesRef(s.mesRef);
+    if (s.itens) setItens(s.itens);
+    toast.success(`Rascunho "${nome}" carregado.`);
+  };
+
+  const apagarRascunho = (nome: string) => {
+    apagarRascunhoNomeado(nome);
+    setRascunhos(listarRascunhos());
+  };
+
 
   const updForn = (i: number, patch: Partial<FornInput>) =>
     setForns((x) => x.map((f, k) => (k === i ? { ...f, ...patch } : f)));
