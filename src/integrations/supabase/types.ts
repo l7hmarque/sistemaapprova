@@ -210,6 +210,105 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          cargo: string
+          created_at: string
+          dor: string | null
+          email: string
+          id: string
+          ip_hash: string | null
+          nome: string
+          observacoes_internas: string | null
+          origem_descoberta: string | null
+          osc_nome: string
+          plano: string
+          publico: string | null
+          qtd_lancamentos: number | null
+          qtd_oscs: number | null
+          referrer: string | null
+          status: string
+          telefone: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          cargo: string
+          created_at?: string
+          dor?: string | null
+          email: string
+          id?: string
+          ip_hash?: string | null
+          nome: string
+          observacoes_internas?: string | null
+          origem_descoberta?: string | null
+          osc_nome: string
+          plano: string
+          publico?: string | null
+          qtd_lancamentos?: number | null
+          qtd_oscs?: number | null
+          referrer?: string | null
+          status?: string
+          telefone: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          cargo?: string
+          created_at?: string
+          dor?: string | null
+          email?: string
+          id?: string
+          ip_hash?: string | null
+          nome?: string
+          observacoes_internas?: string | null
+          origem_descoberta?: string | null
+          osc_nome?: string
+          plano?: string
+          publico?: string | null
+          qtd_lancamentos?: number | null
+          qtd_oscs?: number | null
+          referrer?: string | null
+          status?: string
+          telefone?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
+      leads_rate_limit: {
+        Row: {
+          count: number
+          ip_hash: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          ip_hash: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          ip_hash?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       modelos_planilha: {
         Row: {
           aba: string
