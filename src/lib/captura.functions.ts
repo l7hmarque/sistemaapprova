@@ -55,14 +55,23 @@ export const extrairDocumento = createServerFn({ method: "POST" })
             {
               role: "user",
               content: `Arquivo: ${data.nomeArquivo ?? "(sem nome)"}\n\nTexto extraído:\n${data.texto.slice(0, 60_000)}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-        }),
-      });
-      if (!resp.ok) {
-        const t = await resp.text();
-        console.error("[extrairDocumento] gateway erro", resp.status, t);
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        const m = raw.match(/\{[\s\S]*\}/);
+        if (m) parsed = JSON.parse(m[0]);
+      }
+      const dados: DadosExtraidos = {
+        tipo: typeof parsed.tipo === "string" ? parsed.tipo : null,
+        cnpj: typeof parsed.cnpj === "string" ? parsed.cnpj : null,
+        valor: typeof parsed.valor === "number" ? parsed.valor : null,
+        data: typeof parsed.data === "string" ? parsed.data : null,
+        numero: typeof parsed.numero === "string" ? parsed.numero : null,
+        descricao: typeof parsed.descricao === "string" ? parsed.descricao : null,
+      };
+      return { ok: true as const, dados };
+
         return { ok: false as const, erro: `Gateway ${resp.status}` };
       }
       const j = (await resp.json()) as {
