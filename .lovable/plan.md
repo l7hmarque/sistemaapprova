@@ -163,7 +163,8 @@ Email/senha + Google. `profiles` + `user_roles` + RLS por role. Sem mudanças.
 | 2   | Login + roles + RLS                                        | ✅ feito (auth e-mail/senha + Google + RLS)   |
 | 3   | **Evento Financeiro + Painel**                             | ✅ schema + Painel CRUD em /admin/painel      |
 | 4   | Captura: upload manual + foto/scanner com auto-vínculo     | próximo                                      |
-| 5   | Gmail OAuth (label-filtered)                               | depois                                       |
+| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | ✅ /admin/captura com hash + pdf.js + IA + auto-vínculo |
+
 | 6   | Prestação V1 (1 modelo, geração por snapshot)              | depois                                       |
 | 7   | Prestação modular configurável                             | só quando precisar                           |
 

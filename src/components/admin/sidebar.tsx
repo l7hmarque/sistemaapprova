@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Wallet,
+  Camera,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +20,7 @@ type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
 const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/painel", label: "Painel financeiro", icon: Wallet },
+  { to: "/admin/captura", label: "Captura", icon: Camera },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/admin/fornecedores", label: "Fornecedores", icon: Users },
   { to: "/admin/objetos", label: "Objetos", icon: Package },
@@ -27,6 +29,7 @@ const ITEMS: Item[] = [
   { to: "/admin/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];
+
 
 export function AdminSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });

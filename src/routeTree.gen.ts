@@ -22,6 +22,7 @@ import { Route as AdminObjetosRouteImport } from './routes/admin.objetos'
 import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
 const OrcamentosRoute = OrcamentosRouteImport.update({
@@ -89,6 +90,11 @@ const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCapturaRoute = AdminCapturaRouteImport.update({
+  id: '/captura',
+  path: '/captura',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAgendaRoute = AdminAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/orcamentos': typeof OrcamentosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
+    | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
     | '/admin/modelos'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
+    | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
     | '/admin/modelos'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/orcamentos'
     | '/admin/agenda'
+    | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
     | '/admin/modelos'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/captura': {
+      id: '/admin/captura'
+      path: '/captura'
+      fullPath: '/admin/captura'
+      preLoaderRoute: typeof AdminCapturaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/agenda': {
       id: '/admin/agenda'
       path: '/agenda'
@@ -306,6 +325,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
+  AdminCapturaRoute: typeof AdminCapturaRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
   AdminModelosRoute: typeof AdminModelosRoute
@@ -318,6 +338,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAgendaRoute: AdminAgendaRoute,
+  AdminCapturaRoute: AdminCapturaRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
   AdminModelosRoute: AdminModelosRoute,
