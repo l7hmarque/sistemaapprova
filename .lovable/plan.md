@@ -1,216 +1,102 @@
-# Plano A (revisado) — mais simples, mais barato, mesmo resultado
+# O que ainda falta
 
-Avaliei o plano anterior (mantido como **Plano B**) e identifiquei 4 oportunidades de otimização sem perder funcionalidade:
-
-
-| Problema no Plano B                                                                | Solução no Plano A revisado                                                              |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 3 entidades separadas (despesa, documento_fiscal, comprovante) com joins complexos | **1 entidade única: "Evento Financeiro" com anexos 1:N**                                 |
-| Toda extração via IA → custo cresce linear                                         | **Pipeline em camadas: hash → OCR local → IA leve → IA pro** (90% nunca chega na IA pro) |
-| Prestação modular configurável já no MVP                                           | **1 modelo bem feito agora, modular fica para V2**                                       |
-| Comprovantes só por scanner em lote                                                | **Scanner em lote + foto pelo celular** (mesmo pipeline, custo zero a mais)              |
-
+Sistema **não está pronto**. Já temos a espinha (login, painel, captura), mas o ciclo "documento entra → prestação sai" ainda não fecha. Abaixo, tudo que falta, em ordem do que destrava mais coisa para o que é polimento.
 
 ---
 
-## 1. Núcleo: Evento Financeiro (unifica Cofre + Painel + Despesa)
+## Fase 1 — Corrigir lacunas da captura (1 sessão)
 
-Em vez de 3 tabelas, **uma só** com anexos:
+A captura funciona para PDF, mas tem 3 buracos:
+
+1. **Foto/imagem não passa pela IA** — hoje só rodo pdf.js, que não funciona em JPG/PNG. Trocar para `google/gemini-2.5-flash` (multimodal) quando o arquivo for imagem, enviando como `image_url` base64.
+2. **Tolerância hard-coded** — R$ 0,50 e ±3 dias estão no código. Mover para `configuracoes` (chave `auto_vinculo`) com tela em `/admin/configuracoes` para editar.
+3. **Fallback Pro quando Flash falha** — se Flash Lite devolver `tipo: outro` + `valor: null`, refazer com `google/gemini-2.5-pro` antes de marcar como órfão. Aplicar só quando texto tem >200 chars (evita gastar Pro em imagem ruim).
+
+Bônus barato: cache global por hash já está implícito (qualquer doc com mesmo SHA-256 é detectado como duplicata antes da IA), mas falta também **reusar dados extraídos** do hash conhecido em vez de só marcar duplicata.
+
+---
+
+## Fase 2 — Quick wins pendentes do Plano B (1 sessão)
+
+São itens pequenos que ficaram para trás:
+
+- Renomear "despesa" → **"despesa prevista"** em `/admin/orcamentos` (labels, headers, totals).
+- **Preset livre de orçamento**: hoje preset força o formato SIT. Permitir preset com qualquer estrutura de itens, mas na hora de exportar o `.TXT SIT` o sistema converte/preenche os campos obrigatórios automaticamente.
+
+---
+
+## Fase 3 — Prestação V1 (2-3 sessões, é o grande)
+
+O ponto final do fluxo. Hoje a tela `/admin/prestacao` é só um repositório de docs institucionais soltos. Precisa virar:
 
 ```text
-eventos_financeiros
-  id, mes_referencia
-  fornecedor_id, categoria (energia | agua | salario | compra_eventual | servico ...)
-  descricao
-  valor_previsto, valor_efetivo
-  data_vencimento, data_pagamento
-  origem (orcamento | manual | gmail | foto)
-  status_documental  -- CALCULADO: completo | faltando | divergente | duplicata_suspeita
-  prestacao_snapshot_id  -- nullable; preenchido quando mês é fechado
-
-documentos_anexos
-  id, evento_id (fk), tipo (boleto | nf | fatura | holerite | comprovante_pgto | orcamento | mapa | certidao)
-  arquivo_url, arquivo_hash (sha256)
-  cnpj_extraido, valor_extraido, data_extraida, numero_extraido
-  origem, gmail_message_id (nullable)
-  criado_em
+[ Painel do mês ]  ─→  [ Botão "Fechar mês" ]  ─→  [ PDF montado + snapshot ]
 ```
 
-**Ganho:** o Painel é só `SELECT * FROM eventos_financeiros`. O Cofre é só `SELECT * FROM documentos_anexos`. Mesma fonte de verdade. Detecção de duplicata vira `UNIQUE(cnpj, valor, data, tipo)` parcial + alerta.
+Passos:
 
-### Status documental automático por categoria
-
-Configurável por OSC, mas com defaults inteligentes:
-
-
-| Categoria                           | Docs esperados                                |
-| ----------------------------------- | --------------------------------------------- |
-| Energia / água / internet           | boleto + comprovante                          |
-| Salário                             | holerite + comprovante                        |
-| Serviço recorrente                  | NF + comprovante                              |
-| Compra eventual / pesquisa de preço | 3 orçamentos + mapa + NF/fatura + comprovante |
-
-
-O sistema avisa o que falta sem o usuário decorar.
+1. **Migration**: tabela `prestacoes_snapshot` com `mes_referencia`, `gerado_em`, `pdf_url`, `manifest` (JSONB com lista de eventos+docs+hashes), `assinatura_hash`. Cada snapshot é imutável.
+2. **Lógica de montagem** (server function):
+   - Pega todos `eventos_financeiros` do mês.
+   - Para cada evento, busca anexos via `documentos_anexos.evento_id`.
+   - Monta seções na ordem: institucionais fixos → institucionais recorrentes → comprovantes (1 página A4 por evento, agrupando boleto+NF+comprovante) → orçamentos+mapas → uploads livres.
+   - Merge final com `pdf-lib` (Worker-compatível).
+   - Upload do PDF resultante para bucket `prestacoes` (novo).
+   - Atualiza `eventos_financeiros.prestacao_snapshot_id` para todos os eventos do mês.
+3. **UI**: na `/admin/painel`, botão **"Fechar mês e gerar prestação"** ao lado do filtro de mês. Mostra preview do que vai entrar, pede confirmação, gera. Lista de prestações geradas em `/admin/prestacao` com link para baixar.
+4. **Validação pré-fechamento**: bloqueia se houver evento com `status_documental != completo` (ou pede confirmação override).
 
 ---
 
-## 2. Captura unificada (3 origens, 1 pipeline)
+## Fase 4 — Gmail OAuth label-filtered (1-2 sessões)
 
-```text
-[Gmail OAuth user]   [Upload manual]   [Foto celular / Scanner lote]
-         \                |                       /
-          \               v                      /
-           →→→  fila: documentos_pendentes  ←←←
-                          ↓
-              pipeline extração em camadas
-                          ↓
-               auto-vínculo a evento
-                          ↓
-              [vinculado | duplicata | órfão]
-```
+Importante mas só faz sentido depois que a prestação está fechando o ciclo. Caso contrário, vai gerar docs órfãos sem para onde ir.
 
-### Pipeline de extração em camadas (otimização principal de custo)
+**Decisão importante:** o Plano A previa OAuth **per-user** (cada usuário conecta seu Gmail). O conector padrão do Lovable Cloud é **builder-only** (sua conta atende a todos). Pra OSC pequena com 1-2 admins, builder-only é suficiente e muito mais simples. Pra V2, se virar multi-OSC, vira per-user.
 
-```text
-1. hash SHA-256       → já existe? reusa metadados      (grátis, instantâneo)
-2. OCR cliente        → pdf.js text extract             (grátis, ~80% dos PDFs digitais)
-3. IA Flash Lite      → classifica + estrutura JSON     (~R$ 0,003/doc, padrão)
-4. IA Pro             → só se Flash falha               (~R$ 0,05/doc, raro)
-```
-
-Cache por hash bloqueia reprocessamento. **OSC pequena (~50 docs/mês) ≈ R$ 1–3 de IA por mês.**
-
-### Auto-vínculo (regra simples, sem ML)
-
-```sql
-match WHERE evento.fornecedor_cnpj = doc.cnpj_extraido
-  AND ABS(evento.valor_previsto - doc.valor_extraido) <= 0.50
-  AND doc.data_extraida BETWEEN evento.vencimento - 3d AND evento.vencimento + 3d
-```
-
-Casou → vincula. Não casou → fica órfão na fila para revisão. Mais de um match → marca duplicata.
+Passos:
+1. Conectar Gmail via conector do Lovable Cloud (sua conta `l7hmarque@gmail.com`).
+2. Server function `puxar-gmail` que lista mensagens com query `label:OSC/contas is:unread has:attachment`.
+3. Para cada mensagem com anexo PDF: baixa via API → joga no mesmo pipeline da captura → marca como lida.
+4. Cron pg_cron rodando a cada 2h chamando `/api/public/gmail-pull` (com signature de segurança).
+5. UI: card em `/admin/captura` mostrando "Última varredura Gmail: há X min, Y docs novos".
 
 ---
 
-## 3. Gmail (otimização: filtro por label, sem polling pesado)
+## Fase 5 — Polimento (1 sessão)
 
-Em vez de cron lendo a caixa inteira:
+Coisas que vão aparecer depois que rodar de verdade:
 
-- Usuário cria label no Gmail (ex: `OSC/contas`)
-- Cria filtro: "anexo PDF + remetente conhecido" → aplica label
-- Nosso cron lê **só mensagens com aquela label** (`q=label:OSC/contas is:unread`)
-- Marca como lida após processar
-
-**Resultado:** poucas chamadas à API, respeita privacidade, e o usuário escolhe o que entra. Per-user OAuth confirmado.
+- Dashboard `/admin` hoje está vazio. Virar resumo do mês: total previsto vs efetivo, % docs completos, alertas (vencimentos próximos, divergências).
+- Tela de **documentos órfãos** (`/admin/captura` mostra fila da sessão atual; precisa de tela permanente listando todos os órfãos do banco para revisão posterior).
+- Notificações: vencimento em 3 dias sem evento criado → email/toast.
 
 ---
 
-## 4. Captura por foto (PWA)
+## Resumo de prioridade
 
-Para comprovantes impressos:
+| Fase | Sessões | Por que nessa ordem |
+|------|---------|---------------------|
+| 1. Lacunas da captura | 1 | Captura não está confiável sem multimodal e config |
+| 2. Quick wins B | 1 | Pequeno, destrava export SIT correto |
+| 3. **Prestação V1** | 2-3 | **Fecha o ciclo — sem isso o sistema não entrega o valor principal** |
+| 4. Gmail | 1-2 | Automação, só útil depois do ciclo fechar |
+| 5. Polimento | 1 | Depois de usar em produção 1 mês |
 
-- Componente câmera com `<input capture="environment">` (sem app nativo)
-- Resize cliente para 1024px + JPEG 80% → 10x menos bytes na IA
-- Upload em fila com indicador de progresso
-- Auto-vínculo igual ao pipeline acima
-
-**Caso de uso real:** financeiro entrega lote de comprovantes impressos → assistente tira 30 fotos em sequência → sistema vincula automaticamente 25 e deixa 5 para revisão manual.
-
-Bonus: o mesmo componente serve para "scanner em lote" (1 PDF multipágina → split automático por página → processa cada página como doc independente).
-
----
-
-## 5. Prestação V1 — 1 modelo, alimentado pelo Painel
-
-Sem `prestacao_modelos` ainda. **Um modelo fixo bem feito**, com seções na ordem padrão:
-
-1. Documentos institucionais fixos
-2. Documentos institucionais recorrentes
-3. Comprovantes fiscais (gerados automaticamente do Painel: para cada evento, monta página A4 com comprovante + boleto + NF/fatura)
-4. Orçamentos + mapas comparativos do mês
-5. Upload livre (anexos extras)
-
-Geração = merge `pdf-lib` na ordem. Snapshot imutável (hash + manifest) salvo em `prestacoes`. Reabrir mostra exatamente o que foi entregue.
-
-**Prestação modular configurável → V2**, quando o usuário disser "preciso de outro modelo".
+**Total estimado: 6-8 sessões** até "pronto para usar todo mês".
 
 ---
 
-## 6. Quick wins (manter do Plano B)
+## Detalhes técnicos relevantes
 
-Esses entram primeiro porque são baratos e resolvem dor imediata:
-
-- Rascunho automático no localStorage (debounce)
-- Botão "Deixar em aberto" (status no `orcamentos_salvos`)
-- Renomear "despesa" → "despesa prevista" em orçamentos
-- Preset livre (sem formato SIT obrigatório) MAS QUE VAI SER INCLUSO NO .TXT SIT NO FORMATO SIT
-
----
-
-## 7. Login (igual ao Plano B)
-
-Email/senha + Google. `profiles` + `user_roles` + RLS por role. Sem mudanças.
+- **pdf-lib no Worker**: confirmado compatível (já usado em projetos similares no stack).
+- **Snapshot imutável**: hash SHA-256 do PDF final salvo em `manifest`, validação ao reabrir.
+- **Tolerância configurável**: chave nova em `configuracoes` com formato `{ valor_centavos: 50, janela_dias: 3 }`. Captura lê no início do processamento.
+- **Bucket novo**: `prestacoes` (privado, RLS authenticated, igual ao `documentos`).
+- **Modelo Pro de fallback**: contador no log para garantir que não passe de ~5% das chamadas (custo controlado).
 
 ---
 
-## 8. Ordem de execução revisada
+## Pergunta de aprovação
 
-
-| #   | Frente                                                     | Status                                       |
-| --- | ---------------------------------------------------------- | -------------------------------------------- |
-| 1   | Quick wins (rascunho, "em aberto")                         | ✅ feito                                      |
-| 2   | Login + roles + RLS                                        | ✅ feito (auth e-mail/senha + Google + RLS)   |
-| 3   | **Evento Financeiro + Painel**                             | ✅ schema + Painel CRUD em /admin/painel      |
-| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | próximo                                      |
-| 4   | Captura: upload manual + foto/scanner com auto-vínculo     | ✅ /admin/captura com hash + pdf.js + IA + auto-vínculo |
-
-| 6   | Prestação V1 (1 modelo, geração por snapshot)              | depois                                       |
-| 7   | Prestação modular configurável                             | só quando precisar                           |
-
----
-
-## 9. Custos estimados (OSC pequena, ~50 docs/mês)
-
-
-| Item                                               | Custo/mês                |
-| -------------------------------------------------- | ------------------------ |
-| Lovable AI (Gemini Flash Lite + cache + OCR local) | R$ 1–3                   |
-| Drive / Sheets                                     | já incluso               |
-| Gmail API                                          | grátis (dentro da quota) |
-| Hosting                                            | já pago                  |
-| **Total incremental**                              | **~R$ 3**                |
-
-
-Crescimento linear: 500 docs/mês ≈ R$ 15. Continua barato.
-
----
-
-## 10. O que CORTAR do Plano B (para simplificar)
-
-- ❌ Cofre + Painel como entidades separadas → ✅ Evento Financeiro unificado  
-- ❌ Prestação 100% modular no MVP → ✅ 1 modelo bem feito + modular em V2  
-- ❌ IA em todo doc → ✅ Hash + OCR local primeiro, IA só quando precisa  
-- ❌ Cron Gmail varrendo caixa inteira → ✅ Cron lê só mensagens com label
-
----
-
-## Comparação rápida
-
-
-| &nbsp;                        | Plano B (anterior)                   | Plano A revisado        |
-| ----------------------------- | ------------------------------------ | ----------------------- |
-| Entidades centrais            | 3 (despesa, documento_fiscal, anexo) | 1 (evento + anexos 1:N) |
-| Custo IA/mês (50 docs)        | R$ 10–30                             | R$ 1–3                  |
-| Prestação configurável no MVP | sim                                  | só V2                   |
-| Captura por foto              | "médio prazo"                        | desde o MVP             |
-| Detecção duplicata            | hash + fuzzy                         | igual                   |
-| Auto-vínculo                  | sim                                  | sim, mais central       |
-| Linhas de código estimadas    | ~3500                                | ~2200                   |
-
-
----
-
-## Pergunta única para destravar
-
-Topa esse Plano A revisado? Se sim, começo pelo item 1 (quick wins) imediatamente, já que são edits pequenos e isolados. Plano B fica salvo aqui em `.lovable/plan.md` para referência se mudarmos de ideia.
+Aprovado nessa ordem? Se sim, começo pela **Fase 1** (lacunas da captura) imediatamente — é o mais barato e destrava confiança no pipeline que acabei de entregar.
