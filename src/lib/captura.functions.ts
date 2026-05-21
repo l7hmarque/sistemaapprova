@@ -33,7 +33,7 @@ export type DadosExtraidos = {
 };
 
 export type ExtracaoResposta =
-  | { ok: true; dados: DadosExtraidos; modelo: string; fallback: boolean }
+  | { ok: true; dados: DadosExtraidos }
   | { ok: false; erro: string };
 
 type Msg = { role: "system" | "user"; content: unknown };
