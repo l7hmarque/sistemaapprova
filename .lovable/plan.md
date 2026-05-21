@@ -1,6 +1,8 @@
 # O que ainda falta
 
-Sistema **não está pronto**. Já temos a espinha (login, painel, captura), mas o ciclo "documento entra → prestação sai" ainda não fecha. Abaixo, tudo que falta, em ordem do que destrava mais coisa para o que é polimento.
+**Atualização desta sessão:** Fase 1 entregue. Renomear "despesa" não era necessário (termo só aparece como nome técnico SIT no backend, não na UI de orçamentos). Fase 2 reduzida só ao preset livre.
+
+
 
 ---
 
