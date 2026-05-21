@@ -49,21 +49,13 @@ function PrestacaoPage() {
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<Doc> | null>(null);
   const [gerando, setGerando] = useState(false);
-  const gerar = useServerFn(gerarPrestacaoContas);
-
-  const carregar = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("prestacao_documentos")
-  const [edit, setEdit] = useState<Partial<Doc> | null>(null);
-  const [gerando, setGerando] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
 
   const carregar = async () => {
     setLoading(true);
-    const [{ data, error }, snap] = await Promise.all([
+    const [docsRes, snapRes] = await Promise.all([
       supabase
         .from("prestacao_documentos")
         .select("*")
@@ -75,10 +67,19 @@ function PrestacaoPage() {
         .eq("mes_referencia", mes)
         .order("gerado_em", { ascending: false }),
     ]);
-    if (error) toast.error("Erro: " + error.message);
-    setDocs((data as any) ?? []);
-    setSnapshots((snap.data as any) ?? []);
+    if (docsRes.error) toast.error("Erro: " + docsRes.error.message);
+    setDocs((docsRes.data as any) ?? []);
+    setSnapshots((snapRes.data as any) ?? []);
     setLoading(false);
+  };
+
+  const abrirSnapshot = async (id: string) => {
+    try {
+      const r = await abrirSnap({ data: { id } });
+      window.open(r.url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao abrir");
+    }
   };
 
   useEffect(() => { void carregar(); }, [mes]);
