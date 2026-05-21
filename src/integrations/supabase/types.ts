@@ -392,6 +392,48 @@ export type Database = {
         }
         Relationships: []
       }
+      prestacoes_snapshot: {
+        Row: {
+          assinatura_hash: string
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          manifest: Json
+          mes_referencia: string
+          pdf_path: string | null
+          pdf_url: string | null
+          titulo: string | null
+          total_documentos: number
+          total_eventos: number
+        }
+        Insert: {
+          assinatura_hash: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          manifest?: Json
+          mes_referencia: string
+          pdf_path?: string | null
+          pdf_url?: string | null
+          titulo?: string | null
+          total_documentos?: number
+          total_eventos?: number
+        }
+        Update: {
+          assinatura_hash?: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          manifest?: Json
+          mes_referencia?: string
+          pdf_path?: string | null
+          pdf_url?: string | null
+          titulo?: string | null
+          total_documentos?: number
+          total_eventos?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

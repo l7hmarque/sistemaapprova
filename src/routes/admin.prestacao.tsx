@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
+import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/prestacao")({ component: PrestacaoPage });
 
@@ -29,6 +31,16 @@ type Doc = {
   mes_referencia: string | null;
 };
 
+type Snapshot = {
+  id: string;
+  titulo: string | null;
+  assinatura_hash: string;
+  total_eventos: number;
+  total_documentos: number;
+  gerado_em: string;
+  pdf_path: string | null;
+};
+
 const mesAtual = new Date().toISOString().slice(0, 7);
 
 function PrestacaoPage() {
@@ -37,18 +49,37 @@ function PrestacaoPage() {
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<Doc> | null>(null);
   const [gerando, setGerando] = useState(false);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
+  const abrirSnap = useServerFn(obterUrlSnapshot);
 
   const carregar = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("prestacao_documentos")
-      .select("*")
-      .eq("mes_referencia", mes)
-      .order("ordem", { ascending: true });
-    if (error) toast.error("Erro: " + error.message);
-    setDocs((data as any) ?? []);
+    const [docsRes, snapRes] = await Promise.all([
+      supabase
+        .from("prestacao_documentos")
+        .select("*")
+        .eq("mes_referencia", mes)
+        .order("ordem", { ascending: true }),
+      supabase
+        .from("prestacoes_snapshot")
+        .select("id, titulo, assinatura_hash, total_eventos, total_documentos, gerado_em, pdf_path")
+        .eq("mes_referencia", mes)
+        .order("gerado_em", { ascending: false }),
+    ]);
+    if (docsRes.error) toast.error("Erro: " + docsRes.error.message);
+    setDocs((docsRes.data as any) ?? []);
+    setSnapshots((snapRes.data as any) ?? []);
     setLoading(false);
+  };
+
+  const abrirSnapshot = async (id: string) => {
+    try {
+      const r = await abrirSnap({ data: { id } });
+      window.open(r.url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao abrir");
+    }
   };
 
   useEffect(() => { void carregar(); }, [mes]);
@@ -138,6 +169,33 @@ function PrestacaoPage() {
           </Button>
         </div>
       </header>
+
+      {snapshots.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+              Prestações fechadas em {mes}
+            </div>
+            {snapshots.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm truncate">{s.titulo ?? `Prestação ${mes}`}</div>
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 mt-0.5">
+                    <span>{new Date(s.gerado_em).toLocaleString("pt-BR")}</span>
+                    <span>{s.total_eventos} eventos · {s.total_documentos} docs</span>
+                    <span className="font-mono text-[10px]">SHA-256 {s.assinatura_hash.slice(0, 16)}…</span>
+                  </div>
+                </div>
+                <Badge variant="outline" className="shrink-0">imutável</Badge>
+                <Button size="sm" variant="outline" onClick={() => abrirSnapshot(s.id)}>
+                  <FileDown className="h-4 w-4 mr-1" /> Abrir PDF
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
 
       {loading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>

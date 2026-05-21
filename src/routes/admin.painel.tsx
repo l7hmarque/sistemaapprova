@@ -11,7 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, Trash2, Pencil, FileWarning } from "lucide-react";
+import { Plus, Trash2, Pencil, FileWarning, FileCheck2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { gerarPrestacaoSnapshot } from "@/lib/prestacao-snapshot.functions";
 
 export const Route = createFileRoute("/admin/painel")({ component: PainelPage });
 
@@ -57,6 +59,28 @@ function PainelPage() {
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [editing, setEditing] = useState<Evento | null>(null);
   const [open, setOpen] = useState(false);
+  const [fechando, setFechando] = useState(false);
+  const fecharMes = useServerFn(gerarPrestacaoSnapshot);
+
+  async function handleFecharMes() {
+    if (eventos.length === 0) return toast.error("Sem eventos no mês.");
+    const incompletos = eventos.filter((e) => e.status_documental !== "completo").length;
+    const msg = incompletos > 0
+      ? `Atenção: ${incompletos} de ${eventos.length} eventos não estão marcados como "completo". Gerar mesmo assim?`
+      : `Fechar ${mes} e gerar prestação imutável com ${eventos.length} eventos?`;
+    if (!confirm(msg)) return;
+    setFechando(true);
+    try {
+      const r = await fecharMes({ data: { mesReferencia: mes } });
+      toast.success(`Prestação gerada — ${r.totalEventos} eventos, ${r.totalDocumentos} docs`);
+      if (r.url) window.open(r.url, "_blank");
+      void recarregar();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar");
+    } finally {
+      setFechando(false);
+    }
+  }
 
   async function recarregar() {
     const { data, error } = await supabase
@@ -170,6 +194,10 @@ function PainelPage() {
             </Select>
           </div>
           <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
+          <Button onClick={handleFecharMes} disabled={fechando} variant="secondary">
+            <FileCheck2 className="mr-1 h-4 w-4" />
+            {fechando ? "Gerando…" : "Fechar mês"}
+          </Button>
         </div>
       </header>
 
