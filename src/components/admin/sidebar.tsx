@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,6 +18,7 @@ import { toast } from "sonner";
 type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },
   { to: "/admin/fornecedores", label: "Fornecedores", icon: Users },
   { to: "/admin/objetos", label: "Objetos", icon: Package },
