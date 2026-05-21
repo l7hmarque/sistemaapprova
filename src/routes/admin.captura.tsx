@@ -58,23 +58,67 @@ function mesAtualISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const TOLERANCIA_PADRAO = { valor_centavos: 50, janela_dias: 3 };
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onerror = () => rej(r.error);
+    r.onload = () => {
+      const v = r.result as string;
+      // strip prefix
+      const i = v.indexOf(",");
+      res(i >= 0 ? v.slice(i + 1) : v);
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob = await new Promise((res) =>
+      canvas.toBlob((b) => res(b!), "image/jpeg", quality),
+    );
+    return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
   const [itens, setItens] = useState<Item[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ data: ev }, { data: fo }] = await Promise.all([
+      const [{ data: ev }, { data: fo }, { data: cfg }] = await Promise.all([
         supabase.from("eventos_financeiros").select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id").eq("mes_referencia", mes),
         supabase.from("fornecedores").select("id, razao_social, cnpj"),
+        supabase.from("configuracoes").select("valor").eq("chave", "auto_vinculo").maybeSingle(),
       ]);
       setEventos((ev ?? []) as Evento[]);
       setFornecedores((fo ?? []) as Fornecedor[]);
+      const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
+      if (v) {
+        setTolerancia({
+          valor_centavos: typeof v.valor_centavos === "number" ? v.valor_centavos : TOLERANCIA_PADRAO.valor_centavos,
+          janela_dias: typeof v.janela_dias === "number" ? v.janela_dias : TOLERANCIA_PADRAO.janela_dias,
+        });
+      }
     })();
   }, [mes]);
 
@@ -96,14 +140,16 @@ function CapturaPage() {
     if (!dados?.valor || !dados.cnpj) return null;
     const forn = fornecedores.find((f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""));
     if (!forn) return null;
+    const tolValor = tolerancia.valor_centavos / 100;
+    const tolMs = tolerancia.janela_dias * 24 * 60 * 60 * 1000;
     const candidatos = eventos.filter((e) => {
       if (e.fornecedor_id !== forn.id) return false;
       if (e.valor_previsto == null) return false;
-      if (Math.abs(Number(e.valor_previsto) - Number(dados.valor)) > 0.5) return false;
+      if (Math.abs(Number(e.valor_previsto) - Number(dados.valor)) > tolValor) return false;
       if (dados.data && e.data_vencimento) {
         const dDoc = new Date(dados.data).getTime();
         const dVen = new Date(e.data_vencimento).getTime();
-        if (Math.abs(dDoc - dVen) > 3 * 24 * 60 * 60 * 1000) return false;
+        if (Math.abs(dDoc - dVen) > tolMs) return false;
       }
       return true;
     });
@@ -114,52 +160,75 @@ function CapturaPage() {
   async function processar(it: Item) {
     atualiza(it.id, { status: "processando", mensagem: "calculando hash" });
     try {
-      const hash = await sha256(it.file);
+      const arquivo = await resizeImage(it.file);
+      const hash = await sha256(arquivo);
 
-      // Dedup local pelo hash
+      // Dedup local pelo hash — reusa dados extraídos do gêmeo
       const { data: existentes } = await supabase
         .from("documentos_anexos")
-        .select("id, evento_id")
+        .select("id, evento_id, tipo, cnpj_extraido, valor_extraido, data_extraida, numero_extraido")
         .eq("arquivo_hash", hash)
         .limit(1);
       if (existentes && existentes.length) {
+        const g = existentes[0];
         atualiza(it.id, {
           status: "duplicata",
           hash,
-          mensagem: "Arquivo já cadastrado",
-          docId: existentes[0].id,
-          eventoId: existentes[0].evento_id,
+          mensagem: "Arquivo já cadastrado — dados reaproveitados",
+          docId: g.id,
+          eventoId: g.evento_id,
+          dados: {
+            tipo: g.tipo ?? undefined,
+            cnpj: g.cnpj_extraido,
+            valor: g.valor_extraido != null ? Number(g.valor_extraido) : null,
+            data: g.data_extraida,
+            numero: g.numero_extraido,
+          },
         });
         return;
       }
 
-      atualiza(it.id, { mensagem: "extraindo texto" });
+      atualiza(it.id, { mensagem: "extraindo conteúdo" });
       let texto = "";
-      if (it.file.type === "application/pdf" || it.file.name.toLowerCase().endsWith(".pdf")) {
-        try {
-          texto = await extractPdfText(it.file);
-        } catch (e) {
-          console.warn("pdf text falhou", e);
-        }
+      const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
+      const ehImagem = arquivo.type.startsWith("image/");
+      if (ehPdf) {
+        try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
       }
 
       atualiza(it.id, { mensagem: "interpretando com IA" });
       let dados: Item["dados"] = {};
-      if (texto.trim().length > 20) {
-        const r = (await extrair({ data: { texto, nomeArquivo: it.file.name } })) as
-          | { ok: true; dados: Item["dados"] }
+      let modeloUsado = "";
+      const temTextoUtil = texto.trim().length > 20;
+      if (temTextoUtil || ehImagem) {
+        const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
+          nomeArquivo: arquivo.name,
+        };
+        if (temTextoUtil) payload.texto = texto;
+        if (ehImagem && !temTextoUtil) {
+          payload.imagemBase64 = await fileToBase64(arquivo);
+          payload.mimeType = arquivo.type || "image/jpeg";
+        }
+        const r = (await extrair({ data: payload })) as
+          | { ok: true; dados: Item["dados"]; modelo: string; fallback: boolean }
           | { ok: false; erro: string };
-        if (r.ok) dados = r.dados;
-
+        if (r.ok) {
+          dados = r.dados;
+          modeloUsado = r.modelo + (r.fallback ? " (fallback)" : "");
+        } else {
+          dados = { descricao: arquivo.name, tipo: "outro" };
+        }
       } else {
-        dados = { descricao: it.file.name, tipo: "outro" };
+        dados = { descricao: arquivo.name, tipo: "outro" };
       }
 
+
+
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      const path = `${hash}-${it.file.name}`.slice(0, 200);
-      const up = await supabase.storage.from("documentos").upload(path, it.file, {
+      const path = `${hash}-${arquivo.name}`.slice(0, 200);
+      const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
-        contentType: it.file.type || undefined,
+        contentType: arquivo.type || undefined,
       });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
@@ -178,11 +247,18 @@ function CapturaPage() {
           data_extraida: dados?.data ?? null,
           origem: "manual",
           evento_id: eventoId,
-          metadata: { nome_original: it.file.name, descricao: dados?.descricao ?? null },
+          metadata: {
+            nome_original: it.file.name,
+            descricao: dados?.descricao ?? null,
+            modelo: modeloUsado || null,
+          },
         })
         .select("id")
         .single();
       if (insertRes.error) throw insertRes.error;
+
+
+
 
       if (eventoId) {
         await supabase
