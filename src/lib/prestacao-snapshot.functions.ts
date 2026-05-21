@@ -287,7 +287,7 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
         pdf_url: signed?.signedUrl ?? null,
         pdf_path: path,
         assinatura_hash: hash,
-        manifest: { eventos: manifest, gerado_em: new Date().toISOString() },
+        manifest: { eventos: manifest, gerado_em: new Date().toISOString() } as unknown as Record<string, never>,
         total_eventos: eventos.length,
         total_documentos: totalDocs,
         gerado_por: context.userId,
