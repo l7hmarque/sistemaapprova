@@ -1,57 +1,136 @@
-## Problema
+# Plano consolidado — próximas frentes
 
-Nos logs do servidor:
+## 1. Orçamentos — robustez
 
+- **Rascunho automático** no `localStorage` (debounce 500ms) do formulário de orçamento. Restaura ao montar, limpa só após sucesso.
+- **"Deixar em aberto":** nova coluna `orcamentos_salvos.status` (`aberto` | `gerado`). Lista de abertos em `/admin/orcamentos`, permite reabrir, editar e regerar planilha.
+- **Renomear "despesa" → "despesa prevista"** em rótulos e payload (orçamento ≠ pagamento efetivado). Ajustar mapa/controle bancário.
+- **Presets flexíveis:** aceitar preset "livre" (apenas nome + itens), sem forçar formato SIT. Editor com preview.
+
+## 2. Login
+
+- Email/senha + Google. Conta inicial: `l7hmarque@gmail.com`.
+- Tabelas `profiles` + `user_roles` (enum `app_role`: admin, user) — padrão seguro.
+- Migrar RLS atual (hoje liberada para `anon`) para `authenticated` + checagem por role.
+- Rotas `/login`, `/reset-password`, layout `_authenticated`.
+
+## 3. Cofre de Documentos Fiscais (nova frente — núcleo da nova prestação)
+
+Tabela central que unifica documentos vindos do **Gmail** e de **uploads manuais**, com identificação consistente.
+
+### 3.1 Modelo de dados
+
+```text
+documentos_fiscais
+  id, mes_referencia
+  tipo_documento      (boleto | nota_fiscal | fatura | holerite | comprovante_pgto)
+  fornecedor_id (fk), fornecedor_nome_extraido
+  cnpj_extraido
+  numero_documento    (NF, linha digitável boleto)
+  data_emissao, data_vencimento, data_pagamento
+  valor
+  arquivo_url         (Drive)
+  arquivo_hash        (sha256 do PDF — chave de deduplicação)
+  origem              (gmail | upload | bancario_manual)
+  gmail_message_id    (nullable)
+  despesa_id (fk)     (vínculo opcional com a despesa)
+  status              (pendente_revisao | vinculado | orfão | ignorado)
+  criado_em
 ```
-[api/extract] chamando IA — pdfBytes=45865439b, textLen=0
-POST /api/extract → 502
+
+### 3.2 Nomeação padronizada (no Drive)
+
+Ao salvar/renomear: `{tipoDocumento}_{fornecedorSlug}_{dd-mm-aa}_{valor}.pdf`  
+ex.: `boleto_sanepar_15-03-26_348,72.pdf  ---nao pode ter virgula no nome`
+
+### 3.3 Deduplicação
+
+- Hash SHA-256 do arquivo bloqueia duplicata exata.
+- Match fuzzy (mesmo CNPJ + mesmo valor + mesma data ±2 dias + mesmo tipo) marca como "possível duplicata" para revisão.
+
+## 4. Inbox Gmail
+
+```text
+Gmail → cron 15min → filtra anexos PDF → pipeline extract (já existe)
+   → cria linha em documentos_fiscais (status: pendente_revisao)
+   → UI /admin/inbox: revisar, vincular a despesa, lançar em lote
 ```
 
-O PDF tem ~46 MB e está sendo enviado inteiro como anexo binário (`type: "file"`) para o Lovable AI Gateway. O gateway/modelo rejeita/encerra a conexão (502) porque:
+- Connector Gmail (decidir: conta única da OSC ou per-user OAuth). - per user
+- Reusa `src/lib/extract/` para extrair tipo, valor, CNPJ, datas.
+- Badge de pendentes no header.
 
-1. Excede o limite prático de payload multimodal do modelo.
-2. Mesmo cabendo, o tempo de upload + processamento estoura o timeout da Edge/Worker.
+## 5. Painel de Despesas — tabela de acompanhamento
 
-Hoje só existe fallback se vier `text` no JSON — mas o front sempre manda `file`, então não há caminho de recuperação.
+Visão central por mês, formato tabela:
 
-## Solução (sem quebrar nada que já funciona)
 
-Dois ajustes complementares: **limite + pré-extração de texto no cliente** e **mensagem de erro decente** no servidor.
+| Despesa               | Fornecedor | Valor  | Vencimento | Boleto | NF  | Comprov. pgto | Status            |
+| --------------------- | ---------- | ------ | ---------- | ------ | --- | ------------- | ----------------- |
+| Energia 03/26         | Copel      | R$ 412 | 10/03      | ✅      | n/a | ❌             | falta comprovante |
+| Mat. limpeza          | Acme       | R$ 188 | 15/03      | ✅      | ✅   | ✅             | completa          |
+| ⚠️ Possível duplicata | Sanepar    | R$ 348 | 15/03      | 2x     | —   | —             | revisar           |
 
-### 1. Extrair texto do PDF no cliente antes de enviar
 
-No componente que faz upload em `/` (Home), trocar o envio bruto do `File` por:
+- Cada linha = despesa; ícones mostram quais documentos do cofre estão vinculados.
+- Alerta visual quando falta documento esperado para o tipo da despesa.
+- Detecção de duplicidades aproveita o mesmo cruzamento (CNPJ + valor + data).
+- Ações: anexar manualmente, abrir PDF, marcar "sem NF" (justificativa), agrupar duplicatas.
+  &nbsp;
+  --> LEMBRE-SE QUE PODE SER FATURA TAMBEM NO LUGAR DA NF! BEM COMO ALGUMAS DESPESAS  PODEM EXIGIR CERTIDOES NEGATIVAS, ORCAMENTOS E MAPA COMPARATIVO -> PRINCIPALMENTE COMPRAS FEITAS A PARTIR DE PESQUISA DE PRECO.
 
-- Ler o PDF com `pdfjs-dist` (já dá pra rodar no browser, sem instalar binários no Worker).
-- Se a extração de texto resultar em conteúdo significativo (> ~500 chars), enviar como `application/json` com `{ text }` para `/api/extract` — caminho que já existe e funciona.
-- Se o texto extraído for muito curto (PDF é escaneado/imagem), aí sim enviar o binário, mas:
-  - apenas se `file.size <= 8 MB` (limite seguro para multimodal),
-  - caso contrário mostrar mensagem clara: "PDF muito grande para análise por imagem (X MB). Limite: 8 MB. Sugestão: dividir o arquivo ou usar um PDF com texto selecionável."
+**Resposta direta:** sim, essa estrutura sustenta deteção de duplicidades — basta indexar por `(cnpj, valor, data, tipo)` e flagar conflitos no momento da inserção.
 
-Isso resolve 95% dos casos (PDFs de prestação de contas normalmente têm texto), sem mexer no pipeline determinístico nem nas regras de holerite.
+## 6. Comprovantes de pagamento bancários (impressos do financeiro)
 
-### 2. Endurecer `src/routes/api/extract.ts`
+**Problema:** chegam em papel, sem PDF nativo.
 
-- Adicionar guard no início do handler: se `pdfBytes && pdfBytes.byteLength > 8 * 1024 * 1024`, retornar 413 com mensagem amigável em vez de chamar a IA e estourar 502.
-- No `catch`, tratar `statusCode` 502/504/413 com mensagem específica ("PDF muito grande ou demorou demais. Tente um arquivo menor ou cole o texto").
+**Estratégia em camadas, do mais simples ao mais automático:**
 
-### 3. (Opcional, só se necessário) compressão
+### 6.1 MVP — digitalização em lote
 
-Se ainda assim alguns PDFs grandes-mas-com-texto falharem na extração local, dá pra adicionar um passo de "rasterizar página a página em JPEG" no cliente — mas só implemento se aparecer o caso. Por ora não é preciso.
+- Tela "Importar comprovantes" aceita 1 PDF multipágina (scanner do financeiro escaneia tudo de uma vez) **ou foto pelo celular** (PWA, `<input capture>`).
+- Sistema **divide automaticamente** em 1 comprovante por página.
+- Para cada página: OCR (pdfjs se digital, Tesseract.js no browser ou pipeline IA atual se imagem) → extrai valor, data, favorecido, banco.
+- Cria entradas em `documentos_fiscais` (tipo `comprovante_pgto`) e **tenta auto-vincular** à despesa correspondente (match por valor + data ±3 dias + nome favorecido).
+- Não casou → fica órfão na tela para vínculo manual.
 
-## O que NÃO muda
+### 6.2 Médio prazo — captura por foto avulsa
 
-- Pipeline determinístico (`reforcarComDeterministico`), schema, regras holerite, categorias, salvamento em `extracoes_salvas`, geração de `.txt`, planilhas, mapa comparativo — tudo intacto.
-- A rota `/api/extract` continua aceitando `file` (caminho binário) para PDFs pequenos/escaneados.
+- App PWA: financeiro tira foto do comprovante na hora do pagamento → upload direto → mesmo pipeline.
 
-## Detalhes técnicos
+### 6.3 Futuro (não agora)
 
-- Dependência nova: `pdfjs-dist` (browser-only, ~2 MB gzip, sem nativo). Worker fica de fora.
-- Arquivo a editar no front: o componente de upload da Home (provavelmente `src/routes/index.tsx` ou um componente em `src/components/`). Confirmo ao implementar.
-- Arquivo a editar no back: `src/routes/api/extract.ts` (guard + mensagens).
+- Integração com Open Finance / extrato bancário (CNAB, OFX) para conciliar pagamentos sem precisar do papel. Fica para depois.
 
-## Fases
+**Recomendação:** começar com 6.1 (scanner em lote + split automático + OCR + auto-vínculo). Resolve hoje sem mudar processo do financeiro.
 
-1. Adicionar guard de 8 MB e mensagens de erro no servidor (5 min, já evita o 502 silencioso).
-2. Instalar `pdfjs-dist` e extrair texto no cliente antes do POST (caminho principal).
-3. Testar com o mesmo PDF de 46 MB.
+## 7. Prestação de Contas modular
+
+Mantida do plano anterior, agora alimentada pelo Cofre (3) e Painel (5):
+
+- `prestacao_modelos`: estrutura configurável em seções ordenáveis (cada OSC tem o seu).
+- Tipos de seção: documento_fixo, documento_recorrente, certidoes_institucionais, **comprovantes_fiscais** (gera automaticamente A4 com [comprovante + boleto + NF] por despesa, puxando do cofre), orcamentos_mapas, upload_livre.
+- Documentos institucionais com validade extraída por IA + alerta de renovação.
+- Geração final = merge de PDFs (pdf-lib) seguindo a ordem do modelo.
+- **Certidões automáticas por CNPJ: adiadas** (você vai pensar em outra estratégia).
+
+## 8. Ordem sugerida
+
+1. Correções rápidas: rascunho + "deixar em aberto" + renomear "despesa prevista" + presets flexíveis.
+2. Login + roles + RLS.
+3. **Cofre de documentos fiscais** (3) — base de tudo que vem.
+4. **Painel de Despesas** (5) — visão e deduplicação.
+5. **Inbox Gmail** (4) — alimenta o cofre.
+6. **Comprovantes em lote** (6.1) — fecha o ciclo de captura.
+7. Prestação modular (7) — consome cofre + painel.
+
+## Perguntas para destravar implementação
+
+1. **Gmail:** 1 conta única da OSC (mais simples) ou cada usuário conecta a sua? -- CADA USUARIO CONECTA A SUA
+2. **Drive:** pode reaproveitar a estrutura atual de pastas para o cofre, ou criar pasta nova `Cofre Fiscal / {ano} / {mês}`? NOVA
+3. **Comprovantes bancários:** o financeiro topa escanear em lote no fim do dia/semana, ou a foto pelo celular é mais realista? TOPA ESCANEAR
+4. **Login:** Google + email/senha está OK, ou só Google? ESTA OK
+
+Por qual frente começamos?  
+- ANALISE ESSAS IDEIAS, AVALIE E ME SUGIRA ALGO QUE POSSA SER MELHOR DO QUE ESTOU FALANDO, SEM ELEVAO DE CUSTOS E QUE SEJA BEM OTIMIZADO. ME ENTREGUE EM NOVO PLANO MAS SALVE ESSE COMO PLANO B SE EU NAO GOSTAR DO SEU
