@@ -170,6 +170,33 @@ function PrestacaoPage() {
         </div>
       </header>
 
+      {snapshots.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+              Prestações fechadas em {mes}
+            </div>
+            {snapshots.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm truncate">{s.titulo ?? `Prestação ${mes}`}</div>
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 mt-0.5">
+                    <span>{new Date(s.gerado_em).toLocaleString("pt-BR")}</span>
+                    <span>{s.total_eventos} eventos · {s.total_documentos} docs</span>
+                    <span className="font-mono text-[10px]">SHA-256 {s.assinatura_hash.slice(0, 16)}…</span>
+                  </div>
+                </div>
+                <Badge variant="outline" className="shrink-0">imutável</Badge>
+                <Button size="sm" variant="outline" onClick={() => abrirSnapshot(s.id)}>
+                  <FileDown className="h-4 w-4 mr-1" /> Abrir PDF
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
       {loading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
       ) : docs.length === 0 ? (
