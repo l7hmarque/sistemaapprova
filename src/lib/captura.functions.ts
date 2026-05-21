@@ -137,18 +137,17 @@ export const extrairDocumento = createServerFn({ method: "POST" })
         // fallback direto se principal falhou de vez
         const r2 = await chamarGateway(apiKey, modeloFallback, mensagens);
         if (!r2.ok) return { ok: false, erro: `Gateway ${r2.status}` };
-        return { ok: true, dados: r2.dados, modelo: modeloFallback, fallback: true };
+        return { ok: true, dados: r2.dados };
       }
       // se principal devolveu nada útil e temos contexto rico, tenta Pro
       const temContextoRico = (data.texto?.length ?? 0) > 200 || ehImagem;
       if (pareceVazio(r1.dados) && temContextoRico) {
-        console.info("[extrairDocumento] principal vazio, tentando Pro");
         const r2 = await chamarGateway(apiKey, modeloFallback, mensagens);
         if (r2.ok && !pareceVazio(r2.dados)) {
-          return { ok: true, dados: r2.dados, modelo: modeloFallback, fallback: true };
+          return { ok: true, dados: r2.dados };
         }
       }
-      return { ok: true, dados: r1.dados, modelo: modeloPrincipal, fallback: false };
+      return { ok: true, dados: r1.dados };
     } catch (e) {
       console.error("[extrairDocumento] falha", e);
       return { ok: false, erro: e instanceof Error ? e.message : "Falha" };
