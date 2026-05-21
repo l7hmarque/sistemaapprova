@@ -32,6 +32,124 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_anexos: {
+        Row: {
+          arquivo_hash: string | null
+          arquivo_url: string | null
+          cnpj_extraido: string | null
+          created_at: string
+          data_extraida: string | null
+          evento_id: string | null
+          gmail_message_id: string | null
+          id: string
+          metadata: Json
+          numero_extraido: string | null
+          origem: string
+          tipo: string
+          valor_extraido: number | null
+        }
+        Insert: {
+          arquivo_hash?: string | null
+          arquivo_url?: string | null
+          cnpj_extraido?: string | null
+          created_at?: string
+          data_extraida?: string | null
+          evento_id?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          metadata?: Json
+          numero_extraido?: string | null
+          origem?: string
+          tipo: string
+          valor_extraido?: number | null
+        }
+        Update: {
+          arquivo_hash?: string | null
+          arquivo_url?: string | null
+          cnpj_extraido?: string | null
+          created_at?: string
+          data_extraida?: string | null
+          evento_id?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          metadata?: Json
+          numero_extraido?: string | null
+          origem?: string
+          tipo?: string
+          valor_extraido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_anexos_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eventos_financeiros: {
+        Row: {
+          categoria: string
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          fornecedor_id: string | null
+          id: string
+          mes_referencia: string
+          metadata: Json
+          origem: string
+          prestacao_snapshot_id: string | null
+          status_documental: string
+          updated_at: string
+          valor_efetivo: number | null
+          valor_previsto: number | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          mes_referencia: string
+          metadata?: Json
+          origem?: string
+          prestacao_snapshot_id?: string | null
+          status_documental?: string
+          updated_at?: string
+          valor_efetivo?: number | null
+          valor_previsto?: number | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          mes_referencia?: string
+          metadata?: Json
+          origem?: string
+          prestacao_snapshot_id?: string | null
+          status_documental?: string
+          updated_at?: string
+          valor_efetivo?: number | null
+          valor_previsto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_financeiros_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extracoes_salvas: {
         Row: {
           criada_em: string
