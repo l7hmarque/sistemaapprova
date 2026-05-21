@@ -196,9 +196,8 @@ function CapturaPage() {
         try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
       }
 
-      atualiza(it.id, { mensagem: "interpretando com IA" });
+      atualiza(it.id, { mensagem: "processando documento" });
       let dados: Item["dados"] = {};
-      let modeloUsado = "";
       const temTextoUtil = texto.trim().length > 20;
       if (temTextoUtil || ehImagem) {
         const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
@@ -210,11 +209,10 @@ function CapturaPage() {
           payload.mimeType = arquivo.type || "image/jpeg";
         }
         const r = (await extrair({ data: payload })) as
-          | { ok: true; dados: Item["dados"]; modelo: string; fallback: boolean }
+          | { ok: true; dados: Item["dados"] }
           | { ok: false; erro: string };
         if (r.ok) {
           dados = r.dados;
-          modeloUsado = r.modelo + (r.fallback ? " (fallback)" : "");
         } else {
           dados = { descricao: arquivo.name, tipo: "outro" };
         }
