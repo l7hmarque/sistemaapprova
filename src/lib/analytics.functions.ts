@@ -40,7 +40,7 @@ export const registrarEvento = createServerFn({ method: "POST" })
       session_id: data.session_id,
       rota: data.rota,
       evento: data.evento,
-      payload: data.payload ?? {},
+      payload: (data.payload ?? {}) as never,
       referrer: data.referrer ?? null,
       utm_source: data.utm_source ?? null,
       utm_medium: data.utm_medium ?? null,

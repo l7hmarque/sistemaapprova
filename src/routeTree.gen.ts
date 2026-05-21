@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
@@ -30,11 +31,17 @@ import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -137,6 +144,11 @@ const AdminCapturaRoute = AdminCapturaRouteImport.update({
   path: '/captura',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAgendaRoute = AdminAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
@@ -154,8 +166,10 @@ export interface FileRoutesByFullPath {
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -177,8 +191,10 @@ export interface FileRoutesByTo {
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -202,8 +218,10 @@ export interface FileRoutesById {
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/admin/agenda': typeof AdminAgendaRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -228,8 +246,10 @@ export interface FileRouteTypes {
     | '/obrigado'
     | '/orcamentos'
     | '/privacidade'
+    | '/sitemap.xml'
     | '/termos'
     | '/admin/agenda'
+    | '/admin/analytics'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -251,8 +271,10 @@ export interface FileRouteTypes {
     | '/obrigado'
     | '/orcamentos'
     | '/privacidade'
+    | '/sitemap.xml'
     | '/termos'
     | '/admin/agenda'
+    | '/admin/analytics'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -275,8 +297,10 @@ export interface FileRouteTypes {
     | '/obrigado'
     | '/orcamentos'
     | '/privacidade'
+    | '/sitemap.xml'
     | '/termos'
     | '/admin/agenda'
+    | '/admin/analytics'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -300,6 +324,7 @@ export interface RootRouteChildren {
   ObrigadoRoute: typeof ObrigadoRoute
   OrcamentosRoute: typeof OrcamentosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ApiExtractRoute: typeof ApiExtractRoute
 }
@@ -311,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -453,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCapturaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/agenda': {
       id: '/admin/agenda'
       path: '/agenda'
@@ -465,6 +504,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminCapturaRoute: typeof AdminCapturaRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
@@ -478,6 +518,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAgendaRoute: AdminAgendaRoute,
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminCapturaRoute: AdminCapturaRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
@@ -502,6 +543,7 @@ const rootRouteChildren: RootRouteChildren = {
   ObrigadoRoute: ObrigadoRoute,
   OrcamentosRoute: OrcamentosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ApiExtractRoute: ApiExtractRoute,
 }
