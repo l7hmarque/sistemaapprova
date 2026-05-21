@@ -19,10 +19,24 @@ Responda APENAS JSON válido no formato:
 }
 Não invente. Se não tiver certeza, use null.`;
 
+export type DadosExtraidos = {
+  tipo?: string | null;
+  cnpj?: string | null;
+  valor?: number | null;
+  data?: string | null;
+  numero?: string | null;
+  descricao?: string | null;
+};
+
+export type ExtracaoResposta =
+  | { ok: true; dados: DadosExtraidos }
+  | { ok: false; erro: string };
+
 export const extrairDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => InputSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<ExtracaoResposta> => {
+
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) {
       return { ok: false as const, erro: "LOVABLE_API_KEY ausente" };
