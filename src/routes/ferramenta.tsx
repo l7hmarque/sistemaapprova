@@ -435,6 +435,15 @@ function AppPage() {
   const [carregandoLista, setCarregandoLista] = useState(false);
   const [termo, setTermo] = useState<DadosTermo>(TERMO_DEFAULT);
 
+  const qc = useQueryClient();
+  const fetchComprovantes = useServerFn(listarComprovantes);
+  const { data: comprovantes = {} } = useQuery({
+    queryKey: ["comprovantes", extracaoOnlineId],
+    queryFn: () => fetchComprovantes({ data: { extracaoId: extracaoOnlineId! } }),
+    enabled: !!extracaoOnlineId && !!user, // We only fetch if user exists, wait, we need useAuth to get user? 
+  });
+
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
