@@ -506,12 +506,12 @@ function AppPage() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
+        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId }),
       );
     } catch {
       /* noop */
     }
-  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras]);
+  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId]);
 
   function salvarManual() {
     window.localStorage.setItem(
