@@ -444,6 +444,68 @@ function AppPage() {
   });
 
 
+  const uploadDoc = useServerFn(anexarComprovante);
+  const removeDoc = useServerFn(removerComprovante);
+  const viewDoc = useServerFn(linkComprovante);
+  const aproveDoc = useServerFn(aprovarComprovante);
+
+  const handleAnexar = async (uid: string, file: File) => {
+    if (!extracaoOnlineId) {
+      toast.error("Salve a extração online primeiro para poder anexar documentos.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await uploadDoc({
+          data: {
+            extracaoId: extracaoOnlineId,
+            despesaUid: uid,
+            nome: file.name,
+            mimeType: file.type,
+            conteudoBase64: reader.result as string,
+          }
+        });
+        toast.success("Comprovante anexado!");
+        qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoverComprovante = async (id: string) => {
+    if (!window.confirm("Remover este comprovante?")) return;
+    try {
+      await removeDoc({ data: { id } });
+      toast.success("Comprovante removido.");
+      qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleVerComprovante = async (path: string | null) => {
+    if (!path) return;
+    try {
+      const { url } = await viewDoc({ data: { path } });
+      window.open(url, "_blank");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleAprovarComprovante = async (id: string, status: "aprovado" | "rejeitado") => {
+    try {
+      await aproveDoc({ data: { id, status } });
+      toast.success("Status atualizado.");
+      qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
