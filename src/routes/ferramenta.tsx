@@ -1,4 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  listarComprovantes,
+  anexarComprovante,
+  removerComprovante,
+  linkComprovante,
+  aprovarComprovante,
+  type ComprovanteResumo,
+} from "@/lib/comprovantes.functions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -259,88 +269,144 @@ function uploadComProgresso(
   return new Promise((resolve, reject) => {
     const MAX_BIN = 8 * 1024 * 1024;
 
-    const enviar = (body: XMLHttpRequestBodyInit, headers: Record<string, string> | null) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/extract");
-      if (headers) {
-        for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
-      }
-      xhr.responseType = "text";
-      let analiseTimer: ReturnType<typeof setInterval> | null = null;
-      let analiseInicio = 0;
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
-      };
-      xhr.upload.onload = () => {
-        onUpload(100);
-        analiseInicio = Date.now();
-        analiseTimer = setInterval(() => {
-          const elapsedS = (Date.now() - analiseInicio) / 1000;
-          const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
-          onAnalise(pct);
-        }, 300);
-      };
-      const cleanup = () => {
-        if (analiseTimer) clearInterval(analiseTimer);
-      };
-      xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
-      xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
-      xhr.onload = () => {
-        cleanup();
-        onAnalise(100);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
-            resolve(data);
-          } catch {
-            reject(new Error("Resposta inválida do servidor"));
-          }
-        } else {
-          let msg = `Erro ${xhr.status}`;
-          try {
-            const j = JSON.parse(xhr.responseText) as { error?: string };
-            if (j.error) msg = j.error;
-          } catch { /* noop */ }
-          reject(new Error(msg));
+    const enviar = (body: XMLHttpRequestBodyInit, headers: Record<string, string> | null, upCb: (p: number) => void, anCb: (p: number) => void): Promise<ExtracaoResultado> => {
+      return new Promise((res, rej) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/extract");
+        if (headers) {
+          for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
         }
-      };
-      xhr.send(body);
+        xhr.responseType = "text";
+        let analiseTimer: ReturnType<typeof setInterval> | null = null;
+        let analiseInicio = 0;
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) upCb((e.loaded / e.total) * 100);
+        };
+        xhr.upload.onload = () => {
+          upCb(100);
+          analiseInicio = Date.now();
+          analiseTimer = setInterval(() => {
+            const elapsedS = (Date.now() - analiseInicio) / 1000;
+            const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
+            anCb(pct);
+          }, 300);
+        };
+        const cleanup = () => {
+          if (analiseTimer) clearInterval(analiseTimer);
+        };
+        xhr.onerror = () => { cleanup(); rej(new Error("Falha de rede")); };
+        xhr.onabort = () => { cleanup(); rej(new Error("Upload cancelado")); };
+        xhr.onload = () => {
+          cleanup();
+          anCb(100);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              res(JSON.parse(xhr.responseText) as ExtracaoResultado);
+            } catch {
+              rej(new Error("Resposta inválida do servidor"));
+            }
+          } else {
+            let msg = `Erro ${xhr.status}`;
+            try {
+              const j = JSON.parse(xhr.responseText) as { error?: string };
+              if (j.error) msg = j.error;
+            } catch { /* noop */ }
+            rej(new Error(msg));
+          }
+        };
+        xhr.send(body);
+      });
     };
 
-    // 1) Tenta extrair texto no cliente (rápido e evita upload pesado p/ IA)
     (async () => {
       try {
         const { extractPdfText } = await import("@/lib/pdf/extractTextClient");
         onUpload(5);
         const texto = await extractPdfText(file);
         if (texto && texto.length > 500) {
-          enviar(JSON.stringify({ text: texto }), { "Content-Type": "application/json" });
+          const res = await enviar(JSON.stringify({ text: texto }), { "Content-Type": "application/json" }, onUpload, onAnalise);
+          resolve(res);
           return;
         }
-        // Texto insuficiente — PDF provavelmente escaneado. Cai pro binário.
+
+        // Sem texto e arquivo grande -> CHUNKING
         if (file.size > MAX_BIN) {
-          reject(new Error(
-            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB) e sem texto selecionável. ` +
-            `Limite para análise por imagem: 8 MB. Divida o arquivo ou use um PDF com texto.`
-          ));
-          return;
+          try {
+            const { PDFDocument } = await import("pdf-lib");
+            const arrayBuffer = await file.arrayBuffer();
+            const sourcePdf = await PDFDocument.load(arrayBuffer);
+            const totalPages = sourcePdf.getPageCount();
+            
+            const avgPageBytes = file.size / totalPages;
+            const pagesPerChunk = Math.max(1, Math.floor((MAX_BIN * 0.8) / avgPageBytes));
+            
+            let chunks: File[] = [];
+            for (let start = 0; start < totalPages; start += pagesPerChunk) {
+               const end = Math.min(start + pagesPerChunk, totalPages);
+               const chunkPdf = await PDFDocument.create();
+               const copiedPages = await chunkPdf.copyPages(sourcePdf, Array.from({length: end - start}, (_, i) => start + i));
+               copiedPages.forEach(p => chunkPdf.addPage(p));
+               const chunkBytes = await chunkPdf.save();
+               chunks.push(new File([chunkBytes as any], `chunk_${start}_${file.name}`, { type: "application/pdf" }));
+            }
+
+            let allDespesas: any[] = [];
+            let allReceitas: any[] = [];
+            let combinedResumo = { saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 };
+            let mesReferencia = "";
+
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const fd = new FormData();
+              fd.append("file", chunk);
+              
+              const res = await enviar(fd, null, 
+                (p) => onUpload((i / chunks.length) * 100 + (p / chunks.length)),
+                (p) => onAnalise((i / chunks.length) * 100 + (p / chunks.length))
+              );
+
+              if (res.despesas) allDespesas.push(...res.despesas);
+              if (res.receitas) allReceitas.push(...res.receitas);
+              if (res.resumo) {
+                combinedResumo.saldoAnterior += res.resumo.saldoAnterior || 0;
+                combinedResumo.transferidos += res.resumo.transferidos || 0;
+                combinedResumo.rendimentos += res.resumo.rendimentos || 0;
+                combinedResumo.estornados += res.resumo.estornados || 0;
+              }
+              if (res.mesReferencia && !mesReferencia) mesReferencia = res.mesReferencia;
+            }
+
+            resolve({
+              despesas: allDespesas,
+              receitas: allReceitas,
+              resumo: combinedResumo,
+              mesReferencia
+            });
+            return;
+          } catch (e) {
+             console.warn("Falha no chunking client-side", e);
+             reject(new Error(`PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Erro ao dividir o PDF: ${(e as Error).message}`));
+             return;
+          }
         }
+
         const fd = new FormData();
         fd.append("file", file);
-        enviar(fd, null);
+        const res = await enviar(fd, null, onUpload, onAnalise);
+        resolve(res);
       } catch (e) {
-        // Falhou extrair texto — tenta binário se couber
-        console.warn("[upload] extração local falhou, tentando binário", e);
         if (file.size > MAX_BIN) {
-          reject(new Error(
-            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). ` +
-            `Limite: 8 MB. Divida o arquivo ou use um PDF com texto selecionável.`
-          ));
+          reject(new Error(`PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 8 MB. Divida o arquivo ou use um PDF com texto selecionável.`));
           return;
         }
         const fd = new FormData();
         fd.append("file", file);
-        enviar(fd, null);
+        try {
+          const res = await enviar(fd, null, onUpload, onAnalise);
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        }
       }
     })();
   });
@@ -361,12 +427,84 @@ function AppPage() {
   });
   const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
   const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
+  const [extracaoOnlineId, setExtracaoOnlineId] = useState<string | null>(null);
   const [hidratado, setHidratado] = useState(false);
   const [salvandoOnline, setSalvandoOnline] = useState(false);
   const [carregarAberto, setCarregarAberto] = useState(false);
   const [listaOnline, setListaOnline] = useState<ExtracaoSalvaResumo[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(false);
   const [termo, setTermo] = useState<DadosTermo>(TERMO_DEFAULT);
+
+  const qc = useQueryClient();
+  const fetchComprovantes = useServerFn(listarComprovantes);
+  const { data: comprovantes = {} } = useQuery({
+    queryKey: ["comprovantes", extracaoOnlineId],
+    queryFn: () => fetchComprovantes({ data: { extracaoId: extracaoOnlineId! } }),
+    enabled: !!extracaoOnlineId,
+  });
+
+
+  const uploadDoc = useServerFn(anexarComprovante);
+  const removeDoc = useServerFn(removerComprovante);
+  const viewDoc = useServerFn(linkComprovante);
+  const aproveDoc = useServerFn(aprovarComprovante);
+
+  const handleAnexar = async (uid: string, file: File) => {
+    if (!extracaoOnlineId) {
+      toast.error("Salve a extração online primeiro para poder anexar documentos.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await uploadDoc({
+          data: {
+            extracaoId: extracaoOnlineId,
+            despesaUid: uid,
+            nome: file.name,
+            mimeType: file.type,
+            conteudoBase64: reader.result as string,
+          }
+        });
+        toast.success("Comprovante anexado!");
+        qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoverComprovante = async (id: string) => {
+    if (!window.confirm("Remover este comprovante?")) return;
+    try {
+      await removeDoc({ data: { id } });
+      toast.success("Comprovante removido.");
+      qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleVerComprovante = async (path: string | null) => {
+    if (!path) return;
+    try {
+      const { url } = await viewDoc({ data: { path } });
+      window.open(url, "_blank");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleAprovarComprovante = async (id: string, status: "aprovado" | "rejeitado") => {
+    try {
+      await aproveDoc({ data: { id, status } });
+      toast.success("Status atualizado.");
+      qc.invalidateQueries({ queryKey: ["comprovantes", extracaoOnlineId] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -405,6 +543,7 @@ function AppPage() {
           resumo?: typeof resumo;
           overrides?: Record<string, CategoriaOverride>;
           categoriasExtras?: CategoriaExtra[];
+          extracaoOnlineId?: string | null;
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
@@ -432,6 +571,7 @@ function AppPage() {
         if (s.resumo) setResumo(s.resumo);
         if (s.overrides) setOverrides(s.overrides);
         if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
+        if (s.extracaoOnlineId !== undefined) setExtracaoOnlineId(s.extracaoOnlineId);
       }
     } catch { /* noop */ }
     setHidratado(true);
@@ -447,17 +587,17 @@ function AppPage() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
+        JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId }),
       );
     } catch {
       /* noop */
     }
-  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras]);
+  }, [hidratado, mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId]);
 
   function salvarManual() {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
+      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId }),
     );
     toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
   }
@@ -470,6 +610,7 @@ function AppPage() {
     setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
     setOverrides({});
     setCategoriasExtras([]);
+    setExtracaoOnlineId(null);
     window.localStorage.removeItem(STORAGE_KEY);
     toast.success("Lançamentos apagados.");
   }
@@ -618,10 +759,11 @@ function AppPage() {
     }
     setSalvandoOnline(true);
     try {
-      await salvarExtracaoOnline({
+      const newId = await salvarExtracaoOnline({
         dados: buildExtracaoAtual(),
         nomeArquivo: mesRef ? `extracao-${mesRef.replace("/", "-")}` : null,
       });
+      setExtracaoOnlineId(newId);
       toast.success("Extração salva online.");
     } catch (e) {
       toast.error("Falha ao salvar online: " + (e as Error).message);
@@ -646,6 +788,7 @@ function AppPage() {
     try {
       const data = await carregarExtracaoOnline(id);
       aplicarExtracao(data);
+      setExtracaoOnlineId(id);
       setCarregarAberto(false);
       toast.success("Extração carregada.");
     } catch (e) {
@@ -978,6 +1121,11 @@ function AppPage() {
                   onUpdate={updateDespesa}
                   onRemove={removerDespesa}
                   categorias={todasCategorias}
+                  comprovantes={comprovantes}
+                  onAnexar={handleAnexar}
+                  onRemoverComprovante={handleRemoverComprovante}
+                  onVerComprovante={handleVerComprovante}
+                  onAprovarComprovante={handleAprovarComprovante}
                 />
               </CardContent>
             </Card>
@@ -1337,11 +1485,21 @@ function DespesasTable({
   onUpdate,
   onRemove,
   categorias,
+  comprovantes,
+  onAnexar,
+  onRemoverComprovante,
+  onVerComprovante,
+  onAprovarComprovante,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
   onRemove: (uid: string) => void;
   categorias: { codigo: string; nome: string; previsto: number }[];
+  comprovantes: Record<string, ComprovanteResumo[]>;
+  onAnexar: (uid: string, file: File) => void;
+  onRemoverComprovante: (id: string) => void;
+  onVerComprovante: (path: string) => void;
+  onAprovarComprovante: (id: string, status: "aprovado" | "rejeitado") => void;
 }) {
   if (despesas.length === 0) {
     return (
@@ -1606,6 +1764,60 @@ function DespesasTable({
                     className="h-10 text-sm border-[0.5px] border-black"
                     align="right"
                   />
+                </div>
+
+                {/* Comprovante UI */}
+                <div className="col-span-12 mt-2 pt-3 border-t border-border">
+                  <Label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                    Comprovante
+                  </Label>
+                  <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    {(() => {
+                      const docs = comprovantes[d.uid] || [];
+                      if (docs.length === 0) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="file"
+                              className="w-[250px] text-xs h-9 cursor-pointer"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) onAnexar(d.uid, f);
+                              }}
+                            />
+                            <span className="text-xs text-muted-foreground">Nenhum anexo.</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          {docs.map((doc) => (
+                            <div key={doc.id} className="flex flex-col md:flex-row md:items-center gap-3 bg-muted/30 p-2 rounded border border-border">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span className="text-sm truncate">{doc.nome}</span>
+                                {doc.status_aprovacao === "aprovado" && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium shrink-0">Aprovado</span>}
+                                {doc.status_aprovacao === "rejeitado" && <span className="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-medium shrink-0">Rejeitado</span>}
+                                {doc.status_aprovacao === "pendente" && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium shrink-0">Pendente</span>}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onVerComprovante(doc.arquivo_url!)}>Ver</Button>
+                                {!doc.uploaded_by_self && doc.status_aprovacao === "pendente" && (
+                                  <>
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => onAprovarComprovante(doc.id, "aprovado")}>Aprovar</Button>
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={() => onAprovarComprovante(doc.id, "rejeitado")}>Rejeitar</Button>
+                                  </>
+                                )}
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => onRemoverComprovante(doc.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </CardContent>
