@@ -516,7 +516,7 @@ function AppPage() {
   function salvarManual() {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras }),
+      JSON.stringify({ mesRef, receitas, despesas, resumo, overrides, categoriasExtras, extracaoOnlineId }),
     );
     toast.success(`Lançamentos salvos (${despesas.length} despesa(s)).`);
   }
@@ -529,6 +529,7 @@ function AppPage() {
     setResumo({ saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 });
     setOverrides({});
     setCategoriasExtras([]);
+    setExtracaoOnlineId(null);
     window.localStorage.removeItem(STORAGE_KEY);
     toast.success("Lançamentos apagados.");
   }
@@ -677,10 +678,11 @@ function AppPage() {
     }
     setSalvandoOnline(true);
     try {
-      await salvarExtracaoOnline({
+      const newId = await salvarExtracaoOnline({
         dados: buildExtracaoAtual(),
         nomeArquivo: mesRef ? `extracao-${mesRef.replace("/", "-")}` : null,
       });
+      setExtracaoOnlineId(newId);
       toast.success("Extração salva online.");
     } catch (e) {
       toast.error("Falha ao salvar online: " + (e as Error).message);
@@ -705,6 +707,7 @@ function AppPage() {
     try {
       const data = await carregarExtracaoOnline(id);
       aplicarExtracao(data);
+      setExtracaoOnlineId(id);
       setCarregarAberto(false);
       toast.success("Extração carregada.");
     } catch (e) {
