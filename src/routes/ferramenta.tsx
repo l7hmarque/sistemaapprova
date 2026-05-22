@@ -337,8 +337,7 @@ function uploadComProgresso(
                const copiedPages = await chunkPdf.copyPages(sourcePdf, Array.from({length: end - start}, (_, i) => start + i));
                copiedPages.forEach(p => chunkPdf.addPage(p));
                const chunkBytes = await chunkPdf.save();
-               const blob = new Blob([chunkBytes], { type: "application/pdf" });
-               chunks.push(new File([blob], `chunk_${start}_${file.name}`, { type: "application/pdf" }));
+               chunks.push(new File([chunkBytes as any], `chunk_${start}_${file.name}`, { type: "application/pdf" }));
             }
 
             let allDespesas: any[] = [];
