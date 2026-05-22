@@ -1,4 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  listarComprovantes,
+  anexarComprovante,
+  removerComprovante,
+  linkComprovante,
+  aprovarComprovante,
+  type ComprovanteResumo,
+} from "@/lib/comprovantes.functions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
