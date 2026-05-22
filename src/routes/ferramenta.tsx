@@ -259,88 +259,144 @@ function uploadComProgresso(
   return new Promise((resolve, reject) => {
     const MAX_BIN = 8 * 1024 * 1024;
 
-    const enviar = (body: XMLHttpRequestBodyInit, headers: Record<string, string> | null) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/extract");
-      if (headers) {
-        for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
-      }
-      xhr.responseType = "text";
-      let analiseTimer: ReturnType<typeof setInterval> | null = null;
-      let analiseInicio = 0;
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
-      };
-      xhr.upload.onload = () => {
-        onUpload(100);
-        analiseInicio = Date.now();
-        analiseTimer = setInterval(() => {
-          const elapsedS = (Date.now() - analiseInicio) / 1000;
-          const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
-          onAnalise(pct);
-        }, 300);
-      };
-      const cleanup = () => {
-        if (analiseTimer) clearInterval(analiseTimer);
-      };
-      xhr.onerror = () => { cleanup(); reject(new Error("Falha de rede")); };
-      xhr.onabort = () => { cleanup(); reject(new Error("Upload cancelado")); };
-      xhr.onload = () => {
-        cleanup();
-        onAnalise(100);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText) as ExtracaoResultado;
-            resolve(data);
-          } catch {
-            reject(new Error("Resposta inválida do servidor"));
-          }
-        } else {
-          let msg = `Erro ${xhr.status}`;
-          try {
-            const j = JSON.parse(xhr.responseText) as { error?: string };
-            if (j.error) msg = j.error;
-          } catch { /* noop */ }
-          reject(new Error(msg));
+    const enviar = (body: XMLHttpRequestBodyInit, headers: Record<string, string> | null, upCb: (p: number) => void, anCb: (p: number) => void): Promise<ExtracaoResultado> => {
+      return new Promise((res, rej) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/extract");
+        if (headers) {
+          for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
         }
-      };
-      xhr.send(body);
+        xhr.responseType = "text";
+        let analiseTimer: ReturnType<typeof setInterval> | null = null;
+        let analiseInicio = 0;
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) upCb((e.loaded / e.total) * 100);
+        };
+        xhr.upload.onload = () => {
+          upCb(100);
+          analiseInicio = Date.now();
+          analiseTimer = setInterval(() => {
+            const elapsedS = (Date.now() - analiseInicio) / 1000;
+            const pct = Math.min(99, 100 * (1 - Math.exp(-elapsedS / 8)));
+            anCb(pct);
+          }, 300);
+        };
+        const cleanup = () => {
+          if (analiseTimer) clearInterval(analiseTimer);
+        };
+        xhr.onerror = () => { cleanup(); rej(new Error("Falha de rede")); };
+        xhr.onabort = () => { cleanup(); rej(new Error("Upload cancelado")); };
+        xhr.onload = () => {
+          cleanup();
+          anCb(100);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              res(JSON.parse(xhr.responseText) as ExtracaoResultado);
+            } catch {
+              rej(new Error("Resposta inválida do servidor"));
+            }
+          } else {
+            let msg = `Erro ${xhr.status}`;
+            try {
+              const j = JSON.parse(xhr.responseText) as { error?: string };
+              if (j.error) msg = j.error;
+            } catch { /* noop */ }
+            rej(new Error(msg));
+          }
+        };
+        xhr.send(body);
+      });
     };
 
-    // 1) Tenta extrair texto no cliente (rápido e evita upload pesado p/ IA)
     (async () => {
       try {
         const { extractPdfText } = await import("@/lib/pdf/extractTextClient");
         onUpload(5);
         const texto = await extractPdfText(file);
         if (texto && texto.length > 500) {
-          enviar(JSON.stringify({ text: texto }), { "Content-Type": "application/json" });
+          const res = await enviar(JSON.stringify({ text: texto }), { "Content-Type": "application/json" }, onUpload, onAnalise);
+          resolve(res);
           return;
         }
-        // Texto insuficiente — PDF provavelmente escaneado. Cai pro binário.
+
+        // Sem texto e arquivo grande -> CHUNKING
         if (file.size > MAX_BIN) {
-          reject(new Error(
-            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB) e sem texto selecionável. ` +
-            `Limite para análise por imagem: 8 MB. Divida o arquivo ou use um PDF com texto.`
-          ));
-          return;
+          try {
+            const { PDFDocument } = await import("pdf-lib");
+            const arrayBuffer = await file.arrayBuffer();
+            const sourcePdf = await PDFDocument.load(arrayBuffer);
+            const totalPages = sourcePdf.getPageCount();
+            
+            const avgPageBytes = file.size / totalPages;
+            const pagesPerChunk = Math.max(1, Math.floor((MAX_BIN * 0.8) / avgPageBytes));
+            
+            let chunks: File[] = [];
+            for (let start = 0; start < totalPages; start += pagesPerChunk) {
+               const end = Math.min(start + pagesPerChunk, totalPages);
+               const chunkPdf = await PDFDocument.create();
+               const copiedPages = await chunkPdf.copyPages(sourcePdf, Array.from({length: end - start}, (_, i) => start + i));
+               copiedPages.forEach(p => chunkPdf.addPage(p));
+               const chunkBytes = await chunkPdf.save();
+               chunks.push(new File([chunkBytes], `chunk_${start}_${file.name}`, { type: "application/pdf" }));
+            }
+
+            let allDespesas: any[] = [];
+            let allReceitas: any[] = [];
+            let combinedResumo = { saldoAnterior: 0, transferidos: 0, rendimentos: 0, estornados: 0 };
+            let mesReferencia = "";
+
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const fd = new FormData();
+              fd.append("file", chunk);
+              
+              const res = await enviar(fd, null, 
+                (p) => onUpload((i / chunks.length) * 100 + (p / chunks.length)),
+                (p) => onAnalise((i / chunks.length) * 100 + (p / chunks.length))
+              );
+
+              if (res.despesas) allDespesas.push(...res.despesas);
+              if (res.receitas) allReceitas.push(...res.receitas);
+              if (res.resumo) {
+                combinedResumo.saldoAnterior += res.resumo.saldoAnterior || 0;
+                combinedResumo.transferidos += res.resumo.transferidos || 0;
+                combinedResumo.rendimentos += res.resumo.rendimentos || 0;
+                combinedResumo.estornados += res.resumo.estornados || 0;
+              }
+              if (res.mesReferencia && !mesReferencia) mesReferencia = res.mesReferencia;
+            }
+
+            resolve({
+              despesas: allDespesas,
+              receitas: allReceitas,
+              resumo: combinedResumo,
+              mesReferencia
+            });
+            return;
+          } catch (e) {
+             console.warn("Falha no chunking client-side", e);
+             reject(new Error(`PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Erro ao dividir o PDF: ${(e as Error).message}`));
+             return;
+          }
         }
+
         const fd = new FormData();
         fd.append("file", file);
-        enviar(fd, null);
+        const res = await enviar(fd, null, onUpload, onAnalise);
+        resolve(res);
       } catch (e) {
-        // Falhou extrair texto — tenta binário se couber
-        console.warn("[upload] extração local falhou, tentando binário", e);
         if (file.size > MAX_BIN) {
-          reject(new Error(
-            `PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). ` +
-            `Limite: 8 MB. Divida o arquivo ou use um PDF com texto selecionável.`
-          ));
+          reject(new Error(`PDF muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 8 MB. Divida o arquivo ou use um PDF com texto selecionável.`));
           return;
         }
         const fd = new FormData();
         fd.append("file", file);
-        enviar(fd, null);
+        try {
+          const res = await enviar(fd, null, onUpload, onAnalise);
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        }
       }
     })();
   });
