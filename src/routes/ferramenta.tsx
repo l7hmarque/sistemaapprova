@@ -1485,11 +1485,21 @@ function DespesasTable({
   onUpdate,
   onRemove,
   categorias,
+  comprovantes,
+  onAnexar,
+  onRemoverComprovante,
+  onVerComprovante,
+  onAprovarComprovante,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
   onRemove: (uid: string) => void;
   categorias: { codigo: string; nome: string; previsto: number }[];
+  comprovantes: Record<string, ComprovanteResumo[]>;
+  onAnexar: (uid: string, file: File) => void;
+  onRemoverComprovante: (id: string) => void;
+  onVerComprovante: (path: string) => void;
+  onAprovarComprovante: (id: string, status: "aprovado" | "rejeitado") => void;
 }) {
   if (despesas.length === 0) {
     return (
