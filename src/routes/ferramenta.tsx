@@ -1121,6 +1121,11 @@ function AppPage() {
                   onUpdate={updateDespesa}
                   onRemove={removerDespesa}
                   categorias={todasCategorias}
+                  comprovantes={comprovantes}
+                  onAnexar={handleAnexar}
+                  onRemoverComprovante={handleRemoverComprovante}
+                  onVerComprovante={handleVerComprovante}
+                  onAprovarComprovante={handleAprovarComprovante}
                 />
               </CardContent>
             </Card>
