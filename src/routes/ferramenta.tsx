@@ -417,6 +417,7 @@ function AppPage() {
   });
   const [overrides, setOverrides] = useState<Record<string, CategoriaOverride>>({});
   const [categoriasExtras, setCategoriasExtras] = useState<CategoriaExtra[]>([]);
+  const [extracaoOnlineId, setExtracaoOnlineId] = useState<string | null>(null);
   const [hidratado, setHidratado] = useState(false);
   const [salvandoOnline, setSalvandoOnline] = useState(false);
   const [carregarAberto, setCarregarAberto] = useState(false);
