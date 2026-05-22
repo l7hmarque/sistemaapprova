@@ -462,6 +462,7 @@ function AppPage() {
           resumo?: typeof resumo;
           overrides?: Record<string, CategoriaOverride>;
           categoriasExtras?: CategoriaExtra[];
+          extracaoOnlineId?: string | null;
         };
         if (s.mesRef) setMesRef(s.mesRef);
         if (s.receitas) setReceitas(s.receitas);
@@ -489,6 +490,7 @@ function AppPage() {
         if (s.resumo) setResumo(s.resumo);
         if (s.overrides) setOverrides(s.overrides);
         if (s.categoriasExtras) setCategoriasExtras(s.categoriasExtras);
+        if (s.extracaoOnlineId !== undefined) setExtracaoOnlineId(s.extracaoOnlineId);
       }
     } catch { /* noop */ }
     setHidratado(true);
