@@ -1765,6 +1765,60 @@ function DespesasTable({
                     align="right"
                   />
                 </div>
+
+                {/* Comprovante UI */}
+                <div className="col-span-12 mt-2 pt-3 border-t border-border">
+                  <Label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                    Comprovante
+                  </Label>
+                  <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    {(() => {
+                      const docs = comprovantes[d.uid] || [];
+                      if (docs.length === 0) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="file"
+                              className="w-[250px] text-xs h-9 cursor-pointer"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) onAnexar(d.uid, f);
+                              }}
+                            />
+                            <span className="text-xs text-muted-foreground">Nenhum anexo.</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          {docs.map((doc) => (
+                            <div key={doc.id} className="flex flex-col md:flex-row md:items-center gap-3 bg-muted/30 p-2 rounded border border-border">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span className="text-sm truncate">{doc.nome}</span>
+                                {doc.status_aprovacao === "aprovado" && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium shrink-0">Aprovado</span>}
+                                {doc.status_aprovacao === "rejeitado" && <span className="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-medium shrink-0">Rejeitado</span>}
+                                {doc.status_aprovacao === "pendente" && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium shrink-0">Pendente</span>}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onVerComprovante(doc.arquivo_url!)}>Ver</Button>
+                                {!doc.uploaded_by_self && doc.status_aprovacao === "pendente" && (
+                                  <>
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => onAprovarComprovante(doc.id, "aprovado")}>Aprovar</Button>
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={() => onAprovarComprovante(doc.id, "rejeitado")}>Rejeitar</Button>
+                                  </>
+                                )}
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10" onClick={() => onRemoverComprovante(doc.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
