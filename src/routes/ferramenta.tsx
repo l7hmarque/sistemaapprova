@@ -440,7 +440,7 @@ function AppPage() {
   const { data: comprovantes = {} } = useQuery({
     queryKey: ["comprovantes", extracaoOnlineId],
     queryFn: () => fetchComprovantes({ data: { extracaoId: extracaoOnlineId! } }),
-    enabled: !!extracaoOnlineId && !!user, // We only fetch if user exists, wait, we need useAuth to get user? 
+    enabled: !!extracaoOnlineId,
   });
 
 
