@@ -34,6 +34,7 @@ function CotacaoDetalhePage() {
   const gerarOrc = useServerFn(gerarOrcamentoParaCotacao);
   const removerOrc = useServerFn(removerOrcamentoCotacao);
   const gerarMapa = useServerFn(gerarMapaDaCotacao);
+  const savePreset = useServerFn(salvarPreset);
   const novoConvite = useServerFn(criarConvite);
   const fetchConvites = useServerFn(listarConvitesDaCotacao);
   const delConvite = useServerFn(removerConvite);
