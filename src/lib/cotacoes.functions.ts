@@ -40,12 +40,8 @@ const CotacaoUpdateSchema = z.object({
   observacoes: z.string().max(2000).nullish(),
 });
 
-const ENTIDADE_DEFAULT = {
-  razao: "Sociedade Civil Nossa Senhora Aparecida",
-  cnpj: "01.788.362/0001-51",
-  representante: "Raul Oscar Sena Velez",
-  cpf: "801.780.489-09",
-};
+// ENTIDADE_DEFAULT importado de ./cotacoes.server
+
 
 function pastaDestino(mesRef: string | undefined): string[] {
   const mes = mesRef && /^\d{4}-\d{2}$/.test(mesRef) ? mesRef : new Date().toISOString().slice(0, 7);
