@@ -34,6 +34,7 @@ import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
 import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
+import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -160,6 +161,11 @@ const AdminAgendaRoute = AdminAgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
+  id: '/cotacoes/$id',
+  path: '/cotacoes/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/admin/prestacao'
     | '/api/extract'
     | '/admin/'
+    | '/admin/cotacoes/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/admin/prestacao'
     | '/api/extract'
     | '/admin'
+    | '/admin/cotacoes/$id'
   id:
     | '__root__'
     | '/'
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/admin/prestacao'
     | '/api/extract'
     | '/admin/'
+    | '/admin/cotacoes/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -518,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgendaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cotacoes/$id': {
+      id: '/admin/cotacoes/$id'
+      path: '/cotacoes/$id'
+      fullPath: '/admin/cotacoes/$id'
+      preLoaderRoute: typeof AdminCotacoesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -534,6 +553,7 @@ interface AdminRouteChildren {
   AdminPainelRoute: typeof AdminPainelRoute
   AdminPrestacaoRoute: typeof AdminPrestacaoRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminCotacoesIdRoute: typeof AdminCotacoesIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -549,6 +569,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPainelRoute: AdminPainelRoute,
   AdminPrestacaoRoute: AdminPrestacaoRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminCotacoesIdRoute: AdminCotacoesIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -571,13 +592,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,0 +1,74 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+
+const FornecedorSchema = z.object({
+  id: z.string().uuid().optional(),
+  razao_social: z.string().min(1).max(255),
+  cnpj: z.string().min(1).max(40),
+  representante_legal: z.string().max(255).nullish(),
+  cpf_representante: z.string().max(40).nullish(),
+  email: z.string().email().max(255).nullish().or(z.literal("")),
+  telefone: z.string().max(40).nullish(),
+  endereco: z.string().max(500).nullish(),
+});
+
+export const listarFornecedores = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabase
+    .from("fornecedores")
+    .select("*")
+    .order("razao_social", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const salvarFornecedor = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => FornecedorSchema.parse(d))
+  .handler(async ({ data }) => {
+    const payload = {
+      razao_social: data.razao_social,
+      cnpj: data.cnpj,
+      representante_legal: data.representante_legal || null,
+      cpf_representante: data.cpf_representante || null,
+      email: data.email || null,
+      telefone: data.telefone || null,
+      endereco: data.endereco || null,
+    };
+    if (data.id) {
+      const { data: row, error } = await supabase
+        .from("fornecedores")
+        .update(payload)
+        .eq("id", data.id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return row;
+    }
+    const { data: row, error } = await supabase
+      .from("fornecedores")
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const removerFornecedor = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { error } = await supabase.from("fornecedores").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const buscarPorCnpj = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ cnpj: z.string().min(1).max(40) }).parse(d))
+  .handler(async ({ data }) => {
+    const limpo = data.cnpj.replace(/\D/g, "");
+    const { data: rows } = await supabase
+      .from("fornecedores")
+      .select("*")
+      .or(`cnpj.eq.${data.cnpj},cnpj.eq.${limpo}`)
+      .limit(1);
+    return rows?.[0] ?? null;
+  });
