@@ -129,7 +129,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CotacaoUpdateSchema.parse(d))
   .handler(async ({ data }) => {
     const { id, ...rest } = data;
-    const patch: Record<string, unknown> = {};
+    const patch: any = {};
     if (rest.objeto !== undefined) patch.objeto = rest.objeto;
     if (rest.termo !== undefined) patch.termo = rest.termo || null;
     if (rest.mes_referencia !== undefined) patch.mes_referencia = rest.mes_referencia || null;
