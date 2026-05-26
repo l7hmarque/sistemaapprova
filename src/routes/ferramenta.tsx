@@ -449,6 +449,32 @@ function AppPage() {
   const removeDoc = useServerFn(removerComprovante);
   const viewDoc = useServerFn(linkComprovante);
   const aproveDoc = useServerFn(aprovarComprovante);
+  const saveSupplier = useServerFn(salvarFornecedor);
+  const findSupplier = useServerFn(buscarPorCnpj);
+
+  const handleSalvarFornecedor = async (d: Despesa) => {
+    if (d.tpDocFav !== "CNPJ" || !isValidCNPJ(d.nrDocFav)) {
+      toast.error("Informe um CNPJ válido para cadastrar o fornecedor.");
+      return;
+    }
+    if (!d.favorecido.trim()) {
+      toast.error("Informe a razão social (favorecido).");
+      return;
+    }
+    try {
+      const existing = await findSupplier({ data: { cnpj: d.nrDocFav } });
+      if (existing) {
+        toast.info(`Fornecedor já cadastrado: ${existing.razao_social}.`);
+        return;
+      }
+      await saveSupplier({
+        data: { razao_social: d.favorecido.trim(), cnpj: d.nrDocFav },
+      });
+      toast.success("Fornecedor cadastrado!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const handleAnexar = async (uid: string, file: File) => {
     if (!extracaoOnlineId) {
