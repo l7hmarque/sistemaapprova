@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput,
+  ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput, Link2, Copy,
 } from "lucide-react";
 import {
   obterCotacao, gerarOrcamentoParaCotacao, removerOrcamentoCotacao, gerarMapaDaCotacao, salvarPreset,
 } from "@/lib/cotacoes.functions";
 import { listarFornecedores } from "@/lib/fornecedores.functions";
+import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
 
 export const Route = createFileRoute("/admin/cotacoes/$id")({
   head: () => ({ meta: [{ title: "Cotação — SynSIT" }] }),
