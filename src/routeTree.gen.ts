@@ -35,6 +35,8 @@ import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
+import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
+import { Route as ApiPublicCotacaoTokenPdfRouteImport } from './routes/api/public/cotacao.$token.pdf'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -166,6 +168,17 @@ const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
   path: '/cotacoes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
+  id: '/api/public/cotacao/$token',
+  path: '/api/public/cotacao/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCotacaoTokenPdfRoute =
+  ApiPublicCotacaoTokenPdfRouteImport.update({
+    id: '/pdf',
+    path: '/pdf',
+    getParentRoute: () => ApiPublicCotacaoTokenRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,6 +207,8 @@ export interface FileRoutesByFullPath {
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -221,6 +236,8 @@ export interface FileRoutesByTo {
   '/api/extract': typeof ApiExtractRoute
   '/admin': typeof AdminIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -250,6 +267,8 @@ export interface FileRoutesById {
   '/api/extract': typeof ApiExtractRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -280,6 +299,8 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/admin/'
     | '/admin/cotacoes/$id'
+    | '/api/public/cotacao/$token'
+    | '/api/public/cotacao/$token/pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -307,6 +328,8 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/admin'
     | '/admin/cotacoes/$id'
+    | '/api/public/cotacao/$token'
+    | '/api/public/cotacao/$token/pdf'
   id:
     | '__root__'
     | '/'
@@ -335,6 +358,8 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/admin/'
     | '/admin/cotacoes/$id'
+    | '/api/public/cotacao/$token'
+    | '/api/public/cotacao/$token/pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -351,6 +376,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ApiExtractRoute: typeof ApiExtractRoute
+  ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -537,6 +563,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCotacoesIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/cotacao/$token': {
+      id: '/api/public/cotacao/$token'
+      path: '/api/public/cotacao/$token'
+      fullPath: '/api/public/cotacao/$token'
+      preLoaderRoute: typeof ApiPublicCotacaoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cotacao/$token/pdf': {
+      id: '/api/public/cotacao/$token/pdf'
+      path: '/pdf'
+      fullPath: '/api/public/cotacao/$token/pdf'
+      preLoaderRoute: typeof ApiPublicCotacaoTokenPdfRouteImport
+      parentRoute: typeof ApiPublicCotacaoTokenRoute
+    }
   }
 }
 
@@ -574,6 +614,19 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ApiPublicCotacaoTokenRouteChildren {
+  ApiPublicCotacaoTokenPdfRoute: typeof ApiPublicCotacaoTokenPdfRoute
+}
+
+const ApiPublicCotacaoTokenRouteChildren: ApiPublicCotacaoTokenRouteChildren = {
+  ApiPublicCotacaoTokenPdfRoute: ApiPublicCotacaoTokenPdfRoute,
+}
+
+const ApiPublicCotacaoTokenRouteWithChildren =
+  ApiPublicCotacaoTokenRoute._addFileChildren(
+    ApiPublicCotacaoTokenRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -588,7 +641,18 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ApiExtractRoute: ApiExtractRoute,
+  ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
