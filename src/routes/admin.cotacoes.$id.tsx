@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput,
+  ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput, Link2, Copy,
 } from "lucide-react";
 import {
   obterCotacao, gerarOrcamentoParaCotacao, removerOrcamentoCotacao, gerarMapaDaCotacao, salvarPreset,
 } from "@/lib/cotacoes.functions";
 import { listarFornecedores } from "@/lib/fornecedores.functions";
+import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
 
 export const Route = createFileRoute("/admin/cotacoes/$id")({
   head: () => ({ meta: [{ title: "Cotação — SynSIT" }] }),
@@ -34,6 +35,9 @@ function CotacaoDetalhePage() {
   const removerOrc = useServerFn(removerOrcamentoCotacao);
   const gerarMapa = useServerFn(gerarMapaDaCotacao);
   const savePreset = useServerFn(salvarPreset);
+  const novoConvite = useServerFn(criarConvite);
+  const fetchConvites = useServerFn(listarConvitesDaCotacao);
+  const delConvite = useServerFn(removerConvite);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -259,6 +263,14 @@ function CotacaoDetalhePage() {
             </CardContent>
           </Card>
 
+          <ConvitesPanel
+            cotacaoId={id}
+            fornecedores={fornecedores ?? []}
+            fetchConvites={fetchConvites}
+            novoConvite={novoConvite}
+            delConvite={delConvite}
+          />
+
           <Card>
             <CardContent className="pt-6">
               <Link to="/admin/fornecedores" className="text-xs text-primary hover:underline">
@@ -384,5 +396,117 @@ function CotacaoDetalhePage() {
         </DialogContent>
       </Dialog>
     </AdminShell>
+  );
+}
+
+function ConvitesPanel({
+  cotacaoId, fornecedores, fetchConvites, novoConvite, delConvite,
+}: {
+  cotacaoId: string;
+  fornecedores: any[];
+  fetchConvites: (a: any) => Promise<any>;
+  novoConvite: (a: any) => Promise<any>;
+  delConvite: (a: any) => Promise<any>;
+}) {
+  const qc = useQueryClient();
+  const { data: convites } = useQuery({
+    queryKey: ["convites", cotacaoId],
+    queryFn: () => fetchConvites({ data: { cotacao_id: cotacaoId } }),
+  });
+  const [open, setOpen] = useState(false);
+  const [fornId, setFornId] = useState<string>("");
+
+  const mut = useMutation({
+    mutationFn: () => {
+      const f = fornecedores.find((x) => x.id === fornId);
+      if (!f) throw new Error("Selecione um fornecedor");
+      return novoConvite({
+        data: {
+          cotacao_id: cotacaoId,
+          fornecedor_id: f.id,
+          razao_social: f.razao_social,
+          cnpj: f.cnpj,
+          email: f.email ?? "",
+          telefone: f.telefone ?? "",
+          representante_legal: f.representante_legal ?? "",
+          cpf_representante: f.cpf_representante ?? "",
+          endereco: f.endereco ?? "",
+          validade_dias: 30,
+        },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["convites", cotacaoId] });
+      toast.success("Convite criado");
+      setOpen(false);
+      setFornId("");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const mutDel = useMutation({
+    mutationFn: (id: string) => delConvite({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["convites", cotacaoId] }),
+  });
+
+  const copiarLink = (token: string) => {
+    const url = `${window.location.origin}/cotacao/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado");
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2"><Link2 className="h-4 w-4" /> Convites a fornecedores</CardTitle>
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="gap-1">
+          <Plus className="h-3.5 w-3.5" /> Novo
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {(convites ?? []).length === 0 ? (
+          <p className="text-xs text-muted-foreground">Crie um convite e envie o link para o fornecedor preencher.</p>
+        ) : (
+          <ul className="divide-y">
+            {(convites ?? []).map((c: any) => (
+              <li key={c.id} className="py-2 flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{c.razao_social}</div>
+                  <div className="text-xs text-muted-foreground">{c.status}</div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => copiarLink(c.token)} className="gap-1">
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => mutDel.mutate(c.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Novo convite</DialogTitle></DialogHeader>
+          <div>
+            <Label>Fornecedor</Label>
+            <select
+              className="w-full border rounded h-9 px-2 text-sm bg-background"
+              value={fornId}
+              onChange={(e) => setFornId(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {fornecedores.map((f) => (
+                <option key={f.id} value={f.id}>{f.razao_social} — {f.cnpj}</option>
+              ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => mut.mutate()} disabled={!fornId || mut.isPending}>Gerar link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
