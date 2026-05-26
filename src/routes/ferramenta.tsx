@@ -1518,6 +1518,7 @@ function DespesasTable({
   onRemoverComprovante,
   onVerComprovante,
   onAprovarComprovante,
+  onSalvarFornecedor,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
@@ -1528,6 +1529,7 @@ function DespesasTable({
   onRemoverComprovante: (id: string) => void;
   onVerComprovante: (path: string) => void;
   onAprovarComprovante: (id: string, status: "aprovado" | "rejeitado") => void;
+  onSalvarFornecedor: (d: Despesa) => void;
 }) {
   if (despesas.length === 0) {
     return (
