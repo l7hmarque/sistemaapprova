@@ -1153,6 +1153,7 @@ function AppPage() {
                   onRemoverComprovante={handleRemoverComprovante}
                   onVerComprovante={handleVerComprovante}
                   onAprovarComprovante={handleAprovarComprovante}
+                  onSalvarFornecedor={handleSalvarFornecedor}
                 />
               </CardContent>
             </Card>
