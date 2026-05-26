@@ -32,6 +32,75 @@ export type Database = {
         }
         Relationships: []
       }
+      convites_cotacao: {
+        Row: {
+          atualizado_em: string
+          cnpj: string
+          cotacao_id: string
+          cpf_representante: string | null
+          criado_em: string
+          email: string | null
+          endereco: string | null
+          enviado_em: string
+          expira_em: string
+          fornecedor_id: string | null
+          id: string
+          observacao_fornecedor: string | null
+          orcamento_id: string | null
+          razao_social: string
+          representante_legal: string | null
+          respondido_em: string | null
+          respostas: Json
+          status: string
+          telefone: string | null
+          token: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cnpj: string
+          cotacao_id: string
+          cpf_representante?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          enviado_em?: string
+          expira_em?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao_fornecedor?: string | null
+          orcamento_id?: string | null
+          razao_social: string
+          representante_legal?: string | null
+          respondido_em?: string | null
+          respostas?: Json
+          status?: string
+          telefone?: string | null
+          token: string
+        }
+        Update: {
+          atualizado_em?: string
+          cnpj?: string
+          cotacao_id?: string
+          cpf_representante?: string | null
+          criado_em?: string
+          email?: string | null
+          endereco?: string | null
+          enviado_em?: string
+          expira_em?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao_fornecedor?: string | null
+          orcamento_id?: string | null
+          razao_social?: string
+          representante_legal?: string | null
+          respondido_em?: string | null
+          respostas?: Json
+          status?: string
+          telefone?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
       cotacao_presets: {
         Row: {
           atualizado_em: string
@@ -162,6 +231,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      eventos_agenda: {
+        Row: {
+          atualizado_em: string
+          cotacao_id: string | null
+          criado_em: string
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          id: string
+          notificar_em: string | null
+          prioridade: string
+          status: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cotacao_id?: string | null
+          criado_em?: string
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          notificar_em?: string | null
+          prioridade?: string
+          status?: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          atualizado_em?: string
+          cotacao_id?: string | null
+          criado_em?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          notificar_em?: string | null
+          prioridade?: string
+          status?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
       }
       eventos_financeiros: {
         Row: {
