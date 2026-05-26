@@ -263,6 +263,14 @@ function CotacaoDetalhePage() {
             </CardContent>
           </Card>
 
+          <ConvitesPanel
+            cotacaoId={id}
+            fornecedores={fornecedores ?? []}
+            fetchConvites={fetchConvites}
+            novoConvite={novoConvite}
+            delConvite={delConvite}
+          />
+
           <Card>
             <CardContent className="pt-6">
               <Link to="/admin/fornecedores" className="text-xs text-primary hover:underline">
