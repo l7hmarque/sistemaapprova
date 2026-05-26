@@ -32,6 +32,81 @@ export type Database = {
         }
         Relationships: []
       }
+      cotacao_presets: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          fornecedores_sugeridos: Json
+          id: string
+          itens: Json
+          nome: string
+          objeto: string | null
+          termo: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          fornecedores_sugeridos?: Json
+          id?: string
+          itens?: Json
+          nome: string
+          objeto?: string | null
+          termo?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          fornecedores_sugeridos?: Json
+          id?: string
+          itens?: Json
+          nome?: string
+          objeto?: string | null
+          termo?: string | null
+        }
+        Relationships: []
+      }
+      cotacoes: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          id: string
+          itens: Json
+          mapa_drive_file_id: string | null
+          mapa_drive_file_url: string | null
+          mes_referencia: string | null
+          objeto: string
+          observacoes: string | null
+          status: string
+          termo: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          itens?: Json
+          mapa_drive_file_id?: string | null
+          mapa_drive_file_url?: string | null
+          mes_referencia?: string | null
+          objeto: string
+          observacoes?: string | null
+          status?: string
+          termo?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          itens?: Json
+          mapa_drive_file_id?: string | null
+          mapa_drive_file_url?: string | null
+          mes_referencia?: string | null
+          objeto?: string
+          observacoes?: string | null
+          status?: string
+          termo?: string | null
+        }
+        Relationships: []
+      }
       documentos_anexos: {
         Row: {
           arquivo_hash: string | null
@@ -458,6 +533,7 @@ export type Database = {
       }
       orcamentos_salvos: {
         Row: {
+          cotacao_id: string | null
           criado_em: string
           dados: Json
           drive_file_id: string | null
@@ -466,10 +542,12 @@ export type Database = {
           id: string
           mes_referencia: string | null
           objeto: string | null
+          status: string
           termo: string | null
           tipo: string
         }
         Insert: {
+          cotacao_id?: string | null
           criado_em?: string
           dados: Json
           drive_file_id?: string | null
@@ -478,10 +556,12 @@ export type Database = {
           id?: string
           mes_referencia?: string | null
           objeto?: string | null
+          status?: string
           termo?: string | null
           tipo: string
         }
         Update: {
+          cotacao_id?: string | null
           criado_em?: string
           dados?: Json
           drive_file_id?: string | null
@@ -490,10 +570,18 @@ export type Database = {
           id?: string
           mes_referencia?: string | null
           objeto?: string | null
+          status?: string
           termo?: string | null
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orcamentos_salvos_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orcamentos_salvos_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
