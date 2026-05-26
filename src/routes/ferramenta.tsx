@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload, Play, X, Loader2, Settings2, ChevronDown } from "lucide-react";
+import { Upload, Download, Plus, Trash2, FileText, CheckCircle2, AlertCircle, Save, Copy, RotateCcw, Cloud, CloudDownload, Play, X, Loader2, Settings2, ChevronDown, UserPlus } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -72,6 +72,7 @@ import {
 } from "@/lib/sit/catalogos";
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { isValidCNPJ, isValidCPF } from "@/lib/sit/cnpjValidator";
+import { salvarFornecedor, buscarPorCnpj } from "@/lib/fornecedores.functions";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 
@@ -448,6 +449,32 @@ function AppPage() {
   const removeDoc = useServerFn(removerComprovante);
   const viewDoc = useServerFn(linkComprovante);
   const aproveDoc = useServerFn(aprovarComprovante);
+  const saveSupplier = useServerFn(salvarFornecedor);
+  const findSupplier = useServerFn(buscarPorCnpj);
+
+  const handleSalvarFornecedor = async (d: Despesa) => {
+    if (d.tpDocFav !== "CNPJ" || !isValidCNPJ(d.nrDocFav)) {
+      toast.error("Informe um CNPJ válido para cadastrar o fornecedor.");
+      return;
+    }
+    if (!d.favorecido.trim()) {
+      toast.error("Informe a razão social (favorecido).");
+      return;
+    }
+    try {
+      const existing = await findSupplier({ data: { cnpj: d.nrDocFav } });
+      if (existing) {
+        toast.info(`Fornecedor já cadastrado: ${existing.razao_social}.`);
+        return;
+      }
+      await saveSupplier({
+        data: { razao_social: d.favorecido.trim(), cnpj: d.nrDocFav },
+      });
+      toast.success("Fornecedor cadastrado!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const handleAnexar = async (uid: string, file: File) => {
     if (!extracaoOnlineId) {
@@ -1126,6 +1153,7 @@ function AppPage() {
                   onRemoverComprovante={handleRemoverComprovante}
                   onVerComprovante={handleVerComprovante}
                   onAprovarComprovante={handleAprovarComprovante}
+                  onSalvarFornecedor={handleSalvarFornecedor}
                 />
               </CardContent>
             </Card>
@@ -1490,6 +1518,7 @@ function DespesasTable({
   onRemoverComprovante,
   onVerComprovante,
   onAprovarComprovante,
+  onSalvarFornecedor,
 }: {
   despesas: Despesa[];
   onUpdate: (uid: string, patch: Partial<Despesa>) => void;
@@ -1500,6 +1529,7 @@ function DespesasTable({
   onRemoverComprovante: (id: string) => void;
   onVerComprovante: (path: string) => void;
   onAprovarComprovante: (id: string, status: "aprovado" | "rejeitado") => void;
+  onSalvarFornecedor: (d: Despesa) => void;
 }) {
   if (despesas.length === 0) {
     return (
@@ -1584,6 +1614,18 @@ function DespesasTable({
                       <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
                         🤖 IA
                       </span>
+                    )}
+                    {d.tpDocFav === "CNPJ" && isValidCNPJ(d.nrDocFav) && d.favorecido.trim() !== "" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto h-6 px-2 text-[11px] gap-1"
+                        onClick={() => onSalvarFornecedor(d)}
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        Salvar fornecedor
+                      </Button>
                     )}
                   </div>
                   <Input
