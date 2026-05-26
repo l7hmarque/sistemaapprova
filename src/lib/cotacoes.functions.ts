@@ -174,75 +174,22 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
     if (errCot || !cot) throw new Error("Cotação não encontrada");
 
     const itens = (cot.itens as Array<{ descricao: string; qtd: number; unidade: string }>) ?? [];
-    if (itens.length !== data.precosUnitarios.length) {
-      throw new Error("Número de preços não bate com os itens.");
-    }
-
     const modelo = await carregarModeloAtivo("orcamento");
-    const templateId = modelo?.template_id || TEMPLATE_ORCAMENTO_ID;
-    const aba = modelo?.aba || ABA_ORC;
-    const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(cot.mes_referencia ?? undefined));
-    const nome = sanitizarNome(
-      `Orcamento - ${cot.objeto} - ${data.fornecedor.razao} - ${data.data || new Date().toLocaleDateString("pt-BR")}`,
-    );
-
-    const copy = await driveCopyFile({ templateId, name: nome, parents });
-    const { sheetId } = await getFirstSheetId(copy.id);
-    try {
-      await renameSheet(copy.id, sheetId, aba);
-    } catch {
-      /* */
-    }
-
-    await expandirLinhasItens({
-      spreadsheetId: copy.id,
-      sheetId,
-      linhaPrimeiroItem0: M.linhaPrimeiroItem1 - 1,
-      qtdLinhasExistentes: M.qtdLinhasExistentes,
-      linhaTotais0: M.linhaTotais1 - 1,
-      qtdNecessaria: itens.length,
-      colCount: M.colCount,
-    });
-
-    const updates: Array<{ range: string; values: (string | number | null)[][] }> = [
-      { range: `${aba}!C7`, values: [[ENTIDADE_DEFAULT.razao]] },
-      { range: `${aba}!H7`, values: [[ENTIDADE_DEFAULT.representante]] },
-      { range: `${aba}!C8`, values: [[ENTIDADE_DEFAULT.cnpj]] },
-      { range: `${aba}!H8`, values: [[ENTIDADE_DEFAULT.cpf]] },
-      { range: `${aba}!C9`, values: [[data.fornecedor.razao]] },
-      { range: `${aba}!H9`, values: [[data.fornecedor.representante]] },
-      { range: `${aba}!C10`, values: [[data.fornecedor.cnpj]] },
-      { range: `${aba}!H10`, values: [[data.fornecedor.cpf]] },
-      { range: `${aba}!C11`, values: [[cot.objeto]] },
-      { range: `${aba}!I11`, values: [[data.validadeDias]] },
-      { range: `${aba}!K11`, values: [[data.data || new Date().toLocaleDateString("pt-BR")]] },
-      { range: `${aba}!E12`, values: [[cot.termo ?? ""]] },
-    ];
-
-    const linha0 = M.linhaPrimeiroItem1;
-    itens.forEach((it, i) => {
-      const linha = linha0 + i;
-      updates.push({ range: `${aba}!A${linha}`, values: [[i + 1]] });
-      updates.push({ range: `${aba}!B${linha}`, values: [[it.descricao]] });
-      updates.push({ range: `${aba}!H${linha}`, values: [[it.qtd]] });
-      updates.push({ range: `${aba}!I${linha}`, values: [[it.unidade]] });
-      updates.push({ range: `${aba}!J${linha}`, values: [[data.precosUnitarios[i] || 0]] });
-    });
-
-    await sheetsValuesBatchUpdate(copy.id, updates);
-
-    const dadosSnapshot = {
-      entidade: ENTIDADE_DEFAULT,
-      termo: cot.termo,
+    const { fileId, url, nome, snapshot } = await criarSheetOrcamentoCotacao({
+      cotacao: {
+        id: cot.id,
+        objeto: cot.objeto,
+        termo: cot.termo,
+        mes_referencia: cot.mes_referencia,
+        itens,
+      },
       fornecedor: data.fornecedor,
-      objeto: cot.objeto,
-      validadeDias: data.validadeDias,
+      precosUnitarios: data.precosUnitarios,
       data: data.data,
-      mesReferencia: cot.mes_referencia,
-      itens: itens.map((it, i) => ({ ...it, precoUnitario: data.precosUnitarios[i] || 0 })),
-    };
+      validadeDias: data.validadeDias,
+      modelo,
+    });
 
     const { data: orcRow, error: errOrc } = await supabase
       .from("orcamentos_salvos")
@@ -254,15 +201,15 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
         cotacao_id: cot.id,
         status: "preenchido",
         fornecedor_id: null,
-        dados: dadosSnapshot,
-        drive_file_id: copy.id,
-        drive_file_url: copy.webViewLink,
+        dados: snapshot,
+        drive_file_id: fileId,
+        drive_file_url: url,
       })
       .select()
       .single();
     if (errOrc) throw new Error(errOrc.message);
 
-    return { fileId: copy.id, url: copy.webViewLink, nome: copy.name, orcamento: orcRow };
+    return { fileId, url, nome, orcamento: orcRow };
   });
 
 export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
