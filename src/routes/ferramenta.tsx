@@ -73,7 +73,6 @@ import {
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { isValidCNPJ, isValidCPF } from "@/lib/sit/cnpjValidator";
 import { salvarFornecedor, buscarPorCnpj } from "@/lib/fornecedores.functions";
-import { UserPlus } from "lucide-react";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 
