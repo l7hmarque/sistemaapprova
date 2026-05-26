@@ -1615,6 +1615,18 @@ function DespesasTable({
                         🤖 IA
                       </span>
                     )}
+                    {d.tpDocFav === "CNPJ" && isValidCNPJ(d.nrDocFav) && d.favorecido.trim() !== "" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto h-6 px-2 text-[11px] gap-1"
+                        onClick={() => onSalvarFornecedor(d)}
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        Salvar fornecedor
+                      </Button>
+                    )}
                   </div>
                   <Input
                     value={d.favorecido}
