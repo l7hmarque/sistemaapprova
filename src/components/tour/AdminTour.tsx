@@ -22,7 +22,7 @@ const GLOBAL_STEPS: Step[] = [
   {
     target: '[data-tour="nav-captura"]',
     title: "Captura inteligente",
-    content: "Suba PDFs de notas/boletos/guias e a IA preenche tudo: favorecido, valor, vencimento.",
+    content: "Suba PDFs de notas/boletos/guias e o sistema preenche tudo automaticamente: favorecido, valor, vencimento.",
     placement: "right",
   },
   {
@@ -53,7 +53,7 @@ const PAGE_STEPS: Record<string, Step[]> = {
       target: 'main h1, [data-tour-anchor="page-title"]',
       title: "Página de Captura",
       content:
-        "Aqui você sobe documentos (PDF). A IA lê e extrai automaticamente: favorecido, CNPJ, valor, data e tipo (NF, boleto, guia).",
+        "Aqui você sobe documentos (PDF). O sistema lê e extrai automaticamente: favorecido, CNPJ, valor, data e tipo (NF, boleto, guia).",
       placement: "bottom",
     },
     {
@@ -269,14 +269,22 @@ export function AdminTour() {
       steps={steps}
       run={run}
       continuous
+      options={{
+        showProgress: true,
+        skipBeacon: true,
+        overlayClickAction: false,
+        primaryColor: "hsl(var(--primary))",
+        zIndex: 10000,
+        buttons: ["back", "skip", "primary"],
+      }}
       onEvent={onCb as any}
-      options={{ showProgress: true, skipBeacon: true }}
       locale={{
         back: "Voltar",
-        close: "Fechar",
-        last: "Concluir",
+        close: "OK",
+        last: "OK, entendi",
         next: "Próximo",
-        skip: "Pular",
+        skip: "Pular tour",
+        nextWithProgress: "Próximo ({step} de {steps})",
       }}
       styles={{
         overlay: { backgroundColor: "rgba(0,0,0,0.55)" },
