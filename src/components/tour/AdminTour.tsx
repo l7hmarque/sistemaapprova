@@ -271,12 +271,11 @@ export function AdminTour() {
       continuous
       options={{
         showProgress: true,
-        showSkipButton: true,
         skipBeacon: true,
-        hideCloseButton: false,
         overlayClickAction: false,
         primaryColor: "hsl(var(--primary))",
         zIndex: 10000,
+        buttons: ["back", "skip", "primary"],
       }}
       onEvent={onCb as any}
       locale={{
