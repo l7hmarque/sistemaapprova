@@ -100,6 +100,24 @@ export const Route = createFileRoute("/api/extract")({
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         console.info("[api/extract] requisição recebida");
+
+        // ─── Autenticação obrigatória ──────────────────────────────
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader?.startsWith("Bearer ")) {
+          return new Response(
+            JSON.stringify({ error: "Não autenticado." }),
+            { status: 401, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        const token = authHeader.slice("Bearer ".length).trim();
+        const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
+        if (userErr || !userRes?.user) {
+          return new Response(
+            JSON.stringify({ error: "Token inválido ou expirado." }),
+            { status: 401, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) {
           console.error("[api/extract] LOVABLE_API_KEY ausente");
@@ -108,6 +126,7 @@ export const Route = createFileRoute("/api/extract")({
             { status: 500, headers: { "Content-Type": "application/json" } },
           );
         }
+
 
         let pdfText = "";
         let mimeType = "application/pdf";
