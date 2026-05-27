@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 
 const URL = "https://synsit.lovable.app/blog";
