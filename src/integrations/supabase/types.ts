@@ -59,7 +59,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           chave: string
-          organization_id: string
+          organization_id?: string
           valor?: Json
         }
         Update: {
@@ -116,7 +116,7 @@ export type Database = {
           id?: string
           observacao_fornecedor?: string | null
           orcamento_id?: string | null
-          organization_id: string
+          organization_id?: string
           razao_social: string
           representante_legal?: string | null
           respondido_em?: string | null
@@ -178,7 +178,7 @@ export type Database = {
           itens?: Json
           nome: string
           objeto?: string | null
-          organization_id: string
+          organization_id?: string
           termo?: string | null
         }
         Update: {
@@ -227,7 +227,7 @@ export type Database = {
           mes_referencia?: string | null
           objeto: string
           observacoes?: string | null
-          organization_id: string
+          organization_id?: string
           status?: string
           termo?: string | null
         }
@@ -283,7 +283,7 @@ export type Database = {
           id?: string
           metadata?: Json
           numero_extraido?: string | null
-          organization_id: string
+          organization_id?: string
           origem?: string
           tipo: string
           valor_extraido?: number | null
@@ -346,7 +346,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           notificar_em?: string | null
-          organization_id: string
+          organization_id?: string
           prioridade?: string
           status?: string
           tipo?: string
@@ -406,7 +406,7 @@ export type Database = {
           id?: string
           mes_referencia: string
           metadata?: Json
-          organization_id: string
+          organization_id?: string
           origem?: string
           prestacao_snapshot_id?: string | null
           status_documental?: string
@@ -517,7 +517,7 @@ export type Database = {
           id?: string
           mes_referencia?: string | null
           nome_arquivo?: string | null
-          organization_id: string
+          organization_id?: string
         }
         Update: {
           criada_em?: string
@@ -558,7 +558,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
-          organization_id: string
+          organization_id?: string
           razao_social: string
           representante_legal?: string | null
           telefone?: string | null
@@ -704,7 +704,7 @@ export type Database = {
           criado_em?: string
           id?: string
           nome: string
-          organization_id: string
+          organization_id?: string
           params?: Json
           template_id: string
           tipo: string
@@ -746,7 +746,7 @@ export type Database = {
           criado_em?: string
           descricao: string
           id?: string
-          organization_id: string
+          organization_id?: string
           unidade_padrao?: string | null
           uso_count?: number
         }
@@ -787,7 +787,7 @@ export type Database = {
           itens?: Json
           nome: string
           objeto?: string | null
-          organization_id: string
+          organization_id?: string
           termo?: string | null
         }
         Update: {
@@ -836,7 +836,7 @@ export type Database = {
           id?: string
           mes_referencia?: string | null
           objeto?: string | null
-          organization_id: string
+          organization_id?: string
           status?: string
           termo?: string | null
           tipo: string
@@ -1009,7 +1009,7 @@ export type Database = {
           nome: string
           observacao_aprovacao?: string | null
           ordem?: number
-          organization_id: string
+          organization_id?: string
           status_aprovacao?: string
           tamanho_bytes?: number | null
         }
@@ -1074,7 +1074,7 @@ export type Database = {
           id?: string
           manifest?: Json
           mes_referencia: string
-          organization_id: string
+          organization_id?: string
           pdf_path?: string | null
           pdf_url?: string | null
           titulo?: string | null
@@ -1178,6 +1178,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_org: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
