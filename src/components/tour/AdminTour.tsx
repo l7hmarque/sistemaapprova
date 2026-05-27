@@ -137,10 +137,11 @@ export function AdminTour() {
       steps={STEPS}
       run={run}
       continuous
-      showSkipButton
-      showProgress
-      disableScrolling={false}
-      callback={onCb}
+      callback={onCb as any}
+      options={{
+        showProgress: true,
+        skipBeacon: true,
+      }}
       locale={{
         back: "Voltar",
         close: "Fechar",
