@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
@@ -23,8 +24,12 @@ import { Route as ContadoresRouteImport } from './routes/contadores'
 import { Route as AtualizarSenhaRouteImport } from './routes/atualizar-senha'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as OwnerSuporteRouteImport } from './routes/owner.suporte'
+import { Route as OwnerFinanceiroRouteImport } from './routes/owner.financeiro'
+import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
@@ -40,6 +45,7 @@ import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
+import { Route as OwnerClientesIdRouteImport } from './routes/owner.clientes.$id'
 import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
 import { Route as AdminConfiguracoesOrganizacaoRouteImport } from './routes/admin.configuracoes.organizacao'
 import { Route as AdminConfiguracoesEquipeRouteImport } from './routes/admin.configuracoes.equipe'
@@ -59,6 +65,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerRoute = OwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrcamentosRoute = OrcamentosRouteImport.update({
@@ -116,6 +127,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OwnerIndexRoute = OwnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -125,6 +141,21 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const OwnerSuporteRoute = OwnerSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerFinanceiroRoute = OwnerFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerClientesRoute = OwnerClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => OwnerRoute,
 } as any)
 const CotacaoTokenRoute = CotacaoTokenRouteImport.update({
   id: '/cotacao/$token',
@@ -201,6 +232,11 @@ const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminConfiguracoesRoute,
 } as any)
+const OwnerClientesIdRoute = OwnerClientesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => OwnerClientesRoute,
+} as any)
 const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
   id: '/cotacoes/$id',
   path: '/cotacoes/$id',
@@ -242,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/owner': typeof OwnerRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
@@ -259,11 +296,16 @@ export interface FileRoutesByFullPath {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/owner/': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -295,11 +337,16 @@ export interface FileRoutesByTo {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/owner': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -317,6 +364,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/owner': typeof OwnerRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
@@ -334,11 +382,16 @@ export interface FileRoutesById {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/owner/': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -357,6 +410,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/obrigado'
     | '/orcamentos'
+    | '/owner'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
@@ -374,11 +428,16 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin/'
     | '/blog/'
+    | '/owner/'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -410,11 +469,16 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin'
     | '/blog'
+    | '/owner'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
     | '/admin/configuracoes'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -431,6 +495,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/obrigado'
     | '/orcamentos'
+    | '/owner'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
@@ -448,11 +513,16 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin/'
     | '/blog/'
+    | '/owner/'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -470,6 +540,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ObrigadoRoute: typeof ObrigadoRoute
   OrcamentosRoute: typeof OrcamentosRoute
+  OwnerRoute: typeof OwnerRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
@@ -501,6 +572,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner': {
+      id: '/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof OwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orcamentos': {
@@ -580,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/owner/': {
+      id: '/owner/'
+      path: '/'
+      fullPath: '/owner/'
+      preLoaderRoute: typeof OwnerIndexRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -593,6 +678,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/owner/suporte': {
+      id: '/owner/suporte'
+      path: '/suporte'
+      fullPath: '/owner/suporte'
+      preLoaderRoute: typeof OwnerSuporteRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/financeiro': {
+      id: '/owner/financeiro'
+      path: '/financeiro'
+      fullPath: '/owner/financeiro'
+      preLoaderRoute: typeof OwnerFinanceiroRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/clientes': {
+      id: '/owner/clientes'
+      path: '/clientes'
+      fullPath: '/owner/clientes'
+      preLoaderRoute: typeof OwnerClientesRouteImport
+      parentRoute: typeof OwnerRoute
     }
     '/cotacao/$token': {
       id: '/cotacao/$token'
@@ -699,6 +805,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
+    '/owner/clientes/$id': {
+      id: '/owner/clientes/$id'
+      path: '/$id'
+      fullPath: '/owner/clientes/$id'
+      preLoaderRoute: typeof OwnerClientesIdRouteImport
+      parentRoute: typeof OwnerClientesRoute
+    }
     '/admin/cotacoes/$id': {
       id: '/admin/cotacoes/$id'
       path: '/cotacoes/$id'
@@ -786,6 +899,34 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface OwnerClientesRouteChildren {
+  OwnerClientesIdRoute: typeof OwnerClientesIdRoute
+}
+
+const OwnerClientesRouteChildren: OwnerClientesRouteChildren = {
+  OwnerClientesIdRoute: OwnerClientesIdRoute,
+}
+
+const OwnerClientesRouteWithChildren = OwnerClientesRoute._addFileChildren(
+  OwnerClientesRouteChildren,
+)
+
+interface OwnerRouteChildren {
+  OwnerClientesRoute: typeof OwnerClientesRouteWithChildren
+  OwnerFinanceiroRoute: typeof OwnerFinanceiroRoute
+  OwnerSuporteRoute: typeof OwnerSuporteRoute
+  OwnerIndexRoute: typeof OwnerIndexRoute
+}
+
+const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerClientesRoute: OwnerClientesRouteWithChildren,
+  OwnerFinanceiroRoute: OwnerFinanceiroRoute,
+  OwnerSuporteRoute: OwnerSuporteRoute,
+  OwnerIndexRoute: OwnerIndexRoute,
+}
+
+const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
+
 interface ApiPublicCotacaoTokenRouteChildren {
   ApiPublicCotacaoTokenPdfRoute: typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -811,6 +952,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ObrigadoRoute: ObrigadoRoute,
   OrcamentosRoute: OrcamentosRoute,
+  OwnerRoute: OwnerRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
@@ -823,3 +965,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
