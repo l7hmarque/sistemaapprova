@@ -3,8 +3,7 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+
 
 
 const EventoSchema = z.object({
@@ -68,18 +67,13 @@ export const obterAnalytics = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     // Apenas super_admin pode ver analytics globais
-    const supaUrl = process.env.SUPABASE_URL!;
-    const supaKey = process.env.SUPABASE_PUBLISHABLE_KEY!;
-    const sb = createClient<Database>(supaUrl, supaKey, {
-      global: { headers: { Authorization: `Bearer ${context.token}` } },
-    });
-    const { data: roleRow } = await sb
+    const { data: roleRow } = await context.supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId)
       .eq("role", "super_admin")
       .maybeSingle();
-    if (!roleRow) throw new Error("Forbidden");
+    if (!roleRow) throw new Error("Forbidden: requires super_admin");
     const desde = new Date(Date.now() - data.dias * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: rows, error } = await supabaseAdmin
