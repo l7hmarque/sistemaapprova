@@ -17,8 +17,10 @@ import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GestoresRouteImport } from './routes/gestores'
 import { Route as FerramentaRouteImport } from './routes/ferramenta'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
+import { Route as AtualizarSenhaRouteImport } from './routes/atualizar-senha'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -37,7 +39,10 @@ import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
 import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
+import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
+import { Route as AdminConfiguracoesOrganizacaoRouteImport } from './routes/admin.configuracoes.organizacao'
+import { Route as AdminConfiguracoesEquipeRouteImport } from './routes/admin.configuracoes.equipe'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
 import { Route as ApiPublicCotacaoTokenPdfRouteImport } from './routes/api/public/cotacao.$token.pdf'
 
@@ -81,6 +86,11 @@ const FerramentaRoute = FerramentaRouteImport.update({
   path: '/ferramenta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemonstracaoRoute = DemonstracaoRouteImport.update({
   id: '/demonstracao',
   path: '/demonstracao',
@@ -89,6 +99,11 @@ const DemonstracaoRoute = DemonstracaoRouteImport.update({
 const ContadoresRoute = ContadoresRouteImport.update({
   id: '/contadores',
   path: '/contadores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtualizarSenhaRoute = AtualizarSenhaRouteImport.update({
+  id: '/atualizar-senha',
+  path: '/atualizar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -181,11 +196,28 @@ const AdminAgendaRoute = AdminAgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminConfiguracoesRoute,
+} as any)
 const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
   id: '/cotacoes/$id',
   path: '/cotacoes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfiguracoesOrganizacaoRoute =
+  AdminConfiguracoesOrganizacaoRouteImport.update({
+    id: '/organizacao',
+    path: '/organizacao',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesEquipeRoute =
+  AdminConfiguracoesEquipeRouteImport.update({
+    id: '/equipe',
+    path: '/equipe',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
   id: '/api/public/cotacao/$token',
   path: '/api/public/cotacao/$token',
@@ -201,8 +233,10 @@ const ApiPublicCotacaoTokenPdfRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
@@ -215,7 +249,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -227,14 +261,19 @@ export interface FileRoutesByFullPath {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
@@ -247,7 +286,6 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -259,7 +297,10 @@ export interface FileRoutesByTo {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -267,8 +308,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
@@ -281,7 +324,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -293,7 +336,10 @@ export interface FileRoutesById {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -302,8 +348,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
@@ -328,14 +376,19 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/admin/'
     | '/blog/'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
@@ -348,7 +401,6 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/aprovacoes'
     | '/admin/captura'
-    | '/admin/configuracoes'
     | '/admin/fornecedores'
     | '/admin/modelos'
     | '/admin/objetos'
@@ -360,15 +412,20 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/admin'
     | '/blog'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/configuracoes'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
@@ -393,7 +450,10 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/admin/'
     | '/blog/'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesById: FileRoutesById
@@ -401,8 +461,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AtualizarSenhaRoute: typeof AtualizarSenhaRoute
   ContadoresRoute: typeof ContadoresRoute
   DemonstracaoRoute: typeof DemonstracaoRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   FerramentaRoute: typeof FerramentaRoute
   GestoresRoute: typeof GestoresRoute
   LoginRoute: typeof LoginRoute
@@ -476,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FerramentaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demonstracao': {
       id: '/demonstracao'
       path: '/demonstracao'
@@ -488,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/contadores'
       fullPath: '/contadores'
       preLoaderRoute: typeof ContadoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/atualizar-senha': {
+      id: '/atualizar-senha'
+      path: '/atualizar-senha'
+      fullPath: '/atualizar-senha'
+      preLoaderRoute: typeof AtualizarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -616,12 +692,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgendaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/configuracoes/': {
+      id: '/admin/configuracoes/'
+      path: '/'
+      fullPath: '/admin/configuracoes/'
+      preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
     '/admin/cotacoes/$id': {
       id: '/admin/cotacoes/$id'
       path: '/cotacoes/$id'
       fullPath: '/admin/cotacoes/$id'
       preLoaderRoute: typeof AdminCotacoesIdRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin/configuracoes/organizacao': {
+      id: '/admin/configuracoes/organizacao'
+      path: '/organizacao'
+      fullPath: '/admin/configuracoes/organizacao'
+      preLoaderRoute: typeof AdminConfiguracoesOrganizacaoRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/equipe': {
+      id: '/admin/configuracoes/equipe'
+      path: '/equipe'
+      fullPath: '/admin/configuracoes/equipe'
+      preLoaderRoute: typeof AdminConfiguracoesEquipeRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
     }
     '/api/public/cotacao/$token': {
       id: '/api/public/cotacao/$token'
@@ -640,12 +737,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminConfiguracoesRouteChildren {
+  AdminConfiguracoesEquipeRoute: typeof AdminConfiguracoesEquipeRoute
+  AdminConfiguracoesOrganizacaoRoute: typeof AdminConfiguracoesOrganizacaoRoute
+  AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
+}
+
+const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
+  AdminConfiguracoesEquipeRoute: AdminConfiguracoesEquipeRoute,
+  AdminConfiguracoesOrganizacaoRoute: AdminConfiguracoesOrganizacaoRoute,
+  AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
+}
+
+const AdminConfiguracoesRouteWithChildren =
+  AdminConfiguracoesRoute._addFileChildren(AdminConfiguracoesRouteChildren)
+
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAprovacoesRoute: typeof AdminAprovacoesRoute
   AdminCapturaRoute: typeof AdminCapturaRoute
-  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
   AdminModelosRoute: typeof AdminModelosRoute
   AdminObjetosRoute: typeof AdminObjetosRoute
@@ -661,7 +773,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAprovacoesRoute: AdminAprovacoesRoute,
   AdminCapturaRoute: AdminCapturaRoute,
-  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
   AdminModelosRoute: AdminModelosRoute,
   AdminObjetosRoute: AdminObjetosRoute,
@@ -690,8 +802,10 @@ const ApiPublicCotacaoTokenRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AtualizarSenhaRoute: AtualizarSenhaRoute,
   ContadoresRoute: ContadoresRoute,
   DemonstracaoRoute: DemonstracaoRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   FerramentaRoute: FerramentaRoute,
   GestoresRoute: GestoresRoute,
   LoginRoute: LoginRoute,
@@ -709,3 +823,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
