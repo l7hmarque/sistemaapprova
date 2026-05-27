@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
+import { Joyride, STATUS, type EventData, type Step } from "react-joyride";
 import { useRouterState } from "@tanstack/react-router";
 
 const STORAGE_KEY = "synsit:admin-tour:v1";
@@ -11,7 +11,7 @@ const STEPS: Step[] = [
     content:
       "Este é o seu painel. Toda gestão financeira da OSC acontece a partir daqui — orçamentos, fornecedores, prestação de contas e geração do TXT do SIT.",
     placement: "right",
-    disableBeacon: true,
+    
   },
   {
     target: '[data-tour="nav-dashboard"]',
@@ -122,9 +122,9 @@ export function AdminTour() {
     return () => window.removeEventListener("synsit:start-tour", handler);
   }, []);
 
-  const onCb = (data: CallBackProps) => {
+  const onCb = (data: EventData) => {
     const finished: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
-    if (finished.includes(data.status)) {
+    if (finished.includes(data.status as string)) {
       window.localStorage.setItem(STORAGE_KEY, "1");
       setRun(false);
     }

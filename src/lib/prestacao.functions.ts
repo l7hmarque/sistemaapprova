@@ -1,11 +1,11 @@
 /**
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Server functions para Prestação de Contas.
  * Copia um template do Google Docs e injeta a lista de documentos.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { driveCopyFile, ensureFolderPath } from "./orcamentos.server";
 
 const GDOCS = "https://connector-gateway.lovable.dev/google_docs/v1";
