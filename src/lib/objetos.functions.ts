@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ObjetoSchema = z.object({
   id: z.string().uuid().optional(),
@@ -9,26 +9,29 @@ const ObjetoSchema = z.object({
   categoria: z.string().max(120).nullish(),
 });
 
-export const listarObjetos = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await supabase
-    .from("objetos_cotacao")
-    .select("*")
-    .order("uso_count", { ascending: false })
-    .order("descricao", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarObjetos = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("objetos_cotacao")
+      .select("*")
+      .order("uso_count", { ascending: false })
+      .order("descricao", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
 
 export const salvarObjeto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ObjetoSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const payload = {
       descricao: data.descricao.trim(),
       unidade_padrao: data.unidade_padrao || null,
       categoria: data.categoria || null,
     };
     if (data.id) {
-      const { data: row, error } = await supabase
+      const { data: row, error } = await context.supabase
         .from("objetos_cotacao")
         .update(payload)
         .eq("id", data.id)
@@ -37,7 +40,7 @@ export const salvarObjeto = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return row;
     }
-    const { data: row, error } = await supabase
+    const { data: row, error } = await context.supabase
       .from("objetos_cotacao")
       .insert(payload)
       .select()
@@ -47,9 +50,10 @@ export const salvarObjeto = createServerFn({ method: "POST" })
   });
 
 export const removerObjeto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { error } = await supabase.from("objetos_cotacao").delete().eq("id", data.id);
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("objetos_cotacao").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 function gerarToken(): string {
-  // 32 chars hex, url-safe
   const arr = new Uint8Array(24);
   crypto.getRandomValues(arr);
   return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -23,11 +22,12 @@ const CriarConviteSchema = z.object({
 });
 
 export const criarConvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CriarConviteSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const token = gerarToken();
     const expira = new Date(Date.now() + data.validade_dias * 86400_000).toISOString();
-    const { data: row, error } = await supabase
+    const { data: row, error } = await context.supabase
       .from("convites_cotacao")
       .insert({
         cotacao_id: data.cotacao_id,
@@ -50,9 +50,10 @@ export const criarConvite = createServerFn({ method: "POST" })
   });
 
 export const listarConvitesDaCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ cotacao_id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { data: rows, error } = await supabase
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
       .from("convites_cotacao")
       .select("*")
       .eq("cotacao_id", data.cotacao_id)
@@ -62,9 +63,10 @@ export const listarConvitesDaCotacao = createServerFn({ method: "POST" })
   });
 
 export const removerConvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { error } = await supabase.from("convites_cotacao").delete().eq("id", data.id);
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("convites_cotacao").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
