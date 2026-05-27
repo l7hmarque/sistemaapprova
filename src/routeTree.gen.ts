@@ -21,8 +21,10 @@ import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
+import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
 import { Route as AdminPrestacaoRouteImport } from './routes/admin.prestacao'
 import { Route as AdminPainelRouteImport } from './routes/admin.painel'
@@ -99,6 +101,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -107,6 +114,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const CotacaoTokenRoute = CotacaoTokenRouteImport.update({
   id: '/cotacao/$token',
   path: '/cotacao/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogPainelScfvTceprRoute = BlogPainelScfvTceprRouteImport.update({
+  id: '/blog/painel-scfv-tcepr',
+  path: '/blog/painel-scfv-tcepr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiExtractRoute = ApiExtractRouteImport.update({
@@ -211,8 +223,10 @@ export interface FileRoutesByFullPath {
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -241,8 +255,10 @@ export interface FileRoutesByTo {
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -273,8 +289,10 @@ export interface FileRoutesById {
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
   '/api/extract': typeof ApiExtractRoute
+  '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -306,8 +324,10 @@ export interface FileRouteTypes {
     | '/admin/painel'
     | '/admin/prestacao'
     | '/api/extract'
+    | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
     | '/admin/'
+    | '/blog/'
     | '/admin/cotacoes/$id'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -336,8 +356,10 @@ export interface FileRouteTypes {
     | '/admin/painel'
     | '/admin/prestacao'
     | '/api/extract'
+    | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
     | '/admin'
+    | '/blog'
     | '/admin/cotacoes/$id'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -367,8 +389,10 @@ export interface FileRouteTypes {
     | '/admin/painel'
     | '/admin/prestacao'
     | '/api/extract'
+    | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
     | '/admin/'
+    | '/blog/'
     | '/admin/cotacoes/$id'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
@@ -388,7 +412,9 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ApiExtractRoute: typeof ApiExtractRoute
+  BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
 }
 
@@ -478,6 +504,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -490,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/cotacao/$token'
       fullPath: '/cotacao/$token'
       preLoaderRoute: typeof CotacaoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/painel-scfv-tcepr': {
+      id: '/blog/painel-scfv-tcepr'
+      path: '/blog/painel-scfv-tcepr'
+      fullPath: '/blog/painel-scfv-tcepr'
+      preLoaderRoute: typeof BlogPainelScfvTceprRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/extract': {
@@ -661,19 +701,11 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ApiExtractRoute: ApiExtractRoute,
+  BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

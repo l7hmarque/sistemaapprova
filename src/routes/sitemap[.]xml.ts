@@ -14,6 +14,8 @@ const ENTRIES: SitemapEntry[] = [
   { path: "/contadores", changefreq: "weekly", priority: "0.9" },
   { path: "/gestores", changefreq: "weekly", priority: "0.9" },
   { path: "/demonstracao", changefreq: "monthly", priority: "0.7" },
+  { path: "/blog", changefreq: "weekly", priority: "0.8" },
+  { path: "/blog/painel-scfv-tcepr", changefreq: "monthly", priority: "0.8" },
   { path: "/termos", changefreq: "yearly", priority: "0.3" },
   { path: "/privacidade", changefreq: "yearly", priority: "0.3" },
 ];

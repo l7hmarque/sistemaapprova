@@ -22,6 +22,7 @@ export function SiteFooter() {
             <li><Link to="/contadores" className="hover:text-brand-blue text-brand-navy/90">Para contadores</Link></li>
             <li><Link to="/gestores" className="hover:text-brand-blue text-brand-navy/90">Para gestores</Link></li>
             <li><a href="/#planos" className="hover:text-brand-blue text-brand-navy/90">Planos</a></li>
+            <li><a href="/blog" className="hover:text-brand-blue text-brand-navy/90">Blog</a></li>
             <li><Link to="/demonstracao" className="hover:text-brand-blue text-brand-navy/90">Solicitar demo</Link></li>
           </ul>
         </div>
