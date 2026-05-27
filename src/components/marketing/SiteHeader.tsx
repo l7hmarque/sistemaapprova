@@ -20,6 +20,9 @@ export function SiteHeader() {
           <a href="/#planos" className="hover:text-brand-blue transition-colors">
             Planos
           </a>
+          <a href="/blog" className="hover:text-brand-blue transition-colors">
+            Blog
+          </a>
           <Link to="/demonstracao" className="hover:text-brand-blue transition-colors">
             Contato
           </Link>
