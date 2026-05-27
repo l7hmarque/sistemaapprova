@@ -269,11 +269,15 @@ export function AdminTour() {
       steps={steps}
       run={run}
       continuous
-      showProgress
-      showSkipButton
-      hideCloseButton={false}
-      disableOverlayClose
-      spotlightClicks={false}
+      options={{
+        showProgress: true,
+        showSkipButton: true,
+        skipBeacon: true,
+        hideCloseButton: false,
+        overlayClickAction: "none",
+        primaryColor: "hsl(var(--primary))",
+        zIndex: 10000,
+      }}
       onEvent={onCb as any}
       locale={{
         back: "Voltar",
