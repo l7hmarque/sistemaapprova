@@ -53,7 +53,7 @@ const PAGE_STEPS: Record<string, Step[]> = {
       target: 'main h1, [data-tour-anchor="page-title"]',
       title: "Página de Captura",
       content:
-        "Aqui você sobe documentos (PDF). A IA lê e extrai automaticamente: favorecido, CNPJ, valor, data e tipo (NF, boleto, guia).",
+        "Aqui você sobe documentos (PDF). O sistema lê e extrai automaticamente: favorecido, CNPJ, valor, data e tipo (NF, boleto, guia).",
       placement: "bottom",
     },
     {
