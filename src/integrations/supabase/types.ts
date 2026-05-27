@@ -1063,6 +1063,7 @@ export type Database = {
           organization_id: string
           pdf_path: string | null
           pdf_url: string | null
+          revisao: number
           titulo: string | null
           total_documentos: number
           total_eventos: number
@@ -1077,6 +1078,7 @@ export type Database = {
           organization_id?: string
           pdf_path?: string | null
           pdf_url?: string | null
+          revisao?: number
           titulo?: string | null
           total_documentos?: number
           total_eventos?: number
@@ -1091,6 +1093,7 @@ export type Database = {
           organization_id?: string
           pdf_path?: string | null
           pdf_url?: string | null
+          revisao?: number
           titulo?: string | null
           total_documentos?: number
           total_eventos?: number
