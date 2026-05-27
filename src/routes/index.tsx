@@ -20,17 +20,54 @@ export const Route = createFileRoute("/")({
       { name: "twitter:image", content: "https://synsit.lovable.app" + previewRevisao },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
-    scripts: [{
-      type: "application/ld+json",
-      children: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        name: "3RD TECH",
-        url: "https://synsit.lovable.app",
-        brand: { "@type": "Brand", name: "SynSIT" },
-        address: { "@type": "PostalAddress", addressLocality: "Medianeira", addressRegion: "PR", addressCountry: "BR" },
-      }),
-    }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "3RD TECH",
+          url: "https://synsit.lovable.app",
+          brand: { "@type": "Brand", name: "SynSIT" },
+          address: { "@type": "PostalAddress", addressLocality: "Medianeira", addressRegion: "PR", addressCountry: "BR" },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "SynSIT",
+          url: "https://synsit.lovable.app/",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "SynSIT",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://synsit.lovable.app/",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "BRL", description: "30 dias grátis" },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            { "@type": "Question", name: "A demonstração é mesmo gratuita?", acceptedAnswer: { "@type": "Answer", text: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." } },
+            { "@type": "Question", name: "Preciso instalar algo?", acceptedAnswer: { "@type": "Answer", text: "Não. SynSIT é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." } },
+            { "@type": "Question", name: "Meus dados ficam seguros?", acceptedAnswer: { "@type": "Answer", text: "Sim. Toda a infraestrutura é criptografada, com backups diários. Acesso por usuário com autenticação individual e trilha de aprovação de despesas." } },
+            { "@type": "Question", name: "Atende a quais editais e legislações?", acceptedAnswer: { "@type": "Answer", text: "Hoje exportamos no padrão SIT/TCE-PR, com CNPJs validados, encoding ANSI Win-1252 e catálogo de naturezas econômicas oficiais. Outros formatos podem ser adicionados conforme necessidade." } },
+            { "@type": "Question", name: "Posso trocar de plano depois?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." } },
+          ],
+        }),
+      },
+    ],
   }),
   component: HomePage,
 });
@@ -81,6 +118,7 @@ function HomePage() {
                 alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no SynSIT, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
                 width={1600}
                 height={896}
+                fetchPriority="high"
                 className="w-full h-auto"
               />
             </div>
