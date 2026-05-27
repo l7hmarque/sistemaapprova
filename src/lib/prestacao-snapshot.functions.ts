@@ -278,7 +278,23 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
 
     const { data: signed } = await adm.storage.from("prestacoes").createSignedUrl(path, 60 * 60 * 24 * 7);
 
-    // 7) Insert snapshot
+    // 7) Insert snapshot — calcula próxima revisão para o mesmo (org, mês)
+    const orgId = (eventos[0] as { organization_id?: string }).organization_id;
+    let proximaRevisao = 1;
+    {
+      const q = adm
+        .from("prestacoes_snapshot")
+        .select("revisao")
+        .eq("mes_referencia", mes)
+        .order("revisao", { ascending: false })
+        .limit(1);
+      if (orgId) q.eq("organization_id", orgId);
+      const { data: ultima } = await q;
+      if (ultima && ultima.length > 0 && typeof ultima[0].revisao === "number") {
+        proximaRevisao = ultima[0].revisao + 1;
+      }
+    }
+
     const { data: snap, error: eins } = await adm
       .from("prestacoes_snapshot")
       .insert({
@@ -287,10 +303,11 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
         pdf_url: signed?.signedUrl ?? null,
         pdf_path: path,
         assinatura_hash: hash,
-        manifest: { eventos: manifest, gerado_em: new Date().toISOString() } as unknown as Record<string, never>,
+        manifest: { eventos: manifest, gerado_em: new Date().toISOString(), revisao: proximaRevisao } as unknown as Record<string, never>,
         total_eventos: eventos.length,
         total_documentos: totalDocs,
         gerado_por: context.userId,
+        revisao: proximaRevisao,
       })
       .select("id")
       .single();
