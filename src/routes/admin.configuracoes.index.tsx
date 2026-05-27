@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Trash2 } from "lucide-react";
 import { extrairSheetId } from "@/lib/modelos";
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: ConfigGeralPage });
@@ -64,6 +64,12 @@ function ConfigGeralPage() {
     toast.success("Configurações salvas");
   };
 
+  const limparLocalStorage = () => {
+    const chaves = Object.keys(localStorage).filter((k) => k.startsWith("synsit:"));
+    chaves.forEach((k) => localStorage.removeItem(k));
+    toast.success(`${chaves.length} item(ns) do app removido(s) do localStorage`);
+  };
+
   if (loading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
 
   return (
@@ -86,7 +92,6 @@ function ConfigGeralPage() {
           </Link>
         </CardContent>
       </Card>
-
 
       <Card>
         <CardHeader><CardTitle className="text-sm uppercase tracking-wide">Template — Prestação de Contas</CardTitle></CardHeader>
@@ -151,6 +156,21 @@ function ConfigGeralPage() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="text-sm uppercase tracking-wide text-destructive">Zona de perigo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Remove todos os dados salvos localmente no navegador (tours, wizard, preferências). Não afeta dados no servidor.
+          </p>
+          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={limparLocalStorage}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Limpar dados locais
+          </Button>
         </CardContent>
       </Card>
 
