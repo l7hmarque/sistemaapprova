@@ -96,6 +96,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "SynSIT",
+          url: "https://synsit.lovable.app",
+          logo: "https://synsit.lovable.app/favicon.ico",
+          description:
+            "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios de contabilidade do terceiro setor (SCFV, IN 201/2026 TCE-PR).",
+          areaServed: { "@type": "Country", name: "Brasil" },
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
