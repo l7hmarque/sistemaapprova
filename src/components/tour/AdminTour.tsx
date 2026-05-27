@@ -149,21 +149,9 @@ export function AdminTour() {
         skip: "Pular tour",
       }}
       styles={{
-        options: {
-          primaryColor: "hsl(var(--primary))",
-          textColor: "hsl(var(--foreground))",
-          backgroundColor: "hsl(var(--background))",
-          arrowColor: "hsl(var(--background))",
-          overlayColor: "rgba(0,0,0,0.55)",
-          zIndex: 10000,
-        },
-        tooltip: {
-          borderRadius: 8,
-          fontFamily: "inherit",
-        },
-        tooltipTitle: { fontSize: 14, fontWeight: 600 },
-        tooltipContent: { fontSize: 13, lineHeight: 1.5 },
-        buttonNext: { borderRadius: 6, fontSize: 13 },
+        overlay: { backgroundColor: "rgba(0,0,0,0.55)" },
+        tooltip: { borderRadius: 8, fontFamily: "inherit", fontSize: 13 },
+        buttonPrimary: { borderRadius: 6, fontSize: 13, backgroundColor: "hsl(var(--primary))" },
         buttonBack: { color: "hsl(var(--muted-foreground))", fontSize: 13 },
         buttonSkip: { color: "hsl(var(--muted-foreground))", fontSize: 12 },
       }}
