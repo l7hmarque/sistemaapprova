@@ -1,46 +1,26 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  FileText,
-  Users,
-  Package,
-  FileCog,
-  FolderCheck,
-  CalendarDays,
-  Settings,
+  Building2,
+  LifeBuoy,
+  DollarSign,
+  ArrowLeft,
   LogOut,
-  Wallet,
-  Camera,
-  BarChart3,
-  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { Crown } from "lucide-react";
 import { toast } from "sonner";
 
-type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
-const ITEMS: Item[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet },
-  { to: "/admin/captura", label: "Captura", icon: Camera },
-  { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },
-  { to: "/admin/fornecedores", label: "Fornecedores", icon: Users },
-  { to: "/admin/objetos", label: "Objetos", icon: Package },
-  { to: "/admin/modelos", label: "Modelos", icon: FileCog },
-  { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck },
-  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck },
-  { to: "/admin/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+const ITEMS = [
+  { to: "/owner", label: "Visão geral", icon: LayoutDashboard, exact: true },
+  { to: "/owner/clientes", label: "Clientes", icon: Building2 },
+  { to: "/owner/suporte", label: "Suporte", icon: LifeBuoy },
+  { to: "/owner/financeiro", label: "Financeiro", icon: DollarSign },
 ];
 
-
-export function AdminSidebar() {
+export function OwnerSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
-  const { isSuperAdmin } = useCurrentUser();
   const nav = useNavigate();
 
   const sair = async () => {
@@ -53,9 +33,9 @@ export function AdminSidebar() {
     <aside className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
       <div className="px-5 py-6 border-b border-border">
         <Link to="/" className="block">
-          <div className="font-display text-lg uppercase leading-none">SIT</div>
+          <div className="font-display text-lg uppercase leading-none">SynSIT</div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-            Painel Admin
+            Owner — staff
           </div>
         </Link>
       </div>
@@ -68,10 +48,8 @@ export function AdminSidebar() {
               key={it.to}
               to={it.to as any}
               className={[
-                "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-muted",
+                "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
               ].join(" ")}
             >
               <Icon className="h-4 w-4" />
@@ -79,17 +57,15 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+        <Link
+          to="/admin"
+          className="mt-4 flex items-center gap-3 px-3 py-2 text-sm rounded-md text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Ir para /admin</span>
+        </Link>
       </nav>
       <div className="p-3 border-t border-border space-y-2">
-        {isSuperAdmin && (
-          <Link
-            to="/owner"
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-accent/30 text-foreground hover:bg-accent transition-colors"
-          >
-            <Crown className="h-4 w-4" />
-            <span className="font-medium">Painel Owner</span>
-          </Link>
-        )}
         {user?.email && (
           <div className="px-2 text-xs text-muted-foreground truncate" title={user.email}>
             {user.email}
@@ -106,4 +82,3 @@ export function AdminSidebar() {
     </aside>
   );
 }
-

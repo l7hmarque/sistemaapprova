@@ -115,16 +115,23 @@ function LoginPage() {
             </Button>
           </form>
 
-          <div className="flex justify-between text-xs">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setModo(modo === "login" ? "signup" : "login")}
-            >
-              {modo === "login" ? "Criar conta" : "Já tenho conta"}
-            </button>
-            <Link to="/" className="text-muted-foreground hover:text-foreground">
-              ← voltar
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex justify-between">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setModo(modo === "login" ? "signup" : "login")}
+              >
+                {modo === "login" ? "Criar conta" : "Já tenho conta"}
+              </button>
+              {modo === "login" && (
+                <Link to="/esqueci-senha" className="text-muted-foreground hover:text-foreground">
+                  Esqueci a senha
+                </Link>
+              )}
+            </div>
+            <Link to="/" className="text-center text-muted-foreground hover:text-foreground">
+              ← voltar ao site
             </Link>
           </div>
         </CardContent>

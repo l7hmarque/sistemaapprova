@@ -1,0 +1,40 @@
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
+import { Toaster } from "@/components/ui/sonner";
+import { useCurrentUser } from "@/hooks/use-current-user";
+
+export const Route = createFileRoute("/owner")({
+  component: OwnerLayout,
+  head: () => ({ meta: [{ title: "Owner — SynSIT" }] }),
+});
+
+function OwnerLayout() {
+  const { user, loading, isSuperAdmin } = useCurrentUser();
+  const nav = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) nav({ to: "/login", search: { redirect: "/owner" }, replace: true });
+    else if (!isSuperAdmin) nav({ to: "/admin", replace: true });
+  }, [loading, user, isSuperAdmin, nav]);
+
+  if (loading || !user || !isSuperAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      <OwnerSidebar />
+      <main className="flex-1 min-w-0">
+        <Outlet />
+      </main>
+      <Toaster richColors position="top-right" />
+    </div>
+  );
+}

@@ -12,17 +12,24 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GestoresRouteImport } from './routes/gestores'
 import { Route as FerramentaRouteImport } from './routes/ferramenta'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
+import { Route as AtualizarSenhaRouteImport } from './routes/atualizar-senha'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as OwnerSuporteRouteImport } from './routes/owner.suporte'
+import { Route as OwnerFinanceiroRouteImport } from './routes/owner.financeiro'
+import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
@@ -37,7 +44,11 @@ import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
 import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
+import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
+import { Route as OwnerClientesIdRouteImport } from './routes/owner.clientes.$id'
 import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
+import { Route as AdminConfiguracoesOrganizacaoRouteImport } from './routes/admin.configuracoes.organizacao'
+import { Route as AdminConfiguracoesEquipeRouteImport } from './routes/admin.configuracoes.equipe'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
 import { Route as ApiPublicCotacaoTokenPdfRouteImport } from './routes/api/public/cotacao.$token.pdf'
 
@@ -54,6 +65,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerRoute = OwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrcamentosRoute = OrcamentosRouteImport.update({
@@ -81,6 +97,11 @@ const FerramentaRoute = FerramentaRouteImport.update({
   path: '/ferramenta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemonstracaoRoute = DemonstracaoRouteImport.update({
   id: '/demonstracao',
   path: '/demonstracao',
@@ -89,6 +110,11 @@ const DemonstracaoRoute = DemonstracaoRouteImport.update({
 const ContadoresRoute = ContadoresRouteImport.update({
   id: '/contadores',
   path: '/contadores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtualizarSenhaRoute = AtualizarSenhaRouteImport.update({
+  id: '/atualizar-senha',
+  path: '/atualizar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -101,6 +127,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OwnerIndexRoute = OwnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -110,6 +141,21 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const OwnerSuporteRoute = OwnerSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerFinanceiroRoute = OwnerFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerClientesRoute = OwnerClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => OwnerRoute,
 } as any)
 const CotacaoTokenRoute = CotacaoTokenRouteImport.update({
   id: '/cotacao/$token',
@@ -181,11 +227,33 @@ const AdminAgendaRoute = AdminAgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminConfiguracoesRoute,
+} as any)
+const OwnerClientesIdRoute = OwnerClientesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => OwnerClientesRoute,
+} as any)
 const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
   id: '/cotacoes/$id',
   path: '/cotacoes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfiguracoesOrganizacaoRoute =
+  AdminConfiguracoesOrganizacaoRouteImport.update({
+    id: '/organizacao',
+    path: '/organizacao',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesEquipeRoute =
+  AdminConfiguracoesEquipeRouteImport.update({
+    id: '/equipe',
+    path: '/equipe',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
   id: '/api/public/cotacao/$token',
   path: '/api/public/cotacao/$token',
@@ -201,13 +269,16 @@ const ApiPublicCotacaoTokenPdfRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/owner': typeof OwnerRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
@@ -215,7 +286,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -225,16 +296,26 @@ export interface FileRoutesByFullPath {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/owner/': typeof OwnerIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
@@ -247,7 +328,6 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -257,9 +337,17 @@ export interface FileRoutesByTo {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/owner': typeof OwnerIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -267,13 +355,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/owner': typeof OwnerRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
@@ -281,7 +372,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRoute
   '/admin/objetos': typeof AdminObjetosRoute
@@ -291,9 +382,17 @@ export interface FileRoutesById {
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
+  '/owner/clientes': typeof OwnerClientesRouteWithChildren
+  '/owner/financeiro': typeof OwnerFinanceiroRoute
+  '/owner/suporte': typeof OwnerSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/owner/': typeof OwnerIndexRoute
+  '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
+  '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/owner/clientes/$id': typeof OwnerClientesIdRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -302,13 +401,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
     | '/obrigado'
     | '/orcamentos'
+    | '/owner'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
@@ -326,16 +428,26 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin/'
     | '/blog/'
+    | '/owner/'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
+    | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
@@ -348,7 +460,6 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/aprovacoes'
     | '/admin/captura'
-    | '/admin/configuracoes'
     | '/admin/fornecedores'
     | '/admin/modelos'
     | '/admin/objetos'
@@ -358,22 +469,33 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin'
     | '/blog'
+    | '/owner'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
+    | '/admin/configuracoes'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
+    | '/esqueci-senha'
     | '/ferramenta'
     | '/gestores'
     | '/login'
     | '/obrigado'
     | '/orcamentos'
+    | '/owner'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
@@ -391,9 +513,17 @@ export interface FileRouteTypes {
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
+    | '/owner/clientes'
+    | '/owner/financeiro'
+    | '/owner/suporte'
     | '/admin/'
     | '/blog/'
+    | '/owner/'
+    | '/admin/configuracoes/equipe'
+    | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/owner/clientes/$id'
+    | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesById: FileRoutesById
@@ -401,13 +531,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AtualizarSenhaRoute: typeof AtualizarSenhaRoute
   ContadoresRoute: typeof ContadoresRoute
   DemonstracaoRoute: typeof DemonstracaoRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   FerramentaRoute: typeof FerramentaRoute
   GestoresRoute: typeof GestoresRoute
   LoginRoute: typeof LoginRoute
   ObrigadoRoute: typeof ObrigadoRoute
   OrcamentosRoute: typeof OrcamentosRoute
+  OwnerRoute: typeof OwnerRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
@@ -439,6 +572,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner': {
+      id: '/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof OwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orcamentos': {
@@ -476,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FerramentaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demonstracao': {
       id: '/demonstracao'
       path: '/demonstracao'
@@ -488,6 +635,13 @@ declare module '@tanstack/react-router' {
       path: '/contadores'
       fullPath: '/contadores'
       preLoaderRoute: typeof ContadoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/atualizar-senha': {
+      id: '/atualizar-senha'
+      path: '/atualizar-senha'
+      fullPath: '/atualizar-senha'
+      preLoaderRoute: typeof AtualizarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -504,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/owner/': {
+      id: '/owner/'
+      path: '/'
+      fullPath: '/owner/'
+      preLoaderRoute: typeof OwnerIndexRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -517,6 +678,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/owner/suporte': {
+      id: '/owner/suporte'
+      path: '/suporte'
+      fullPath: '/owner/suporte'
+      preLoaderRoute: typeof OwnerSuporteRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/financeiro': {
+      id: '/owner/financeiro'
+      path: '/financeiro'
+      fullPath: '/owner/financeiro'
+      preLoaderRoute: typeof OwnerFinanceiroRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/clientes': {
+      id: '/owner/clientes'
+      path: '/clientes'
+      fullPath: '/owner/clientes'
+      preLoaderRoute: typeof OwnerClientesRouteImport
+      parentRoute: typeof OwnerRoute
     }
     '/cotacao/$token': {
       id: '/cotacao/$token'
@@ -616,12 +798,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgendaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/configuracoes/': {
+      id: '/admin/configuracoes/'
+      path: '/'
+      fullPath: '/admin/configuracoes/'
+      preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/owner/clientes/$id': {
+      id: '/owner/clientes/$id'
+      path: '/$id'
+      fullPath: '/owner/clientes/$id'
+      preLoaderRoute: typeof OwnerClientesIdRouteImport
+      parentRoute: typeof OwnerClientesRoute
+    }
     '/admin/cotacoes/$id': {
       id: '/admin/cotacoes/$id'
       path: '/cotacoes/$id'
       fullPath: '/admin/cotacoes/$id'
       preLoaderRoute: typeof AdminCotacoesIdRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin/configuracoes/organizacao': {
+      id: '/admin/configuracoes/organizacao'
+      path: '/organizacao'
+      fullPath: '/admin/configuracoes/organizacao'
+      preLoaderRoute: typeof AdminConfiguracoesOrganizacaoRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/equipe': {
+      id: '/admin/configuracoes/equipe'
+      path: '/equipe'
+      fullPath: '/admin/configuracoes/equipe'
+      preLoaderRoute: typeof AdminConfiguracoesEquipeRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
     }
     '/api/public/cotacao/$token': {
       id: '/api/public/cotacao/$token'
@@ -640,12 +850,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminConfiguracoesRouteChildren {
+  AdminConfiguracoesEquipeRoute: typeof AdminConfiguracoesEquipeRoute
+  AdminConfiguracoesOrganizacaoRoute: typeof AdminConfiguracoesOrganizacaoRoute
+  AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
+}
+
+const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
+  AdminConfiguracoesEquipeRoute: AdminConfiguracoesEquipeRoute,
+  AdminConfiguracoesOrganizacaoRoute: AdminConfiguracoesOrganizacaoRoute,
+  AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
+}
+
+const AdminConfiguracoesRouteWithChildren =
+  AdminConfiguracoesRoute._addFileChildren(AdminConfiguracoesRouteChildren)
+
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAprovacoesRoute: typeof AdminAprovacoesRoute
   AdminCapturaRoute: typeof AdminCapturaRoute
-  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
   AdminModelosRoute: typeof AdminModelosRoute
   AdminObjetosRoute: typeof AdminObjetosRoute
@@ -661,7 +886,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAprovacoesRoute: AdminAprovacoesRoute,
   AdminCapturaRoute: AdminCapturaRoute,
-  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
   AdminModelosRoute: AdminModelosRoute,
   AdminObjetosRoute: AdminObjetosRoute,
@@ -673,6 +898,34 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface OwnerClientesRouteChildren {
+  OwnerClientesIdRoute: typeof OwnerClientesIdRoute
+}
+
+const OwnerClientesRouteChildren: OwnerClientesRouteChildren = {
+  OwnerClientesIdRoute: OwnerClientesIdRoute,
+}
+
+const OwnerClientesRouteWithChildren = OwnerClientesRoute._addFileChildren(
+  OwnerClientesRouteChildren,
+)
+
+interface OwnerRouteChildren {
+  OwnerClientesRoute: typeof OwnerClientesRouteWithChildren
+  OwnerFinanceiroRoute: typeof OwnerFinanceiroRoute
+  OwnerSuporteRoute: typeof OwnerSuporteRoute
+  OwnerIndexRoute: typeof OwnerIndexRoute
+}
+
+const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerClientesRoute: OwnerClientesRouteWithChildren,
+  OwnerFinanceiroRoute: OwnerFinanceiroRoute,
+  OwnerSuporteRoute: OwnerSuporteRoute,
+  OwnerIndexRoute: OwnerIndexRoute,
+}
+
+const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
 
 interface ApiPublicCotacaoTokenRouteChildren {
   ApiPublicCotacaoTokenPdfRoute: typeof ApiPublicCotacaoTokenPdfRoute
@@ -690,13 +943,16 @@ const ApiPublicCotacaoTokenRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AtualizarSenhaRoute: AtualizarSenhaRoute,
   ContadoresRoute: ContadoresRoute,
   DemonstracaoRoute: DemonstracaoRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   FerramentaRoute: FerramentaRoute,
   GestoresRoute: GestoresRoute,
   LoginRoute: LoginRoute,
   ObrigadoRoute: ObrigadoRoute,
   OrcamentosRoute: OrcamentosRoute,
+  OwnerRoute: OwnerRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
