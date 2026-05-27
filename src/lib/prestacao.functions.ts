@@ -1,4 +1,5 @@
 /**
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Server functions para Prestação de Contas.
  * Copia um template do Google Docs e injeta a lista de documentos.
  */
