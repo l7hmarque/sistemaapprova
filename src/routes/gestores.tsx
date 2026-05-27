@@ -14,6 +14,19 @@ export const Route = createFileRoute("/gestores")({
       { property: "og:url", content: "https://synsit.lovable.app/gestores" },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/gestores" }],
+    scripts: [{
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          { "@type": "Question", name: "Minha OSC é pequena, vale a pena?", acceptedAnswer: { "@type": "Answer", text: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema." } },
+          { "@type": "Question", name: "Como funciona com convênios e termos de fomento?", acceptedAnswer: { "@type": "Answer", text: "Você cadastra cada projeto/convênio e vincula despesas. O sistema gera relatórios por fonte de recurso, prontos para prestação." } },
+          { "@type": "Question", name: "Posso dar acesso para meu contador?", acceptedAnswer: { "@type": "Answer", text: "Sim. Cada plano inclui usuários adicionais. Seu contador acessa o que precisa para fechar o mês — sem trocar email com planilha." } },
+          { "@type": "Question", name: "E LGPD?", acceptedAnswer: { "@type": "Answer", text: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC." } },
+        ],
+      }),
+    }],
   }),
   component: GestoresPage,
 });

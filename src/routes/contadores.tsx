@@ -14,6 +14,19 @@ export const Route = createFileRoute("/contadores")({
       { property: "og:url", content: "https://synsit.lovable.app/contadores" },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/contadores" }],
+    scripts: [{
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          { "@type": "Question", name: "Funciona para mais de uma OSC?", acceptedAnswer: { "@type": "Answer", text: "Sim. O plano Escritório atende até 5 OSCs com painel consolidado. Para mais entidades, fale conosco — temos condições por carteira." } },
+          { "@type": "Question", name: "Posso importar dados de planilhas que já uso?", acceptedAnswer: { "@type": "Answer", text: "Sim. Na implantação ajudamos na migração inicial dos saldos e fornecedores ativos." } },
+          { "@type": "Question", name: "E se o TCE atualizar o layout SIT?", acceptedAnswer: { "@type": "Answer", text: "Mantemos o sistema atualizado conforme as portarias do TCE-PR. Atualizações de layout não geram custo adicional." } },
+          { "@type": "Question", name: "Tem treinamento da equipe?", acceptedAnswer: { "@type": "Answer", text: "Sim. Todos os planos incluem onboarding em vídeo. Plano Escritório inclui sessão ao vivo." } },
+        ],
+      }),
+    }],
   }),
   component: ContadoresPage,
 });
