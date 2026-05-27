@@ -61,6 +61,7 @@ function fmtDate(iso?: string | null): string {
 }
 
 export const gerarPrestacaoContas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     // 1) buscar template ID das configurações

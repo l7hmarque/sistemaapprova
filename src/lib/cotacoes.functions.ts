@@ -76,6 +76,7 @@ async function carregarModeloAtivo(tipo: "orcamento" | "mapa") {
 /* ============================ COTAÇÕES ============================ */
 
 export const criarCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CotacaoCreateSchema.parse(d))
   .handler(async ({ data }) => {
     const { data: row, error } = await supabase
@@ -94,7 +95,8 @@ export const criarCotacao = createServerFn({ method: "POST" })
     return row;
   });
 
-export const listarCotacoes = createServerFn({ method: "GET" }).handler(async () => {
+export const listarCotacoes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth]).handler(async () => {
   const { data, error } = await supabase
     .from("cotacoes")
     .select("*")
@@ -104,6 +106,7 @@ export const listarCotacoes = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const obterCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: cot, error } = await supabase
@@ -121,6 +124,7 @@ export const obterCotacao = createServerFn({ method: "POST" })
   });
 
 export const atualizarCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CotacaoUpdateSchema.parse(d))
   .handler(async ({ data }) => {
     const { id, ...rest } = data;
@@ -142,6 +146,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
   });
 
 export const removerCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabase.from("cotacoes").delete().eq("id", data.id);
@@ -165,6 +170,7 @@ const GerarOrcCotacaoSchema = z.object({
 });
 
 export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => GerarOrcCotacaoSchema.parse(d))
   .handler(async ({ data }) => {
     const { data: cot, error: errCot } = await supabase
@@ -214,6 +220,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
   });
 
 export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabase.from("orcamentos_salvos").delete().eq("id", data.id);
@@ -229,6 +236,7 @@ const GerarMapaSchema = z.object({
 });
 
 export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => GerarMapaSchema.parse(d))
   .handler(async ({ data }) => {
     const { data: cot, error: errCot } = await supabase
@@ -385,7 +393,8 @@ const PresetSchema = z.object({
     .default([]),
 });
 
-export const listarPresets = createServerFn({ method: "GET" }).handler(async () => {
+export const listarPresets = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth]).handler(async () => {
   const { data, error } = await supabase
     .from("cotacao_presets")
     .select("*")
@@ -395,6 +404,7 @@ export const listarPresets = createServerFn({ method: "GET" }).handler(async () 
 });
 
 export const salvarPreset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => PresetSchema.parse(d))
   .handler(async ({ data }) => {
     const payload = {
@@ -424,6 +434,7 @@ export const salvarPreset = createServerFn({ method: "POST" })
   });
 
 export const removerPreset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabase.from("cotacao_presets").delete().eq("id", data.id);
@@ -432,6 +443,7 @@ export const removerPreset = createServerFn({ method: "POST" })
   });
 
 export const criarCotacaoDePreset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({ preset_id: z.string().uuid(), mes_referencia: z.string().max(7).optional() }).parse(d),
   )
