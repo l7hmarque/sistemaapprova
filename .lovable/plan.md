@@ -1,94 +1,68 @@
-## Estratégia geral
+## Objetivo
 
-Fatiar em 3 fases. Esta proposta detalha **Fase 1** (núcleo de cotação) e descreve Fase 2/3 em alto nível para alinhar antes de cada uma.
+Gerar uma nova versão do **Relatório Técnico-Legal: Propostas de Aprimoramento do Fluxo de Encaminhamentos do SCFV em Medianeira-PR** com:
 
----
+1. Correções terminológicas no Estudo de Caso (item 5).
+2. Bloco de autoria assinado por você.
+3. Data oficial de elaboração.
+4. Linguagem humanizada de ponta a ponta — sem cara de IA.
 
-## FASE 1 — Núcleo de cotação (foco desta entrega)
-
-### 1.1 Objetos de cotação (`/admin/objetos`)
-- Página real (substitui o `PlaceholderPage`).
-- CRUD em `objetos_cotacao` (já existe): descrição, unidade padrão, categoria, contador de uso.
-- Busca + ordenação por uso. Auto-criação continua funcionando (já registrada em `orcamentos.functions.ts`).
-
-### 1.2 Cadastro de fornecedores (`/admin/fornecedores`)
-- Página real sobre `fornecedores` (tabela existente).
-- CRUD completo: razão social, CNPJ, representante, CPF, e-mail, telefone, endereço.
-- **Cadastro rápido a partir de despesa**: no `/ferramenta`, ao revisar uma despesa cujo CNPJ não está em `fornecedores`, exibir botão "Salvar fornecedor" que pré-preenche o modal com os dados extraídos. Opcional, não bloqueante.
-
-### 1.3 Orçamentos parciais (`/admin/orcamentos`)
-**Mudança de modelo**: hoje `gerarOrcamentoNoDrive` exige 1 fornecedor com itens completos e gera 1 Sheet. Vai virar fluxo em 2 níveis:
-
-- **Cotação** (nova tabela `cotacoes`): agrupa o objeto, termo, mês, lista de itens (qtd/unidade/descrição) e até N fornecedores candidatos. Status: `coletando` → `pronto_para_mapa` → `finalizado`.
-- **Orçamento por fornecedor** (`orcamentos_salvos` já existe, ganha `cotacao_id` + `status`): cada fornecedor vira 1 linha. Pode ser criado vazio (sem preços) e preenchido depois. Geração no Drive acontece quando os preços chegam.
-
-UI: página da cotação mostra grid `itens × fornecedores` com status por célula (aguardando / preenchido). Botão por fornecedor: "Gerar Sheet", "Marcar como recebido", "Reabrir".
-
-### 1.4 Mapa comparativo automático
-- Botão "Gerar mapa comparativo" habilita quando ≥3 orçamentos da cotação estão `preenchido`.
-- Reutiliza `gerarMapaComparativoNoDrive` (já existe) montando o payload a partir dos 3 orçamentos selecionados (usuário escolhe quais 3 se houver mais).
-- Salva referência no registro da cotação (drive URL).
-
-### 1.5 Orçamentos presetados
-- Nova tabela `cotacao_presets` (campos: nome, objeto, termo, itens jsonb, fornecedores_sugeridos jsonb).
-- Em qualquer cotação: botão "Salvar como modelo" e "Carregar modelo".
-- Ao carregar: cria nova cotação com data/mês atuais, itens copiados, preços zerados, fornecedores sugeridos pré-selecionados (e se o cadastro mudou — razão social, representante — usa o atual de `fornecedores`).
-
-### 1.6 Arquivos & migrations
-**Migration**:
-- `cotacoes` (id, objeto, termo, mes_referencia, itens jsonb, status, criado_em, atualizado_em) + RLS authenticated.
-- `cotacao_presets` (id, nome, objeto, termo, itens jsonb, fornecedores_sugeridos jsonb) + RLS authenticated.
-- `orcamentos_salvos`: adicionar `cotacao_id uuid null`, `status text default 'rascunho'` (rascunho/preenchido/finalizado), índice por `cotacao_id`.
-
-**Server functions novas** (`src/lib/cotacoes.functions.ts`):
-- `criarCotacao`, `listarCotacoes`, `obterCotacao`, `atualizarCotacao`, `adicionarFornecedorACotacao`, `preencherPrecosOrcamento` (gera/atualiza Sheet via helpers existentes em `orcamentos.server.ts`), `gerarMapaDaCotacao`, `salvarPreset`, `listarPresets`, `carregarPreset`.
-
-**Server functions de fornecedores** (`src/lib/fornecedores.functions.ts`): CRUD + `criarFornecedorDeExtracao`.
-
-**Rotas novas/atualizadas**:
-- `src/routes/admin.objetos.tsx` — implementação real (usa `AdminShell`).
-- `src/routes/admin.fornecedores.tsx` — implementação real.
-- `src/routes/admin.orcamentos.tsx` — lista de cotações.
-- `src/routes/admin.cotacoes.$id.tsx` — detalhe da cotação (grid itens×fornecedores, mapa, presets).
-- `src/components/admin/CotacaoGrid.tsx`, `FornecedorDialog.tsx`, `PresetDialog.tsx`.
-
-**Não mexer**: `/ferramenta` (exceto adicionar botão "Salvar fornecedor"), landing, `/admin/aprovacoes`, extração.
+Entrega final: `/mnt/documents/Relatorio_SCFV_Medianeira_v2.pdf` (mantém o original intocado, gera nova versão).
 
 ---
 
-## FASE 2 — Portal do fornecedor (próxima entrega, **NÃO** incluso agora)
+## O que muda no conteúdo
 
-Resumo aprovado nas respostas:
-- Link público com token único (sem login), sob `/cotacao/$token`. Rota pública (não `_authenticated`).
-- Token gerado por orçamento (campo novo `acesso_token` + `acesso_expira_em` em `orcamentos_salvos`).
-- Página mostra dados pré-preenchidos do fornecedor (editáveis), itens com preço unitário e checkbox "não temos disponível".
-- Ao enviar: salva preços, atualiza cadastro do fornecedor, marca orçamento como `preenchido`, gera Sheet no Drive e exporta PDF; tela mostra botão "Baixar PDF" (sem e-mail).
-- Endpoint público em `src/routes/api/public/cotacao.$token.ts` para submit (rate-limited, valida token).
+### 1. Correções pontuais (item 5 — Estudo de Caso)
 
-## FASE 3 — Agenda + Analytics interno
+- "Registro de Revelação Espontânea (conforme o Anexo II do protocolo municipal)" → **"Escuta Especializada (conforme o Anexo II do protocolo municipal)"**
+- "acionou imediatamente a rede de proteção (Conselho Tutelar e CREAS)" → **"acionou imediatamente a rede de proteção (Conselho Tutelar e Escuta Especializada)"**
 
-- Agenda em formato calendário (mensal/semanal), eventos com cards. Tabela `eventos_agenda` (titulo, descricao, inicio, fim, prazo, criado_por, atribuido_a).
-- Web Push (Service Worker + VAPID keys — exige `add_secret` de `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` ou via Lovable Cloud) + som no app quando aberto.
-- Analytics fica restrito a admin (já é hoje em `/admin/analytics`); confirmar que rotas estão sob layout autenticado.
+### 2. Bloco de autoria (página de rosto + assinatura no fim)
+
+```
+Leonardo Henrique de Marque
+Psicólogo Social
+Coordenador do SCFV-CAIA — Medianeira/PR
+CRP 08/37876
+```
+
+### 3. Data de elaboração
+
+Medianeira-PR, **18 de novembro de 2025**.
+(Atualizar também a data de "Acesso em:" nas referências para 18 nov. 2025, para coerência cronológica — hoje estão como 21 mai. 2026, posterior à elaboração.)
+
+### 4. Humanização da linguagem (passada de pente fino em todo o texto)
+
+Diretrizes da reescrita:
+
+- Primeira pessoa do plural ("temos observado", "no nosso cotidiano com as famílias do CAIA") em trechos analíticos, sem perder formalidade.
+- Substituir conectivos típicos de IA ("ademais", "outrossim", "destarte", "portanto, conclui-se", "vale ressaltar", "é importante notar") por construções naturais.
+- Quebrar frases longas com encadeamentos lineares; intercalar períodos curtos.
+- Remover redundâncias ("forma muito clara", "extrema relevância", "potencializar essa estratégia").
+- Trazer marcas de vivência prática: referências a famílias atendidas, ao território, à rotina da unidade itinerante, sem inventar dados.
+- Tom técnico-empático: combina fundamentação legal (LOAS, Tipificação, NOB/SUAS) com leitura da realidade vivida na ponta.
+- Sem bullets quando a ideia couber em parágrafo corrido; manter listas só onde realmente ajudam o leitor (ex.: propostas finais).
+
+A estrutura (1. Introdução → 2. Fluxo Atual → 3. Acessibilidade e Competências → 4. Fundamentação Legal → 5. Estudo de Caso → 6. Conclusões → 7. Referências) é mantida, assim como a tabela do item 2 e as citações de lei. O que muda é a textura da escrita.
 
 ---
 
-## Fora de escopo desta fase
-- E-mail para fornecedor, integração WhatsApp.
-- Notificações push (Fase 3).
-- Edição direta de Google Sheet do orçamento na UI (continua sendo "gerar no Drive e abrir").
-- Multi-OSC / multi-termo.
+## Detalhes técnicos da geração
 
----
+1. Escrever o conteúdo reescrito em `/tmp/relatorio_v2.md` (markdown com a tabela do fluxo atual, citações em blockquote e referências numeradas).
+2. Converter para PDF com `pandoc` + engine `weasyprint` (já disponível no sandbox via `nix run nixpkgs#weasyprint`) ou `wkhtmltopdf`. Folha de estilo simples:
+  - Fonte serifada para corpo (Source Serif / Liberation Serif), sans para títulos.
+  - Margens 2,5 cm; numeração de páginas no rodapé; cabeçalho com título curto.
+  - Página de rosto com título, autor, cargo, CRP e data.
+3. Salvar em `/mnt/documents/Relatorio_SCFV_Medianeira_v2.pdf`.
+4. QA obrigatório: converter cada página em imagem (`pdftoppm`) e revisar visualmente — checar quebras de página, tabela do item 2 não cortada, citações legais com recuo correto, página de rosto com assinatura, ausência de #ERROR/placeholder. Corrigir e regenerar se algo estiver torto.
+5. Devolver no chat com `<presentation-artifact>` para preview/download.
 
-## Ordem de execução proposta (Fase 1)
-1. Migration (`cotacoes`, `cotacao_presets`, colunas em `orcamentos_salvos`).
-2. Server functions de fornecedores + página `/admin/fornecedores`.
-3. Página `/admin/objetos` real.
-4. Server functions de cotações + página lista `/admin/orcamentos`.
-5. Página de detalhe da cotação com grid + geração de Sheet por fornecedor.
-6. Botão "Gerar mapa comparativo" reutilizando função existente.
-7. Presets (salvar/carregar).
-8. Botão "Salvar fornecedor" no `/ferramenta`.
+## Fora de escopo
 
-Posso seguir com esta Fase 1?
+- Não publica nada no site nem altera código do projeto.
+- Não cria nova rota `/blog/...` (isso ficou em aberto na conversa anterior; pergunto depois).
+- Não inventa dados novos do CAIA, de famílias ou de bairros — apenas humaniza o que já está no relatório.
+
+Posso seguir e gerar o PDF v2?
