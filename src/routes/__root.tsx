@@ -88,6 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Extracts financial data from PDF expense reports to generate SIT-compliant TXT files and reconciliation tables." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/133edae9-e8df-4b9c-a5c8-77aaa0b64f42/id-preview-51e062e7--84728f81-35b1-4f0a-b429-cfce22582220.lovable.app-1779137543256.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/133edae9-e8df-4b9c-a5c8-77aaa0b64f42/id-preview-51e062e7--84728f81-35b1-4f0a-b429-cfce22582220.lovable.app-1779137543256.png" },
+      { name: "google-site-verification", content: "lrzVadvOEZaOHz7Y9hjvzAAwFIINZWEcIyNs5LfFLqo" },
     ],
     links: [
       {
