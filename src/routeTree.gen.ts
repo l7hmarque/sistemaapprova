@@ -33,6 +33,7 @@ import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
+import { Route as AdminSetupRouteImport } from './routes/admin.setup'
 import { Route as AdminPrestacaoRouteImport } from './routes/admin.prestacao'
 import { Route as AdminPainelRouteImport } from './routes/admin.painel'
 import { Route as AdminOrcamentosRouteImport } from './routes/admin.orcamentos'
@@ -172,6 +173,11 @@ const ApiExtractRoute = ApiExtractRouteImport.update({
   path: '/api/extract',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSetupRoute = AdminSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPrestacaoRoute = AdminPrestacaoRouteImport.update({
   id: '/prestacao',
   path: '/prestacao',
@@ -293,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
@@ -379,6 +387,7 @@ export interface FileRoutesById {
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
   '/admin/prestacao': typeof AdminPrestacaoRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
@@ -425,6 +434,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos'
     | '/admin/painel'
     | '/admin/prestacao'
+    | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos'
     | '/admin/painel'
     | '/admin/prestacao'
+    | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
@@ -510,6 +521,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos'
     | '/admin/painel'
     | '/admin/prestacao'
+    | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/cotacao/$token'
@@ -721,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExtractRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/setup': {
+      id: '/admin/setup'
+      path: '/setup'
+      fullPath: '/admin/setup'
+      preLoaderRoute: typeof AdminSetupRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/prestacao': {
       id: '/admin/prestacao'
       path: '/prestacao'
@@ -877,6 +896,7 @@ interface AdminRouteChildren {
   AdminOrcamentosRoute: typeof AdminOrcamentosRoute
   AdminPainelRoute: typeof AdminPainelRoute
   AdminPrestacaoRoute: typeof AdminPrestacaoRoute
+  AdminSetupRoute: typeof AdminSetupRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCotacoesIdRoute: typeof AdminCotacoesIdRoute
 }
@@ -893,6 +913,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrcamentosRoute: AdminOrcamentosRoute,
   AdminPainelRoute: AdminPainelRoute,
   AdminPrestacaoRoute: AdminPrestacaoRoute,
+  AdminSetupRoute: AdminSetupRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCotacoesIdRoute: AdminCotacoesIdRoute,
 }
