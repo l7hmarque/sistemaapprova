@@ -274,7 +274,7 @@ export function AdminTour() {
         showSkipButton: true,
         skipBeacon: true,
         hideCloseButton: false,
-        overlayClickAction: "none",
+        overlayClickAction: false,
         primaryColor: "hsl(var(--primary))",
         zIndex: 10000,
       }}
