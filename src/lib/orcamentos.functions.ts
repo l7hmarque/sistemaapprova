@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -101,6 +102,7 @@ async function carregarModeloAtivo(tipo: "orcamento" | "mapa" | "controle_bancar
 }
 
 export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DadosOrcamentoSchema.parse(d))
   .handler(async ({ data }) => {
     const modelo = await carregarModeloAtivo("orcamento");
@@ -175,6 +177,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
 /* ============================ GERAR MAPA ============================ */
 
 export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DadosMapaSchema.parse(d))
   .handler(async ({ data }) => {
     const modelo = await carregarModeloAtivo("mapa");

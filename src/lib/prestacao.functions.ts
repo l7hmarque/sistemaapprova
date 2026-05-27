@@ -1,4 +1,5 @@
 /**
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Server functions para Prestação de Contas.
  * Copia um template do Google Docs e injeta a lista de documentos.
  */
@@ -60,6 +61,7 @@ function fmtDate(iso?: string | null): string {
 }
 
 export const gerarPrestacaoContas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     // 1) buscar template ID das configurações

@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+
 
 const EventoSchema = z.object({
   session_id: z.string().min(8).max(64),
@@ -56,12 +59,21 @@ export const registrarEvento = createServerFn({ method: "POST" })
   });
 
 export const obterAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({ dias: z.number().int().min(1).max(90).optional().default(30) })
       .parse(input ?? {}),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    // Apenas super_admin pode ver analytics globais
+    const { data: roleRow } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "super_admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: requires super_admin");
     const desde = new Date(Date.now() - data.dias * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: rows, error } = await supabaseAdmin

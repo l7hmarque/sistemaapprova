@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const FornecedorSchema = z.object({
   id: z.string().uuid().optional(),
@@ -13,18 +13,21 @@ const FornecedorSchema = z.object({
   endereco: z.string().max(500).nullish(),
 });
 
-export const listarFornecedores = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await supabase
-    .from("fornecedores")
-    .select("*")
-    .order("razao_social", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarFornecedores = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("fornecedores")
+      .select("*")
+      .order("razao_social", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
 
 export const salvarFornecedor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FornecedorSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const payload = {
       razao_social: data.razao_social,
       cnpj: data.cnpj,
@@ -35,7 +38,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       endereco: data.endereco || null,
     };
     if (data.id) {
-      const { data: row, error } = await supabase
+      const { data: row, error } = await context.supabase
         .from("fornecedores")
         .update(payload)
         .eq("id", data.id)
@@ -44,7 +47,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return row;
     }
-    const { data: row, error } = await supabase
+    const { data: row, error } = await context.supabase
       .from("fornecedores")
       .insert(payload)
       .select()
@@ -54,18 +57,20 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
   });
 
 export const removerFornecedor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { error } = await supabase.from("fornecedores").delete().eq("id", data.id);
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("fornecedores").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const buscarPorCnpj = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ cnpj: z.string().min(1).max(40) }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const limpo = data.cnpj.replace(/\D/g, "");
-    const { data: rows } = await supabase
+    const { data: rows } = await context.supabase
       .from("fornecedores")
       .select("*")
       .or(`cnpj.eq.${data.cnpj},cnpj.eq.${limpo}`)
