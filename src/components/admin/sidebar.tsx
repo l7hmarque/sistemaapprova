@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { Crown } from "lucide-react";
 import { toast } from "sonner";
 
 type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
@@ -38,6 +40,7 @@ const ITEMS: Item[] = [
 export function AdminSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
+  const { isSuperAdmin } = useCurrentUser();
   const nav = useNavigate();
 
   const sair = async () => {
@@ -78,6 +81,15 @@ export function AdminSidebar() {
         })}
       </nav>
       <div className="p-3 border-t border-border space-y-2">
+        {isSuperAdmin && (
+          <Link
+            to="/owner"
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-accent/30 text-foreground hover:bg-accent transition-colors"
+          >
+            <Crown className="h-4 w-4" />
+            <span className="font-medium">Painel Owner</span>
+          </Link>
+        )}
         {user?.email && (
           <div className="px-2 text-xs text-muted-foreground truncate" title={user.email}>
             {user.email}
