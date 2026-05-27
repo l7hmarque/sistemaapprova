@@ -22,7 +22,7 @@ const GLOBAL_STEPS: Step[] = [
   {
     target: '[data-tour="nav-captura"]',
     title: "Captura inteligente",
-    content: "Suba PDFs de notas/boletos/guias e a IA preenche tudo: favorecido, valor, vencimento.",
+    content: "Suba PDFs de notas/boletos/guias e o sistema preenche tudo automaticamente: favorecido, valor, vencimento.",
     placement: "right",
   },
   {
