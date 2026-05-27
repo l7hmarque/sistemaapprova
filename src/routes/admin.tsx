@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { AdminTour } from "@/components/tour/AdminTour";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
@@ -39,6 +40,7 @@ function AdminLayout() {
       <main className="flex-1 min-w-0">
         <Outlet />
       </main>
+      <AdminTour />
       <Toaster richColors position="top-right" />
     </div>
   );
