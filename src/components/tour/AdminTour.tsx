@@ -286,7 +286,7 @@ export function AdminTour() {
       styles={{
         overlay: { backgroundColor: "rgba(0,0,0,0.55)" },
         tooltip: { borderRadius: 8, fontFamily: "inherit", fontSize: 13 },
-        buttonNext: { borderRadius: 6, fontSize: 13, backgroundColor: "hsl(var(--primary))" },
+        buttonPrimary: { borderRadius: 6, fontSize: 13, backgroundColor: "hsl(var(--primary))" },
         buttonBack: { color: "hsl(var(--muted-foreground))", fontSize: 13 },
         buttonSkip: { color: "hsl(var(--muted-foreground))", fontSize: 12 },
       }}
