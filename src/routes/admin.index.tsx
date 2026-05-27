@@ -16,7 +16,9 @@ import {
   Cell,
   CartesianGrid,
 } from "recharts";
-import { FileText, Users, Package, CalendarClock } from "lucide-react";
+import { FileText, Users, Package, CalendarClock, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { startAdminTour } from "@/components/tour/AdminTour";
 
 export const Route = createFileRoute("/admin/")({ component: Dashboard });
 
@@ -76,9 +78,15 @@ function Dashboard() {
 
   return (
     <div className="p-8 space-y-8">
-      <header>
-        <h1 className="text-3xl uppercase">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema</p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl uppercase">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => startAdminTour()}>
+          <HelpCircle className="h-4 w-4 mr-2" />
+          Refazer tour
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
