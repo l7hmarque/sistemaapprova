@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Trash2 } from "lucide-react";
 import { extrairSheetId } from "@/lib/modelos";
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: ConfigGeralPage });
