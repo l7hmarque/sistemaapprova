@@ -269,19 +269,28 @@ export function AdminTour() {
       steps={steps}
       run={run}
       continuous
+      showProgress
+      showSkipButton
+      hideCloseButton={false}
+      disableOverlayClose
+      spotlightClicks={false}
       onEvent={onCb as any}
-      options={{ showProgress: true, skipBeacon: true }}
       locale={{
         back: "Voltar",
-        close: "Fechar",
-        last: "Concluir",
+        close: "OK",
+        last: "OK, entendi",
         next: "Próximo",
-        skip: "Pular",
+        skip: "Pular tour",
+        nextLabelWithProgress: "Próximo ({step} de {steps})",
       }}
       styles={{
+        options: {
+          primaryColor: "hsl(var(--primary))",
+          zIndex: 10000,
+        },
         overlay: { backgroundColor: "rgba(0,0,0,0.55)" },
         tooltip: { borderRadius: 8, fontFamily: "inherit", fontSize: 13 },
-        buttonPrimary: { borderRadius: 6, fontSize: 13, backgroundColor: "hsl(var(--primary))" },
+        buttonNext: { borderRadius: 6, fontSize: 13 },
         buttonBack: { color: "hsl(var(--muted-foreground))", fontSize: 13 },
         buttonSkip: { color: "hsl(var(--muted-foreground))", fontSize: 12 },
       }}
