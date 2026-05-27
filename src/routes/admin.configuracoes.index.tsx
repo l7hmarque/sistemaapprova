@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { extrairSheetId } from "@/lib/modelos";
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: ConfigGeralPage });
@@ -67,6 +68,26 @@ function ConfigGeralPage() {
 
   return (
     <div className="space-y-6">
+      <Card data-tour-anchor="wizard-card" className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-5 flex items-start gap-4">
+          <div className="rounded-lg bg-primary/10 p-2.5">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-medium">Configuração inicial guiada</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Wizard de 5 passos para conectar Drive, Docs e Sheets. Otimizado para quem não é da área técnica.
+            </p>
+          </div>
+          <Link to="/admin/setup">
+            <Button>
+              Iniciar wizard <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+
       <Card>
         <CardHeader><CardTitle className="text-sm uppercase tracking-wide">Template — Prestação de Contas</CardTitle></CardHeader>
         <CardContent className="space-y-3">
