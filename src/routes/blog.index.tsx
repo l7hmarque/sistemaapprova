@@ -51,17 +51,16 @@ function BlogIndex() {
 
         <div className="mt-12 space-y-6">
           {POSTS.map((p) => (
-            <Link
+            <a
               key={p.slug}
-              to="/blog/$slug"
-              params={{ slug: p.slug }}
+              href={`/blog/${p.slug}`}
               className="block rounded-2xl border border-brand-line bg-white p-8 hover:shadow-md transition-shadow"
             >
               <p className="text-xs uppercase tracking-widest text-brand-blue">{p.tag}</p>
               <h2 className="mt-2 text-2xl font-serif text-brand-navy">{p.titulo}</h2>
               <p className="mt-2 text-brand-muted">{p.subtitulo}</p>
               <p className="mt-4 text-xs text-brand-muted">{p.data}</p>
-            </Link>
+            </a>
           ))}
         </div>
       </section>
