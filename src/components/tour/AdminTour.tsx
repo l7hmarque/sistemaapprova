@@ -137,7 +137,7 @@ export function AdminTour() {
       steps={STEPS}
       run={run}
       continuous
-      callback={onCb as any}
+      onEvent={onCb as any}
       options={{
         showProgress: true,
         skipBeacon: true,
