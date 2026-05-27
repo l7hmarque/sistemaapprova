@@ -27,7 +27,7 @@ import {
   validarSheets,
 } from "@/lib/setup-wizard.functions";
 
-export const Route = createFileRoute("/admin/configuracoes/wizard")({ component: WizardPage });
+export const Route = createFileRoute("/admin/setup")({ component: WizardPage });
 
 const SUBPASTAS = ["Orçamentos", "Cotações", "Prestações", "Documentos"];
 
