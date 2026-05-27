@@ -20,20 +20,20 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { Crown } from "lucide-react";
 import { toast } from "sonner";
 
-type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; tour?: string };
 const ITEMS: Item[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet },
-  { to: "/admin/captura", label: "Captura", icon: Camera },
-  { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText },
-  { to: "/admin/fornecedores", label: "Fornecedores", icon: Users },
-  { to: "/admin/objetos", label: "Objetos", icon: Package },
-  { to: "/admin/modelos", label: "Modelos", icon: FileCog },
-  { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck },
-  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck },
-  { to: "/admin/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard" },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, tour: "nav-analytics" },
+  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel" },
+  { to: "/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura" },
+  { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos" },
+  { to: "/admin/fornecedores", label: "Fornecedores", icon: Users, tour: "nav-fornecedores" },
+  { to: "/admin/objetos", label: "Objetos", icon: Package, tour: "nav-objetos" },
+  { to: "/admin/modelos", label: "Modelos", icon: FileCog, tour: "nav-modelos" },
+  { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao" },
+  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes" },
+  { to: "/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda" },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes" },
 ];
 
 
@@ -50,7 +50,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
+    <aside data-tour="sidebar" className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
       <div className="px-5 py-6 border-b border-border">
         <Link to="/" className="block">
           <div className="font-display text-lg uppercase leading-none">SIT</div>
@@ -67,6 +67,7 @@ export function AdminSidebar() {
             <Link
               key={it.to}
               to={it.to as any}
+              data-tour={it.tour}
               className={[
                 "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors duration-150",
                 active
@@ -80,7 +81,7 @@ export function AdminSidebar() {
           );
         })}
       </nav>
-      <div className="p-3 border-t border-border space-y-2">
+      <div data-tour="user-area" className="p-3 border-t border-border space-y-2">
         {isSuperAdmin && (
           <Link
             to="/owner"
