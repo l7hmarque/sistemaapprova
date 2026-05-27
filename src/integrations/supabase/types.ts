@@ -1190,7 +1190,12 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
-      user_orgs: { Args: { _user_id: string }; Returns: string[] }
+      user_orgs: {
+        Args: { _user_id: string }
+        Returns: {
+          organization_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "org_owner" | "org_admin" | "org_member"
