@@ -232,7 +232,7 @@ function WizardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-relaxed">
             <p>
-              Vamos conectar o SynSIT à sua conta do Google. Não se preocupe — você não precisa entender de
+              Vamos conectar o Approva à sua conta do Google. Não se preocupe — você não precisa entender de
               tecnologia. Tudo é guiado.
             </p>
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-2">
@@ -247,7 +247,7 @@ function WizardPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>Importante</AlertTitle>
               <AlertDescription>
-                A conexão com Google já foi feita pela equipe SynSIT. Aqui você só vai indicar{" "}
+                A conexão com Google já foi feita pela equipe Approva. Aqui você só vai indicar{" "}
                 <strong>onde</strong> ficam suas pastas e modelos.
               </AlertDescription>
             </Alert>
@@ -284,7 +284,7 @@ function WizardPage() {
                 </li>
                 <li>
                   No menu lateral, clique em <strong>+ Novo → Nova pasta</strong>. Dê um nome como{" "}
-                  <em>"SynSIT — [Nome da sua OSC]"</em>.
+                  <em>"Approva — [Nome da sua OSC]"</em>.
                 </li>
                 <li>
                   Entre na pasta criada. Na barra de endereços do navegador, copie a URL inteira (algo como{" "}
@@ -401,14 +401,14 @@ function WizardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              Este é o documento que o SynSIT vai duplicar e preencher toda vez que você gerar uma prestação
+              Este é o documento que o Approva vai duplicar e preencher toda vez que você gerar uma prestação
               de contas mensal.
             </p>
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-2">
               <p className="font-medium">Como fazer:</p>
               <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
                 <li>
-                  Use o modelo padrão SynSIT (recomendado) — peça à equipe pelo WhatsApp suporte e ela te
+                  Use o modelo padrão Approva (recomendado) — peça à equipe pelo WhatsApp suporte e ela te
                   envia o link de cópia.
                 </li>
                 <li>
@@ -458,13 +458,13 @@ function WizardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              Esta é a planilha que alimenta o painel financeiro (receitas, despesas, saldo) — o SynSIT lê e
+              Esta é a planilha que alimenta o painel financeiro (receitas, despesas, saldo) — o Approva lê e
               escreve nela automaticamente.
             </p>
             <div className="rounded-md border border-border bg-muted/30 p-4 space-y-2">
               <p className="font-medium">Como fazer:</p>
               <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
-                <li>Solicite o modelo SynSIT no suporte ou use uma planilha existente da OSC.</li>
+                <li>Solicite o modelo Approva no suporte ou use uma planilha existente da OSC.</li>
                 <li>Abra no Google Sheets, copie a URL completa da barra de endereços.</li>
                 <li>Cole abaixo e clique em "Validar". Mostraremos as abas detectadas.</li>
               </ol>

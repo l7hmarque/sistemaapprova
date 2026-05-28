@@ -6,9 +6,9 @@ import { FaqAccordion } from "@/components/marketing/FaqAccordion";
 export const Route = createFileRoute("/gestores")({
   head: () => ({
     meta: [
-      { title: "SynSIT para Gestores e Equipes Financeiras de OSCs" },
+      { title: "Approva para Gestores e Equipes Financeiras de OSCs" },
       { name: "description", content: "Menos planilha, mais missão. Controle orçamento, prestação de contas e prazos da sua OSC em um único lugar. 30 dias grátis." },
-      { property: "og:title", content: "SynSIT para Gestores de OSCs" },
+      { property: "og:title", content: "Approva para Gestores de OSCs" },
       { property: "og:description", content: "Acompanhe orçamento, metas e prazos da sua OSC sem planilhas paralelas." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/gestores" },
@@ -50,7 +50,7 @@ function GestoresPage() {
             Mais tempo para a missão. Menos tempo com planilha.
           </h1>
           <p className="mt-6 text-lg text-brand-muted max-w-2xl leading-relaxed">
-            SynSIT organiza a vida financeira da sua OSC — orçamento, lançamentos,
+            Approva organiza a vida financeira da sua OSC — orçamento, lançamentos,
             documentos e prestação de contas — num só lugar, com visão clara para
             quem coordena e segurança para quem audita.
           </p>
@@ -81,7 +81,7 @@ function GestoresPage() {
             A sua causa merece uma operação à altura.
           </h2>
           <p className="mt-6 text-white/85 text-lg leading-relaxed">
-            OSCs que adotam o SynSIT relatam fechamentos mensais
+            OSCs que adotam o Approva relatam fechamentos mensais
             <strong className="text-brand-accent"> até 3x mais rápidos</strong> e
             redução significativa de erros em prestações de contas.
           </p>

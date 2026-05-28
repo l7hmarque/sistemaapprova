@@ -7,7 +7,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/owner")({
   component: OwnerLayout,
-  head: () => ({ meta: [{ title: "Owner — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Owner — Approva" }] }),
 });
 
 function OwnerLayout() {

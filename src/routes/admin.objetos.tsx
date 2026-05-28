@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, Package } from "lucide-react";
 import { listarObjetos, salvarObjeto, removerObjeto } from "@/lib/objetos.functions";
 
 export const Route = createFileRoute("/admin/objetos")({
-  head: () => ({ meta: [{ title: "Objetos de cotação — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Objetos de cotação — Approva" }] }),
   component: ObjetosPage,
 });
 

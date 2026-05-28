@@ -19,8 +19,8 @@ export const Route = createFileRoute("/demonstracao")({
   validateSearch: SearchSchema,
   head: () => ({
     meta: [
-      { title: "Solicitar demonstração gratuita — SynSIT" },
-      { name: "description", content: "Teste o SynSIT por 30 dias sem cartão de crédito. Preencha o formulário e nossa equipe entra em contato." },
+      { title: "Solicitar demonstração gratuita — Approva" },
+      { name: "description", content: "Teste o Approva por 30 dias sem cartão de crédito. Preencha o formulário e nossa equipe entra em contato." },
       { name: "robots", content: "noindex,follow" },
     ],
   }),
@@ -103,7 +103,7 @@ function DemoPage() {
           Demonstração gratuita
         </p>
         <h1 className="mt-3 text-4xl md:text-5xl font-serif text-brand-navy">
-          30 dias para conhecer o SynSIT por dentro.
+          30 dias para conhecer o Approva por dentro.
         </h1>
         <p className="mt-4 text-brand-muted leading-relaxed">
           Sem cartão de crédito, sem fidelidade. Preencha os dados abaixo e nossa
@@ -160,7 +160,7 @@ function DemoPage() {
                 <textarea name="dor" rows={3} className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy" />
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm text-brand-navy font-medium">Como conheceu o SynSIT?</label>
+                <label className="text-sm text-brand-navy font-medium">Como conheceu o Approva?</label>
                 <input name="origem_descoberta" className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy" />
               </div>
             </div>

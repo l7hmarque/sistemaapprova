@@ -15,7 +15,7 @@ import { Plus, Trash2, FolderOpen, FileText, ArrowRight } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
 
 export const Route = createFileRoute("/admin/orcamentos")({
-  head: () => ({ meta: [{ title: "Cotações — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Cotações — Approva" }] }),
   component: CotacoesPage,
 });
 

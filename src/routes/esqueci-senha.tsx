@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/esqueci-senha")({
   component: EsqueciSenhaPage,
-  head: () => ({ meta: [{ title: "Recuperar senha — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Recuperar senha — Approva" }] }),
 });
 
 function EsqueciSenhaPage() {
@@ -35,7 +35,7 @@ function EsqueciSenhaPage() {
       <Card className="w-full max-w-sm">
         <CardContent className="p-6 space-y-5">
           <div>
-            <div className="font-display text-2xl uppercase">SynSIT</div>
+            <div className="font-display text-2xl uppercase">Approva</div>
             <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
               Recuperar senha
             </div>

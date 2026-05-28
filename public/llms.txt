@@ -1,8 +1,8 @@
-# SynSIT
+# Approva
 
 > Plataforma SaaS para prestação de contas de Termo de Fomento no padrão SIT/TCE-PR. Importa o PDF mensal, extrai despesas com IA, organiza comprovantes com aprovação em duas mãos e exporta o arquivo Despesa.txt oficial.
 
-SynSIT é desenvolvido pela 3RD TECH (Medianeira, PR, Brasil) e atende organizações da sociedade civil (OSCs) e escritórios contábeis que prestam contas ao TCE-PR.
+Approva é desenvolvido pela 3RD TECH (Medianeira, PR, Brasil) e atende organizações da sociedade civil (OSCs) e escritórios contábeis que prestam contas ao TCE-PR.
 
 ## Pages
 

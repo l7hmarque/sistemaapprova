@@ -4,8 +4,8 @@ import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
-      { title: "Política de Privacidade — SynSIT" },
-      { name: "description", content: "Como o SynSIT trata dados pessoais e financeiros, conforme a LGPD." },
+      { title: "Política de Privacidade — Approva" },
+      { name: "description", content: "Como o Approva trata dados pessoais e financeiros, conforme a LGPD." },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/privacidade" }],
   }),

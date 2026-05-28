@@ -9,9 +9,9 @@ import previewRelatorio from "@/assets/preview-relatorio.png";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SynSIT — Prestação de contas de Termo de Fomento (TCE-PR)" },
+      { title: "Approva — Prestação de contas de Termo de Fomento (TCE-PR)" },
       { name: "description", content: "Importe o PDF mensal do seu termo de fomento, revise lançamentos com IA, anexe comprovantes e exporte direto no padrão SIT/TCE-PR. 30 dias grátis." },
-      { property: "og:title", content: "SynSIT — Prestação de contas para OSCs" },
+      { property: "og:title", content: "Approva — Prestação de contas para OSCs" },
       { property: "og:description", content: "Revise lançamentos, anexe comprovantes e exporte no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/" },
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
           "@type": "Organization",
           name: "3RD TECH",
           url: "https://synsit.lovable.app",
-          brand: { "@type": "Brand", name: "SynSIT" },
+          brand: { "@type": "Brand", name: "Approva" },
           address: { "@type": "PostalAddress", addressLocality: "Medianeira", addressRegion: "PR", addressCountry: "BR" },
         }),
       },
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "SynSIT",
+          name: "Approva",
           url: "https://synsit.lovable.app/",
         }),
       },
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "SynSIT",
+          name: "Approva",
           applicationCategory: "BusinessApplication",
           operatingSystem: "Web",
           url: "https://synsit.lovable.app/",
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/")({
           "@type": "FAQPage",
           mainEntity: [
             { "@type": "Question", name: "A demonstração é mesmo gratuita?", acceptedAnswer: { "@type": "Answer", text: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." } },
-            { "@type": "Question", name: "Preciso instalar algo?", acceptedAnswer: { "@type": "Answer", text: "Não. SynSIT é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." } },
+            { "@type": "Question", name: "Preciso instalar algo?", acceptedAnswer: { "@type": "Answer", text: "Não. Approva é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." } },
             { "@type": "Question", name: "Meus dados ficam seguros?", acceptedAnswer: { "@type": "Answer", text: "Sim. Toda a infraestrutura é criptografada, com backups diários. Acesso por usuário com autenticação individual e trilha de aprovação de despesas." } },
             { "@type": "Question", name: "Atende a quais editais e legislações?", acceptedAnswer: { "@type": "Answer", text: "Hoje exportamos no padrão SIT/TCE-PR, com CNPJs validados, encoding ANSI Win-1252 e catálogo de naturezas econômicas oficiais. Outros formatos podem ser adicionados conforme necessidade." } },
             { "@type": "Question", name: "Posso trocar de plano depois?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." } },
@@ -79,7 +79,7 @@ function HomePage() {
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-24 grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:items-center">
           <div>
             <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
-              Plataforma SynSIT · por 3RD TECH
+              Plataforma Approva · por 3RD TECH
             </p>
             <h1 className="mt-4 text-4xl md:text-6xl font-serif text-brand-navy leading-[1.05]">
               Prestação de contas do seu Termo de Fomento <em className="not-italic text-brand-blue">sem fricção</em>.
@@ -115,7 +115,7 @@ function HomePage() {
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
                 src={previewRevisao}
-                alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no SynSIT, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
+                alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no Approva, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
                 width={1600}
                 height={896}
                 fetchPriority="high"
@@ -143,7 +143,7 @@ function HomePage() {
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
                   src={previewUpload}
-                  alt="Tela de importação do PDF mensal de prestação de contas no SynSIT, com lançamentos sendo lidos automaticamente pela IA."
+                  alt="Tela de importação do PDF mensal de prestação de contas no Approva, com lançamentos sendo lidos automaticamente pela IA."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -238,7 +238,7 @@ function HomePage() {
 
       <FaqAccordion items={[
         { q: "A demonstração é mesmo gratuita?", a: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." },
-        { q: "Preciso instalar algo?", a: "Não. SynSIT é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." },
+        { q: "Preciso instalar algo?", a: "Não. Approva é 100% web. Funciona em qualquer navegador moderno, no computador ou no celular." },
         { q: "Meus dados ficam seguros?", a: "Sim. Toda a infraestrutura é criptografada, com backups diários. Acesso por usuário com autenticação individual e trilha de aprovação de despesas." },
         { q: "Atende a quais editais e legislações?", a: "Hoje exportamos no padrão SIT/TCE-PR, com CNPJs validados, encoding ANSI Win-1252 e catálogo de naturezas econômicas oficiais. Outros formatos podem ser adicionados conforme necessidade." },
         { q: "Posso trocar de plano depois?", a: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." },

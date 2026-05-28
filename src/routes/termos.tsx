@@ -4,8 +4,8 @@ import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 export const Route = createFileRoute("/termos")({
   head: () => ({
     meta: [
-      { title: "Termos de Uso — SynSIT" },
-      { name: "description", content: "Termos de Uso da plataforma SynSIT, operada pela 3RD TECH." },
+      { title: "Termos de Uso — Approva" },
+      { name: "description", content: "Termos de Uso da plataforma Approva, operada pela 3RD TECH." },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/termos" }],
   }),
@@ -21,13 +21,13 @@ function TermosPage() {
 
         <h2 className="mt-10 text-2xl font-serif text-brand-navy">1. Aceitação</h2>
         <p className="mt-3 text-brand-muted leading-relaxed">
-          Ao contratar ou utilizar a plataforma SynSIT, operada pela 3RD TECH, o
+          Ao contratar ou utilizar a plataforma Approva, operada pela 3RD TECH, o
           contratante declara estar ciente e de acordo com estes Termos.
         </p>
 
         <h2 className="mt-8 text-2xl font-serif text-brand-navy">2. Objeto</h2>
         <p className="mt-3 text-brand-muted leading-relaxed">
-          O SynSIT é uma plataforma de gestão financeira e prestação de contas
+          O Approva é uma plataforma de gestão financeira e prestação de contas
           voltada a organizações da sociedade civil (OSCs) e escritórios contábeis
           que atendem o terceiro setor.
         </p>
