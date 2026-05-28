@@ -380,9 +380,24 @@ function PainelPage() {
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label>Descrição</Label>
-                <Input value={editing.descricao ?? ""}
-                  onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} />
+                <Label className="flex justify-between">
+                  <span>Descrição</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {(editing.descricao ?? "").length}/200
+                  </span>
+                </Label>
+                <Input value={editing.descricao ?? ""} maxLength={200}
+                  onChange={(e) => setEditing({ ...editing, descricao: e.target.value.slice(0, 200) })} />
+              </div>
+              <div>
+                <Label>Nº do documento</Label>
+                <Input value={numeroDocStr} placeholder="—"
+                  onChange={(e) => setNumeroDocStr(e.target.value)} />
+              </div>
+              <div>
+                <Label>Data de emissão</Label>
+                <Input type="date" value={dataEmissaoStr}
+                  onChange={(e) => setDataEmissaoStr(e.target.value)} />
               </div>
               <div className="col-span-2">
                 <Label>Fornecedor</Label>
