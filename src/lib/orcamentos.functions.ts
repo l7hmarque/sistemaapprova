@@ -107,8 +107,10 @@ async function carregarModeloAtivo(
 export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DadosOrcamentoSchema.parse(d))
-  .handler(async ({ data }) => {
-    const modelo = await carregarModeloAtivo("orcamento");
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const orgId = await resolverOrgId(supabase);
+    const modelo = await carregarModeloAtivo(supabase, "orcamento");
     const templateId = modelo?.template_id || TEMPLATE_ORCAMENTO_ID;
     const aba = modelo?.aba || ABA_ORC;
     const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
@@ -162,6 +164,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
 
     // Salva snapshot
     await supabase.from("orcamentos_salvos").insert({
+      organization_id: orgId,
       tipo: "cotacao",
       objeto: data.objeto,
       termo: data.termo,
@@ -172,7 +175,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
       drive_file_url: copy.webViewLink,
     });
 
-    await registrarObjeto(data.objeto);
+    await registrarObjeto(supabase, orgId, data.objeto);
 
     return { fileId: copy.id, url: copy.webViewLink, nome: copy.name };
   });
