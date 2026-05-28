@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ type Evento = {
   data_pagamento: string | null;
   origem: string;
   status_documental: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 type Fornecedor = { id: string; razao_social: string; cnpj: string };
@@ -58,9 +59,20 @@ function PainelPage() {
   const [mes, setMes] = useState(mesAtual());
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [editing, setEditing] = useState<Evento | null>(null);
+  // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
+  const [valorPrevStr, setValorPrevStr] = useState<string>("");
+  const [valorEfetStr, setValorEfetStr] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
+
+  function parseNum(s: string): number | null {
+    const t = s.trim().replace(",", ".");
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  }
+
 
   async function handleFecharMes() {
     if (eventos.length === 0) return toast.error("Sem eventos no mês.");
@@ -133,11 +145,15 @@ function PainelPage() {
       origem: "manual",
       status_documental: "pendente",
     });
+    setValorPrevStr("");
+    setValorEfetStr("");
     setOpen(true);
   }
 
   function abrirEdit(e: Evento) {
     setEditing({ ...e });
+    setValorPrevStr(e.valor_previsto != null ? String(e.valor_previsto) : "");
+    setValorEfetStr(e.valor_efetivo != null ? String(e.valor_efetivo) : "");
     setOpen(true);
   }
 
@@ -148,8 +164,8 @@ function PainelPage() {
       fornecedor_id: editing.fornecedor_id,
       categoria: editing.categoria,
       descricao: editing.descricao,
-      valor_previsto: editing.valor_previsto,
-      valor_efetivo: editing.valor_efetivo,
+      valor_previsto: parseNum(valorPrevStr),
+      valor_efetivo: parseNum(valorEfetStr),
       data_vencimento: editing.data_vencimento,
       data_pagamento: editing.data_pagamento,
       origem: editing.origem,
@@ -167,6 +183,7 @@ function PainelPage() {
     setEditing(null);
     recarregar();
   }
+
 
   return (
     <div className="p-8 space-y-6">
@@ -218,55 +235,107 @@ function PainelPage() {
         </CardContent></Card>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm uppercase tracking-wide">
+      <div className="space-y-3">
+        <div className="text-sm uppercase tracking-wide text-muted-foreground">
           Eventos ({filtrados.length})
-        </CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Vencim.</TableHead>
-                <TableHead>Pgto</TableHead>
-                <TableHead className="text-right">Previsto</TableHead>
-                <TableHead className="text-right">Efetivo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtrados.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  <FileWarning className="mx-auto mb-2 h-5 w-5 opacity-50" />
-                  Nenhum evento neste mês. Clique em "Novo evento" para começar.
-                </TableCell></TableRow>
-              )}
-              {filtrados.map((e) => {
-                const forn = fornecedores.find((f) => f.id === e.fornecedor_id);
-                return (
-                  <TableRow key={e.id}>
-                    <TableCell className="text-xs">{e.categoria}</TableCell>
-                    <TableCell>{e.descricao || "—"}</TableCell>
-                    <TableCell className="text-xs">{forn?.razao_social ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{e.data_vencimento ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{e.data_pagamento ?? "—"}</TableCell>
-                    <TableCell className="text-right">{e.valor_previsto != null ? Number(e.valor_previsto).toFixed(2) : "—"}</TableCell>
-                    <TableCell className="text-right">{e.valor_efetivo != null ? Number(e.valor_efetivo).toFixed(2) : "—"}</TableCell>
-                    <TableCell><Badge variant={statusVariant(e.status_documental)}>{e.status_documental}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => abrirEdit(e)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => remover(e.id)}><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </div>
+
+        {filtrados.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <FileWarning className="mx-auto mb-2 h-5 w-5 opacity-50" />
+              Nenhum evento neste mês. Clique em "Novo evento" para começar.
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtrados.map((e) => {
+            const forn = fornecedores.find((f) => f.id === e.fornecedor_id);
+            const meta = (e.metadata ?? {}) as Record<string, unknown>;
+            const cnpjMeta = typeof meta.cnpj_extraido === "string" ? meta.cnpj_extraido : null;
+            const razaoMeta = typeof meta.razao_social_extraida === "string" ? meta.razao_social_extraida : null;
+            const numeroMeta = typeof meta.numero_extraido === "string" ? meta.numero_extraido : null;
+            const motivoMeta = typeof meta.motivo_revisao === "string" ? meta.motivo_revisao : null;
+            const dif = (Number(e.valor_efetivo) || 0) - (Number(e.valor_previsto) || 0);
+            return (
+              <Card key={e.id} className="flex flex-col">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base leading-snug break-words">
+                        {e.descricao || "(sem descrição)"}
+                      </CardTitle>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">{e.categoria}</Badge>
+                        <Badge variant={statusVariant(e.status_documental)} className="text-[10px]">
+                          {e.status_documental}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">{e.origem}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => abrirEdit(e)} title="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => remover(e.id)} title="Remover">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm flex-1">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fornecedor</div>
+                    <div className="break-words">
+                      {forn?.razao_social ?? razaoMeta ?? "—"}
+                    </div>
+                    {(forn?.cnpj || cnpjMeta) && (
+                      <div className="text-xs text-muted-foreground">
+                        CNPJ {forn?.cnpj ?? cnpjMeta}
+                        {!forn && razaoMeta && " (não cadastrado)"}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Vencimento</div>
+                      <div>{e.data_vencimento ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</div>
+                      <div>{e.data_pagamento ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Previsto</div>
+                      <div className="font-display text-base">
+                        {e.valor_previsto != null ? `R$ ${Number(e.valor_previsto).toFixed(2)}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Efetivo</div>
+                      <div className={`font-display text-base ${dif !== 0 && e.valor_efetivo != null ? "text-destructive" : ""}`}>
+                        {e.valor_efetivo != null ? `R$ ${Number(e.valor_efetivo).toFixed(2)}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {numeroMeta && (
+                    <div className="text-xs text-muted-foreground">
+                      Nº doc: <span className="font-mono">{numeroMeta}</span>
+                    </div>
+                  )}
+                  {motivoMeta && (
+                    <div className="text-xs text-destructive">⚠ {motivoMeta}</div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
@@ -308,13 +377,15 @@ function PainelPage() {
               </div>
               <div>
                 <Label>Valor previsto</Label>
-                <Input type="number" step="0.01" value={editing.valor_previsto ?? ""}
-                  onChange={(e) => setEditing({ ...editing, valor_previsto: e.target.value === "" ? null : Number(e.target.value) })} />
+                <Input type="text" inputMode="decimal" placeholder="0,00"
+                  value={valorPrevStr}
+                  onChange={(e) => setValorPrevStr(e.target.value)} />
               </div>
               <div>
                 <Label>Valor efetivo</Label>
-                <Input type="number" step="0.01" value={editing.valor_efetivo ?? ""}
-                  onChange={(e) => setEditing({ ...editing, valor_efetivo: e.target.value === "" ? null : Number(e.target.value) })} />
+                <Input type="text" inputMode="decimal" placeholder="0,00"
+                  value={valorEfetStr}
+                  onChange={(e) => setValorEfetStr(e.target.value)} />
               </div>
               <div>
                 <Label>Vencimento</Label>
