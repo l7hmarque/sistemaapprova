@@ -9,7 +9,7 @@ export const Route = createFileRoute("/obrigado")({
   }),
   head: () => ({
     meta: [
-      { title: "Recebemos sua solicitação — SynSIT" },
+      { title: "Recebemos sua solicitação — Approva" },
       { name: "description", content: "Sua solicitação de demonstração foi recebida. Em até 1 dia útil entraremos em contato." },
       { name: "robots", content: "noindex,nofollow" },
     ],

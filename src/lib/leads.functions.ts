@@ -134,7 +134,7 @@ export const enviarLead = createServerFn({ method: "POST" })
 
 async function notificarEquipe(lead: Record<string, unknown> & { id: string }) {
   const DEST = "l7hmarque@gmail.com";
-  const SUBJECT = `LEAD SynSIT — ${lead.nome} (${lead.plano})`;
+  const SUBJECT = `LEAD Approva — ${lead.nome} (${lead.plano})`;
 
   // Tenta via Lovable Emails infra se disponível (RPC enqueue_email).
   // Se não houver, registra no log e segue — admin verá lead no /admin/leads.
@@ -145,7 +145,7 @@ async function notificarEquipe(lead: Record<string, unknown> & { id: string }) {
       p_queue_name: "transactional_emails",
       p_payload: {
         to: DEST,
-        from: { email: "no-reply@synsit.app", name: "SynSIT Leads" },
+        from: { email: "no-reply@synsit.app", name: "Approva Leads" },
         subject: SUBJECT,
         html,
         text,
@@ -167,7 +167,7 @@ function esc(v: unknown): string {
 function renderLeadEmail(l: Record<string, unknown>): string {
   return `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f5f0e0;padding:24px;color:#0f1b3d">
   <div style="max-width:560px;margin:auto;background:#fff;padding:32px;border-radius:12px">
-    <h1 style="font-family:'Instrument Serif',serif;margin:0 0 4px;color:#0f1b3d">Novo lead SynSIT</h1>
+    <h1 style="font-family:'Instrument Serif',serif;margin:0 0 4px;color:#0f1b3d">Novo lead Approva</h1>
     <p style="color:#5b6478;margin:0 0 24px">Capturado pela landing page.</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px">
       <tr><td style="padding:6px 0;color:#5b6478">Nome</td><td style="padding:6px 0"><b>${esc(l.nome)}</b></td></tr>
@@ -193,7 +193,7 @@ function renderLeadEmail(l: Record<string, unknown>): string {
 
 function renderLeadEmailText(l: Record<string, unknown>): string {
   return [
-    "Novo lead SynSIT",
+    "Novo lead Approva",
     "",
     `Nome: ${l.nome}`,
     `Email: ${l.email}`,

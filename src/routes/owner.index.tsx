@@ -31,7 +31,7 @@ function OwnerDashboard() {
       <header>
         <h1 className="font-display text-3xl uppercase">Visão geral</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Pulsação da operação SynSIT.
+          Pulsação da operação Approva.
         </p>
       </header>
 

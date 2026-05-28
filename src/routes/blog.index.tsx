@@ -6,13 +6,13 @@ const URL = "https://synsit.lovable.app/blog";
 export const Route = createFileRoute("/blog/")({
   head: () => ({
     meta: [
-      { title: "Blog SynSIT — Prestação de contas, SCFV e Terceiro Setor" },
+      { title: "Blog Approva — Prestação de contas, SCFV e Terceiro Setor" },
       {
         name: "description",
         content:
           "Conteúdo prático para gestores de OSC e contadores do terceiro setor: SCFV, IN 201/2026 TCE-PR, conciliação bancária, editais e captação.",
       },
-      { property: "og:title", content: "Blog SynSIT" },
+      { property: "og:title", content: "Blog Approva" },
       {
         property: "og:description",
         content: "Conteúdo prático para gestores de OSC e contadores do terceiro setor.",

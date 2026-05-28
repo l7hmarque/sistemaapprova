@@ -96,7 +96,7 @@ function EquipePage() {
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
             Para convidar membros novos, peça que o e-mail crie uma conta em <code>/login</code> e em
-            seguida envie o ID dele para o suporte SynSIT vincular à sua organização.
+            seguida envie o ID dele para o suporte Approva vincular à sua organização.
           </p>
           <p className="text-xs">
             Em breve: convite por e-mail direto desta tela.

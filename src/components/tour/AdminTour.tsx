@@ -8,7 +8,7 @@ const STORAGE_PREFIX = "synsit:tour:v2:";
 const GLOBAL_STEPS: Step[] = [
   {
     target: '[data-tour="sidebar"]',
-    title: "Bem-vindo ao SynSIT 👋",
+    title: "Bem-vindo ao Approva 👋",
     content:
       "Este é o seu painel. Tudo da OSC — orçamentos, fornecedores, prestação e o TXT do SIT — começa por este menu lateral.",
     placement: "right",

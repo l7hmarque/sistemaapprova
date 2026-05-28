@@ -21,7 +21,7 @@ import { listarFornecedores } from "@/lib/fornecedores.functions";
 import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
 
 export const Route = createFileRoute("/admin/cotacoes/$id")({
-  head: () => ({ meta: [{ title: "Cotação — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Cotação — Approva" }] }),
   component: CotacaoDetalhePage,
 });
 

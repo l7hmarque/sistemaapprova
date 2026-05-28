@@ -100,7 +100,7 @@ function OrgPage() {
             </div>
           )}
           <p className="text-xs text-muted-foreground pt-3 border-t border-border mt-3">
-            Para alterar plano, falar com o time SynSIT pelo canal de suporte.
+            Para alterar plano, falar com o time Approva pelo canal de suporte.
           </p>
         </CardContent>
       </Card>

@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-brand-line bg-brand-cream-soft mt-24">
       <div className="mx-auto max-w-6xl px-6 py-14 grid gap-10 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="text-2xl font-serif text-brand-navy">SynSIT</div>
+          <div className="text-brand-navy"><ApprovaLogo variant="full" size="lg" /></div>
           <p className="mt-3 text-sm text-brand-muted max-w-sm leading-relaxed">
             Plataforma de gestão financeira e prestação de contas para organizações da
             sociedade civil e escritórios de contabilidade do terceiro setor.
@@ -39,7 +40,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-brand-line">
         <div className="mx-auto max-w-6xl px-6 py-6 text-xs text-brand-muted flex flex-wrap items-center justify-between gap-3">
-          <span>© {new Date().getFullYear()} 3RD TECH · SynSIT</span>
+          <span>© {new Date().getFullYear()} 3RD TECH · Approva</span>
           <span>CNPJ sob consulta · contato via formulário</span>
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Crown } from "lucide-react";
@@ -52,9 +53,9 @@ export function AdminSidebar() {
   return (
     <aside data-tour="sidebar" className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
       <div className="px-5 py-6 border-b border-border">
-        <Link to="/" className="block">
-          <div className="font-display text-lg uppercase leading-none">SIT</div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+        <Link to="/" className="block text-foreground">
+          <ApprovaLogo variant="full" size="md" />
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">
             Painel Admin
           </div>
         </Link>

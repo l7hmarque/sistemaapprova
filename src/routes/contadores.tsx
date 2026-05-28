@@ -6,9 +6,9 @@ import { FaqAccordion } from "@/components/marketing/FaqAccordion";
 export const Route = createFileRoute("/contadores")({
   head: () => ({
     meta: [
-      { title: "SynSIT para Contadores e Escritórios do Terceiro Setor" },
+      { title: "Approva para Contadores e Escritórios do Terceiro Setor" },
       { name: "description", content: "Padronize a prestação de contas de várias OSCs em um único painel. Modelos prontos, exportação SIT, multi-cliente. 30 dias grátis." },
-      { property: "og:title", content: "SynSIT para Contadores que atendem OSCs" },
+      { property: "og:title", content: "Approva para Contadores que atendem OSCs" },
       { property: "og:description", content: "Multi-OSC, modelos por edital, exportação SIT. Sem retrabalho." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/contadores" },
@@ -50,7 +50,7 @@ function ContadoresPage() {
             Atenda mais OSCs sem aumentar a equipe.
           </h1>
           <p className="mt-6 text-lg text-white/85 max-w-2xl leading-relaxed">
-            SynSIT padroniza a prestação de contas das organizações do terceiro setor
+            Approva padroniza a prestação de contas das organizações do terceiro setor
             que estão na sua carteira. Você ganha previsibilidade, seu cliente ganha
             tranquilidade.
           </p>
@@ -78,7 +78,7 @@ function ContadoresPage() {
             Cada hora gasta em planilha é uma hora a menos com cliente.
           </h2>
           <p className="mt-6 text-brand-muted text-lg leading-relaxed">
-            Escritórios que atendem 3 a 5 OSCs com SynSIT reportam economia de
+            Escritórios que atendem 3 a 5 OSCs com Approva reportam economia de
             <strong className="text-brand-navy"> 8 a 14 horas mensais</strong> só em fechamento
             e organização documental.
           </p>

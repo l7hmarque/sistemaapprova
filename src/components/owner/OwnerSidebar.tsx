@@ -33,7 +33,7 @@ export function OwnerSidebar() {
     <aside className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
       <div className="px-5 py-6 border-b border-border">
         <Link to="/" className="block">
-          <div className="font-display text-lg uppercase leading-none">SynSIT</div>
+          <div className="font-display text-lg uppercase leading-none">Owner</div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
             Owner — staff
           </div>

@@ -13,14 +13,14 @@ const PUBLISHED = "2026-05-27";
 export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
   head: () => ({
     meta: [
-      { title: `${TITLE} — SynSIT` },
+      { title: `${TITLE} — Approva` },
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "article" },
       { property: "og:url", content: URL },
       { property: "article:published_time", content: PUBLISHED },
-      { property: "article:author", content: "SynSIT" },
+      { property: "article:author", content: "Approva" },
       { property: "article:section", content: "Terceiro Setor" },
       { property: "article:tag", content: "SCFV, TCE-PR, Prestação de Contas, OSC, IN 201/2026" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -38,10 +38,10 @@ export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
           description: DESCRIPTION,
           datePublished: PUBLISHED,
           dateModified: PUBLISHED,
-          author: { "@type": "Organization", name: "SynSIT" },
+          author: { "@type": "Organization", name: "Approva" },
           publisher: {
             "@type": "Organization",
-            name: "SynSIT",
+            name: "Approva",
             url: "https://synsit.lovable.app",
           },
           mainEntityOfPage: { "@type": "WebPage", "@id": URL },
@@ -182,7 +182,7 @@ function PostPage() {
             <li><strong>Alertas</strong> — fórmulas que apontam execução acima do repasse, rubrica inválida e saldo a executar.</li>
           </ul>
           <p>
-            É a mesma lógica que está dentro do SynSIT, mas numa planilha simples que você abre no
+            É a mesma lógica que está dentro do Approva, mas numa planilha simples que você abre no
             Excel ou no Google Sheets e usa hoje à noite.
           </p>
         </div>
@@ -195,7 +195,7 @@ function PostPage() {
           </h2>
           <p className="text-brand-navy/90 leading-relaxed">
             A planilha resolve hoje. Mas se sua OSC ou seu escritório atende mais de uma entidade,
-            ou se você simplesmente não quer mais perder domingo de noite, é pra isso que o SynSIT
+            ou se você simplesmente não quer mais perder domingo de noite, é pra isso que o Approva
             existe:
           </p>
           <ul className="list-disc pl-6 text-brand-navy/90 space-y-1">

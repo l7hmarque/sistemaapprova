@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/atualizar-senha")({
   component: AtualizarSenhaPage,
-  head: () => ({ meta: [{ title: "Nova senha — SynSIT" }] }),
+  head: () => ({ meta: [{ title: "Nova senha — Approva" }] }),
 });
 
 function AtualizarSenhaPage() {
@@ -36,7 +36,7 @@ function AtualizarSenhaPage() {
       <Card className="w-full max-w-sm">
         <CardContent className="p-6 space-y-5">
           <div>
-            <div className="font-display text-2xl uppercase">SynSIT</div>
+            <div className="font-display text-2xl uppercase">Approva</div>
             <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
               Definir nova senha
             </div>

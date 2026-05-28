@@ -15,7 +15,7 @@ import { CheckCircle2, XCircle, FileText, ExternalLink, ShieldCheck } from "luci
 
 export const Route = createFileRoute("/admin/aprovacoes")({
   head: () => ({
-    meta: [{ title: "Aprovações pendentes — SynSIT" }],
+    meta: [{ title: "Aprovações pendentes — Approva" }],
   }),
   component: AprovacoesPage,
 });
