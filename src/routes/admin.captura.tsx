@@ -227,24 +227,50 @@ function CapturaPage() {
         try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
       }
 
-      atualiza(it.id, { mensagem: "processando documento" });
+      // Considera texto útil só quando tem volume e letras/dígitos suficientes
+      const letras = (texto.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+      const digitos = (texto.match(/\d/g) || []).length;
+      const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
+
+      atualiza(it.id, {
+        mensagem: ehPdf && !temTextoUtil
+          ? "lendo PDF como imagem (IA)"
+          : "processando documento (IA)",
+      });
+
       let dados: Item["dados"] = {};
-      const temTextoUtil = texto.trim().length > 20;
-      if (temTextoUtil || ehImagem) {
-        const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
-          nomeArquivo: arquivo.name,
-        };
+      const payload: {
+        texto?: string;
+        imagemBase64?: string;
+        pdfBase64?: string;
+        mimeType?: string;
+        nomeArquivo: string;
+      } = { nomeArquivo: arquivo.name };
+
+      if (ehPdf && !temTextoUtil) {
+        payload.pdfBase64 = await fileToBase64(arquivo);
+        payload.mimeType = "application/pdf";
+        if (texto.trim()) payload.texto = texto;
+      } else if (ehImagem) {
+        payload.imagemBase64 = await fileToBase64(arquivo);
+        payload.mimeType = arquivo.type || "image/jpeg";
         if (temTextoUtil) payload.texto = texto;
-        if (ehImagem && !temTextoUtil) {
-          payload.imagemBase64 = await fileToBase64(arquivo);
-          payload.mimeType = arquivo.type || "image/jpeg";
-        }
+      } else if (temTextoUtil) {
+        payload.texto = texto;
+      } else if (ehPdf) {
+        // último recurso: manda PDF mesmo sem texto
+        payload.pdfBase64 = await fileToBase64(arquivo);
+        payload.mimeType = "application/pdf";
+      }
+
+      if (payload.texto || payload.imagemBase64 || payload.pdfBase64) {
         const r = (await extrair({ data: payload })) as
           | { ok: true; dados: Item["dados"] }
           | { ok: false; erro: string };
         if (r.ok) {
-          dados = r.dados;
+          dados = r.dados ?? {};
         } else {
+          console.warn("[captura] extrair retornou erro", r.erro);
           dados = { descricao: arquivo.name, tipo: "outro" };
         }
       } else {

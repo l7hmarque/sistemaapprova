@@ -1,36 +1,30 @@
-## Plano
+## Objetivo
+Fazer a captura identificar dados do PDF de forma confiável — valor, fornecedor/CNPJ, data, número e descrição — mesmo quando o PDF não tem texto selecionável ou quando a extração local vem vazia/fraca.
 
-Vou ajustar a página **Captura de documentos** para que cada PDF processado gere um lançamento real em `eventos_financeiros`, em vez de apenas tentar anexar o documento a um evento que já exista.
+## Diagnóstico
+O fluxo atual em `admin.captura` só envia o PDF para a IA quando consegue extrair texto útil no navegador. Se o PDF for escaneado/imagem, ou se o `pdfjs` extrair pouco texto, o sistema cai direto em `{ descricao: nome do arquivo, tipo: outro }`, sem mandar o PDF original para análise visual. Além disso, a função de IA da captura usa uma chamada manual ao gateway com header incorreto/legado, enquanto o projeto já tem o helper correto via AI SDK.
 
-### O que será alterado
+## Plano de implementação
+1. **Aceitar PDF bruto na função de extração**
+   - Atualizar `src/lib/captura.functions.ts` para aceitar `pdfBase64` além de `texto` e `imagemBase64`.
+   - Enviar PDF como arquivo multimodal para Lovable AI quando a extração por texto for ruim ou ausente.
 
-1. **Criar evento financeiro automaticamente**
-   - Depois da IA extrair valor, data, CNPJ e descrição, a captura vai criar um registro em `eventos_financeiros` quando não encontrar um evento compatível.
-   - O evento será criado com:
-     - `organization_id` da organização ativa
-     - `mes_referencia` baseado na data extraída ou no mês selecionado
-     - `valor_previsto` e `valor_efetivo` com o valor extraído
-     - `data_vencimento` e `data_pagamento` com a data extraída, quando existir
-     - `categoria` inferida pelo tipo/descrição, com fallback seguro
-     - `origem: "captura"`
-     - `status_documental: "completo"`
-     - `metadata` com os dados brutos da extração
+2. **Trocar a chamada manual de IA pelo padrão correto do projeto**
+   - Usar `createLovableAiGatewayProvider` + `generateText` do AI SDK.
+   - Manter retorno JSON no mesmo formato atual (`tipo`, `cnpj`, `valor`, `data`, `numero`, `descricao`).
+   - Usar modelo multimodal para PDF/imagem e fallback mais forte quando vier vazio.
 
-2. **Vincular o anexo ao evento criado**
-   - O upload continuará salvando o arquivo no bucket privado `documentos`.
-   - O registro em `documentos_anexos` será criado com `evento_id` apontando para o evento novo ou para o evento já encontrado.
+3. **Melhorar o critério de “texto útil”**
+   - Em `src/routes/admin.captura.tsx`, considerar ruim quando o PDF extrai texto muito curto ou quase sem letras/números.
+   - Nesses casos, enviar o PDF original em base64 para análise visual, em vez de desistir.
 
-3. **Evitar dependência de evento pré-existente**
-   - O status visual deixará de tratar documentos sem evento como “órfãos” quando a extração tiver dados mínimos para lançar.
-   - Se a IA não encontrar valor/data/descrição suficientes, aí sim ficará como órfão para revisão manual.
+4. **Preservar o lançamento no painel financeiro**
+   - Mesmo se a IA ainda não conseguir todos os campos, continuar criando o evento financeiro para revisão manual.
+   - Quando a extração vier parcial, gravar os campos encontrados e marcar revisão apenas para o que faltar.
 
-4. **Corrigir rastreabilidade e recarregamento**
-   - Após criar um evento novo, a lista local de eventos será atualizada para permitir vínculo/revisão na própria tela.
-   - A mensagem da fila passará a indicar se o item foi “lançado automaticamente” ou “vinculado a evento existente”.
+5. **Adicionar mensagens de status mais claras**
+   - Mostrar quando o sistema está tentando leitura visual do PDF.
+   - Se voltar sem valor/fornecedor, indicar que o documento foi lançado para revisão, não que “não processou”.
 
-### Detalhes técnicos
-
-- A mudança principal será em `src/routes/admin.captura.tsx`.
-- Não será necessário mudar o schema do banco: a tabela `eventos_financeiros` já tem os campos necessários e RLS por organização.
-- A inserção enviará `organization_id: activeOrgId` explicitamente para satisfazer a política RLS.
-- Vou manter a tentativa de vínculo automático existente antes de criar um novo evento, para evitar duplicatas quando já houver um lançamento equivalente.
+## Resultado esperado
+Ao capturar o mesmo PDF, o sistema tentará primeiro texto selecionável e depois leitura visual do PDF inteiro. Isso deve permitir identificar automaticamente valores e fornecedor em boletos, notas, faturas e PDFs escaneados, e ainda lançar no painel financeiro para revisão quando houver incerteza.
