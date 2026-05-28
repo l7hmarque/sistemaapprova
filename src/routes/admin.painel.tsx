@@ -242,7 +242,6 @@ function PainelPage() {
     recarregar();
   }
 
-  const { activeOrgId } = useActiveOrg();
 
   async function exportarSIT() {
     if (!activeOrgId) return toast.error("Selecione uma organização");
