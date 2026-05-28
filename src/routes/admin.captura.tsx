@@ -108,6 +108,7 @@ function msgErro(e: unknown): string {
 
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
+  const { activeOrgId, activeOrg, loading: orgLoading } = useActiveOrg();
   const [itens, setItens] = useState<Item[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
