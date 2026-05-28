@@ -22,7 +22,7 @@ import {
 export const Route = createFileRoute("/orcamentos")({
   head: () => ({
     meta: [
-      { title: "Orçamentos — SIT" },
+      { title: "Orçamentos — Approva" },
       { name: "description", content: "Geração de orçamentos e mapa comparativo no Drive a partir de modelos." },
     ],
   }),
