@@ -382,6 +382,17 @@ function CapturaPage() {
         </div>
       </header>
 
+      {!orgLoading && !activeOrgId && (
+        <div className="border border-destructive/50 bg-destructive/10 text-destructive rounded-md px-4 py-3 text-sm">
+          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de processar arquivos.
+        </div>
+      )}
+      {activeOrg && (
+        <div className="text-xs text-muted-foreground">
+          Organização ativa: <strong>{activeOrg.nome}</strong>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-6 flex flex-wrap gap-3">
           <input
@@ -406,7 +417,7 @@ function CapturaPage() {
           <Button onClick={() => inputCam.current?.click()} variant="outline">
             <Camera className="mr-2 h-4 w-4" /> Tirar foto
           </Button>
-          <Button onClick={processarTudo} disabled={!itens.some((i) => i.status === "fila")}>
+          <Button onClick={processarTudo} disabled={!activeOrgId || !itens.some((i) => i.status === "fila")}>
             Processar fila
           </Button>
           <div className="ml-auto text-xs text-muted-foreground self-center">
