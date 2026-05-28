@@ -34,10 +34,12 @@ function FornecedoresPage() {
   const salvar = useServerFn(salvarFornecedor);
   const remover = useServerFn(removerFornecedor);
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["fornecedores"],
-    queryFn: () => fetchAll(),
+    queryKey: ["fornecedores", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchAll({ data: { organization_id: activeOrgId! } }),
   });
 
   const [busca, setBusca] = useState("");
@@ -48,6 +50,7 @@ function FornecedoresPage() {
       salvar({
         data: {
           id: f.id,
+          organization_id: activeOrgId ?? undefined,
           razao_social: f.razao_social!,
           cnpj: f.cnpj!,
           representante_legal: f.representante_legal,
