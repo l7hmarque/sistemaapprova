@@ -377,13 +377,15 @@ function PainelPage() {
               </div>
               <div>
                 <Label>Valor previsto</Label>
-                <Input type="number" step="0.01" value={editing.valor_previsto ?? ""}
-                  onChange={(e) => setEditing({ ...editing, valor_previsto: e.target.value === "" ? null : Number(e.target.value) })} />
+                <Input type="text" inputMode="decimal" placeholder="0,00"
+                  value={valorPrevStr}
+                  onChange={(e) => setValorPrevStr(e.target.value)} />
               </div>
               <div>
                 <Label>Valor efetivo</Label>
-                <Input type="number" step="0.01" value={editing.valor_efetivo ?? ""}
-                  onChange={(e) => setEditing({ ...editing, valor_efetivo: e.target.value === "" ? null : Number(e.target.value) })} />
+                <Input type="text" inputMode="decimal" placeholder="0,00"
+                  value={valorEfetStr}
+                  onChange={(e) => setValorEfetStr(e.target.value)} />
               </div>
               <div>
                 <Label>Vencimento</Label>
