@@ -114,17 +114,24 @@ function CapturaPage() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
-  const [orgId, setOrgId] = useState<string | null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
 
-
   useEffect(() => {
+    if (!activeOrgId) {
+      setEventos([]);
+      setFornecedores([]);
+      return;
+    }
     (async () => {
       const [{ data: ev }, { data: fo }, { data: cfg }] = await Promise.all([
-        supabase.from("eventos_financeiros").select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id").eq("mes_referencia", mes),
-        supabase.from("fornecedores").select("id, razao_social, cnpj"),
-        supabase.from("configuracoes").select("valor").eq("chave", "auto_vinculo").maybeSingle(),
+        supabase
+          .from("eventos_financeiros")
+          .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
+          .eq("organization_id", activeOrgId)
+          .eq("mes_referencia", mes),
+        supabase.from("fornecedores").select("id, razao_social, cnpj").eq("organization_id", activeOrgId),
+        supabase.from("configuracoes").select("valor").eq("organization_id", activeOrgId).eq("chave", "auto_vinculo").maybeSingle(),
       ]);
       setEventos((ev ?? []) as Evento[]);
       setFornecedores((fo ?? []) as Fornecedor[]);
@@ -136,22 +143,9 @@ function CapturaPage() {
         });
       }
     })();
-  }, [mes]);
+  }, [mes, activeOrgId]);
 
-  useEffect(() => {
-    (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data: m } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", u.user.id)
-        .order("criado_em", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (m?.organization_id) setOrgId(m.organization_id);
-    })();
-  }, []);
+
 
 
   const adicionar = useCallback((files: FileList | null) => {
