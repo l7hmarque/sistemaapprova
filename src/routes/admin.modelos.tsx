@@ -32,15 +32,18 @@ const DEFAULTS_PARAMS: Record<TipoModelo, { aba: string; linhaPrimeiroItem1: num
 };
 
 function ModelosPage() {
+  const { activeOrgId } = useActiveOrg();
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState<Partial<Modelo> | null>(null);
 
   const carregar = async () => {
+    if (!activeOrgId) { setModelos([]); setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from("modelos_planilha")
       .select("*")
+      .eq("organization_id", activeOrgId)
       .order("tipo", { ascending: true })
       .order("criado_em", { ascending: false });
     if (error) toast.error("Erro ao carregar modelos");
@@ -48,7 +51,8 @@ function ModelosPage() {
     setLoading(false);
   };
 
-  useEffect(() => { void carregar(); }, []);
+  useEffect(() => { void carregar(); }, [activeOrgId]);
+
 
   const novo = (tipo: TipoModelo) => {
     const d = DEFAULTS_PARAMS[tipo];
