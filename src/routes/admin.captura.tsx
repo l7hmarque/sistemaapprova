@@ -131,6 +131,49 @@ function CapturaPage() {
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
 
+  const storageKey = activeOrgId ? `captura.itens.${activeOrgId}` : null;
+
+  // Carrega itens persistidos (sem o File em si, que não é serializável)
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) { setItens([]); return; }
+      const parsed = JSON.parse(raw) as Array<Omit<Item, "file"> & { fileName?: string; fileType?: string }>;
+      const reidratados: Item[] = parsed.map((p) => ({
+        ...p,
+        // File não persiste: placeholder vazio só para manter o nome após reload.
+        file: new File([], p.fileName ?? "arquivo", { type: p.fileType ?? "application/octet-stream" }),
+      }));
+      setItens(reidratados);
+    } catch (e) {
+      console.warn("[captura] falha ao carregar itens persistidos", e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // Salva itens (sem o File) no localStorage
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const serial = itens.map((it) => ({
+        id: it.id,
+        hash: it.hash,
+        status: it.status,
+        mensagem: it.mensagem,
+        dados: it.dados,
+        eventoId: it.eventoId,
+        docId: it.docId,
+        fileName: it.file?.name,
+        fileType: it.file?.type,
+      }));
+      localStorage.setItem(storageKey, JSON.stringify(serial));
+    } catch (e) {
+      console.warn("[captura] falha ao persistir itens", e);
+    }
+  }, [itens, storageKey]);
+
+
   useEffect(() => {
     if (!activeOrgId) {
       setEventos([]);
@@ -311,9 +354,9 @@ function CapturaPage() {
               (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
             )
           : null;
-        const mesRef = dados?.data && /^\d{4}-\d{2}-\d{2}$/.test(dados.data)
-          ? dados.data.slice(0, 7)
-          : mes;
+        // Sempre lança no mês selecionado na captura para aparecer no painel atual.
+        // A data extraída fica preservada em data_vencimento/data_pagamento.
+        const mesRef = mes;
         const categoria = inferirCategoria(dados);
         const descricaoBase = (dados?.descricao && dados.descricao.trim())
           || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
