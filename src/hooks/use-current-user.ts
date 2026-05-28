@@ -65,8 +65,7 @@ export function useCurrentUser() {
     loading: loading || memberships.isLoading || role.isLoading,
     memberships: memberships.data ?? [],
     isSuperAdmin,
-    activeOrg: memberships.data?.[0]?.organizations ?? null,
-    activeRole: memberships.data?.[0]?.role ?? null,
   };
 }
+
 

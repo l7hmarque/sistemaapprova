@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/configuracoes/organizacao")({
 });
 
 function OrgPage() {
-  const { activeOrg, activeRole, loading } = useCurrentUser();
+  const { activeOrg, activeRole, loading } = useActiveOrg();
   const [nome, setNome] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [salvando, setSalvando] = useState(false);
