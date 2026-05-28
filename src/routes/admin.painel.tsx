@@ -18,7 +18,7 @@ import { useActiveOrg } from "@/hooks/use-active-org";
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import {
-  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS,
+  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS as CATEGORIAS_REO,
 } from "@/lib/sit/catalogos";
 import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 
