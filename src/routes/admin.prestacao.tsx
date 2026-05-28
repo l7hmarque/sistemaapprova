@@ -110,7 +110,10 @@ function PrestacaoPage() {
     };
     const q = edit.id
       ? supabase.from("prestacao_documentos").update(payload).eq("id", edit.id)
-      : supabase.from("prestacao_documentos").insert(payload);
+      : (activeOrgId
+          ? supabase.from("prestacao_documentos").insert({ ...payload, organization_id: activeOrgId })
+          : null);
+    if (!q) return toast.error("Selecione uma organização ativa");
     const { error } = await q;
     if (error) return toast.error("Erro: " + error.message);
     toast.success("Salvo");
