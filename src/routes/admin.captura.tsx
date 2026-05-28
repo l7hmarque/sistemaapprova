@@ -377,17 +377,18 @@ function CapturaPage() {
       }
 
       atualiza(it.id, {
-        status: eventoId ? "vinculado" : "orfao",
+        status: ehDuplicata ? "duplicata" : (eventoId ? "vinculado" : "orfao"),
         hash,
         dados,
         docId: insertRes.data.id,
         eventoId,
-        mensagem: eventoCriado
-          ? "Lançado automaticamente"
-          : eventoId
-            ? "Vinculado a evento existente"
-            : "Sem valor extraído — revisar manualmente",
+        mensagem: ehDuplicata
+          ? "Duplicata lançada no painel para revisão manual"
+          : eventoCriado
+            ? "Lançado automaticamente no painel"
+            : "Vinculado a evento existente",
       });
+
     } catch (e) {
       console.error("[captura] falha ao processar", e);
       atualiza(it.id, {
