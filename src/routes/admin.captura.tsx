@@ -39,6 +39,8 @@ type Item = {
     data_vencimento?: string | null;
     data_pagamento?: string | null;
     descricao?: string;
+    forma_pagamento?: string | null;
+    numero_pagamento?: string | null;
   };
   eventoId?: string | null;
   docId?: string;
