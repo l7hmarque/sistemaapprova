@@ -166,17 +166,25 @@ function PainelPage() {
 
   async function salvar() {
     if (!editing) return;
+    const metaAtual = (editing.metadata ?? {}) as Record<string, unknown>;
+    const metadata = {
+      ...metaAtual,
+      numero_extraido: numeroDocStr.trim() || null,
+      data_emissao: dataEmissaoStr || null,
+    };
+    const descricaoLimpa = (editing.descricao ?? "").slice(0, 200);
     const payload = {
       mes_referencia: editing.mes_referencia,
       fornecedor_id: editing.fornecedor_id,
       categoria: editing.categoria,
-      descricao: editing.descricao,
+      descricao: descricaoLimpa,
       valor_previsto: parseNum(valorPrevStr),
       valor_efetivo: parseNum(valorEfetStr),
       data_vencimento: editing.data_vencimento,
       data_pagamento: editing.data_pagamento,
       origem: editing.origem,
       status_documental: editing.status_documental,
+      metadata,
     };
     if (editing.id) {
       const { error } = await supabase.from("eventos_financeiros").update(payload).eq("id", editing.id);
