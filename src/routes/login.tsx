@@ -51,6 +51,15 @@ function LoginPage() {
           options: { emailRedirectTo: window.location.origin + "/admin" },
         });
         if (error) throw error;
+        // E-mail de boas-vindas (best-effort, não bloqueia o fluxo)
+        try {
+          const { enviarEmail } = await import("@/lib/email.functions");
+          const { tplBoasVindas } = await import("@/lib/email-templates");
+          const { subject, html } = tplBoasVindas(email, window.location.origin + "/admin");
+          await enviarEmail({ data: { to: email, subject, html } });
+        } catch (e) {
+          console.warn("[signup] welcome email falhou:", e);
+        }
         toast.success("Conta criada. Você já pode entrar.");
         setModo("login");
       }
