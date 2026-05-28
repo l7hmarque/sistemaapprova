@@ -34,9 +34,20 @@ type Evento = {
   valor_efetivo: number | null;
   data_vencimento: string | null;
   data_pagamento: string | null;
+  data_emissao: string | null;
   origem: string;
   status_documental: string;
   metadata?: Record<string, unknown> | null;
+  id_interno: string | null;
+  tp_documento_despesa: number | null;
+  tp_doc_fav: string | null;
+  nr_doc_fav: string | null;
+  nm_favorecido: string | null;
+  nr_documento: string | null;
+  cd_modalidade_compra: number | null;
+  tp_documento_pagamento: number | null;
+  nr_documento_pagamento: string | null;
+  tp_despesa: number | null;
 };
 
 type Fornecedor = { id: string; razao_social: string; cnpj: string };
