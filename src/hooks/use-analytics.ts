@@ -40,9 +40,41 @@ function getUtm() {
   return out;
 }
 
+function isInternalTraffic(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const host = window.location.hostname;
+    // Preview do editor Lovable e sandbox
+    if (host.endsWith("lovableproject.com")) return true;
+    if (host.endsWith("lovable.dev")) return true;
+    if (host.includes("id-preview--")) return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+
+    // Referrer vindo do editor
+    const ref = document.referrer || "";
+    if (ref) {
+      try {
+        const r = new URL(ref).hostname;
+        if (r.endsWith("lovable.dev")) return true;
+        if (r.endsWith("lovableproject.com")) return true;
+        if (r.includes("id-preview--")) return true;
+      } catch {}
+    }
+
+    // Marca persistente: usuário logado já flagado como interno
+    if (localStorage.getItem("synsit_interno") === "1") return true;
+
+    // Query param de bypass do editor
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("lovable_preview") || sp.has("__lovable")) return true;
+  } catch {}
+  return false;
+}
+
 async function send(evento: string, rota: string, payload: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
-  if (rota.startsWith("/admin") || rota.startsWith("/login")) return;
+  if (rota.startsWith("/admin") || rota.startsWith("/login") || rota.startsWith("/owner")) return;
+  if (isInternalTraffic()) return;
   try {
     await registrarEvento({
       data: {
@@ -58,6 +90,7 @@ async function send(evento: string, rota: string, payload: Record<string, unknow
     /* swallow — analytics nunca quebra UX */
   }
 }
+
 
 export function useAnalytics() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
