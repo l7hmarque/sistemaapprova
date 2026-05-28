@@ -271,6 +271,7 @@ function PainelPage() {
             const cnpjMeta = typeof meta.cnpj_extraido === "string" ? meta.cnpj_extraido : null;
             const razaoMeta = typeof meta.razao_social_extraida === "string" ? meta.razao_social_extraida : null;
             const numeroMeta = typeof meta.numero_extraido === "string" ? meta.numero_extraido : null;
+            const emissaoMeta = typeof meta.data_emissao === "string" ? meta.data_emissao : null;
             const motivoMeta = typeof meta.motivo_revisao === "string" ? meta.motivo_revisao : null;
             const dif = (Number(e.valor_efetivo) || 0) - (Number(e.valor_previsto) || 0);
             return (
