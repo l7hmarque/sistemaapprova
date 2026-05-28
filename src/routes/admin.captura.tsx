@@ -632,7 +632,9 @@ function CapturaPage() {
                       {it.dados?.tipo && <span>tipo: {it.dados.tipo}</span>}
                       {it.dados?.cnpj && <span>CNPJ: {it.dados.cnpj}</span>}
                       {it.dados?.valor != null && <span>R$ {Number(it.dados.valor).toFixed(2)}</span>}
-                      {it.dados?.data && <span>{it.dados.data}</span>}
+                      {(it.dados?.data_vencimento || it.dados?.data_emissao || it.dados?.data_pagamento) && (
+                        <span>{it.dados?.data_vencimento ?? it.dados?.data_emissao ?? it.dados?.data_pagamento}</span>
+                      )}
                     </div>
                     {it.mensagem && <div className="text-xs text-muted-foreground mt-1 italic">{it.mensagem}</div>}
                   </div>
