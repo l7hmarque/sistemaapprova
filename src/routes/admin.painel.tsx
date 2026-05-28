@@ -280,7 +280,8 @@ function PainelPage() {
       }),
     );
     const conteudo = linhas.join("\r\n") + "\r\n";
-    const blob = new Blob([encodeWin1252(conteudo)], { type: "text/plain;charset=windows-1252" });
+    const bytes = encodeWin1252(conteudo);
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "text/plain;charset=windows-1252" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
