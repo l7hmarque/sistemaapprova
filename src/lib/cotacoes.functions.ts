@@ -24,6 +24,7 @@ const ItemSchema = z.object({
 });
 
 const CotacaoCreateSchema = z.object({
+  organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500),
   termo: z.string().max(120).default(""),
   mes_referencia: z.string().max(7).optional(),
@@ -33,6 +34,7 @@ const CotacaoCreateSchema = z.object({
 
 const CotacaoUpdateSchema = z.object({
   id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500).optional(),
   termo: z.string().max(120).optional(),
   mes_referencia: z.string().max(7).optional(),
@@ -40,6 +42,9 @@ const CotacaoUpdateSchema = z.object({
   status: z.enum(["coletando", "pronto_para_mapa", "finalizado"]).optional(),
   observacoes: z.string().max(2000).nullish(),
 });
+
+const OrgScopedId = z.object({ id: z.string().uuid(), organization_id: z.string().uuid() });
+const OrgOnly = z.object({ organization_id: z.string().uuid() });
 
 // ENTIDADE_DEFAULT importado de ./cotacoes.server
 
