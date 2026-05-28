@@ -3,6 +3,7 @@
  * persistidos diretamente em `eventos_financeiros`.
  */
 import { FAVORECIDO_OVERRIDES, CATEGORIAS, CATEGORIA_TO_TPDESPESA } from "./catalogos";
+import { validarDocFavorecido } from "./validarDoc";
 
 export type CamposSIT = {
   tp_documento_despesa: number | null;
@@ -196,6 +197,10 @@ export function pendenciasSIT(e: {
   if (e.tp_documento_despesa == null) f.push("tipo doc despesa");
   if (!e.tp_doc_fav) f.push("tipo doc favorecido");
   if (!e.nr_doc_fav) f.push("nº doc favorecido");
+  else {
+    const v = validarDocFavorecido(e.tp_doc_fav, e.nr_doc_fav);
+    if (!v.ok) f.push(`doc favorecido (${v.motivo})`);
+  }
   if (!e.nm_favorecido) f.push("nome favorecido");
   if (e.valor_efetivo == null) f.push("valor efetivo");
   if (!e.data_emissao) f.push("data emissão");
