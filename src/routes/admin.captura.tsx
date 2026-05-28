@@ -402,6 +402,28 @@ function CapturaPage() {
         const dataVenc = dados?.data_vencimento ?? dados?.data_emissao ?? null;
         const dataPag = dados?.data_pagamento ?? null;
         const temPagamento = !!dataPag;
+
+        // === Campos SIT ===
+        const tpDocDespesa = inferirTpDocDespesa(dados?.tipo, dados?.descricao);
+        const tpDocPag = inferirTpDocPagamento(
+          `${dados?.forma_pagamento ?? ""} ${dados?.descricao ?? ""}`,
+        );
+        const tpDespesa = inferirTpDespesa(dados?.descricao, dados?.tipo);
+        const cnpjDigitsForFav = fornEncontrado?.cnpj?.replace(/\D/g, "")
+          ?? (dados?.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null);
+        const tpDocFavInicial = inferirTpDocFav(cnpjDigitsForFav);
+        const nmFavInicial = fornEncontrado?.razao_social ?? dados?.razao_social ?? null;
+        const override = aplicarOverrideFavorecido({
+          tp_documento_despesa: tpDocDespesa,
+          tp_doc_fav: tpDocFavInicial,
+          nr_doc_fav: cnpjDigitsForFav,
+          nm_favorecido: nmFavInicial,
+          razao_social_ia: dados?.razao_social ?? null,
+        });
+
+        // id_interno sequencial dentro do mês (estimativa: total atual + 1)
+        const idInterno = gerarIdInterno(mesRef, eventos.length + 1);
+
         const evIns = await supabase
           .from("eventos_financeiros")
           .insert({
@@ -414,7 +436,17 @@ function CapturaPage() {
             valor_efetivo: temPagamento ? valorValido : null,
             data_vencimento: dataVenc,
             data_pagamento: dataPag,
+            data_emissao: dados?.data_emissao ?? null,
             origem: "captura",
+            id_interno: idInterno,
+            tp_documento_despesa: tpDocDespesa,
+            tp_doc_fav: override.tp_doc_fav,
+            nr_doc_fav: override.nr_doc_fav,
+            nm_favorecido: override.nm_favorecido,
+            nr_documento: dados?.numero ?? null,
+            tp_documento_pagamento: tpDocPag,
+            nr_documento_pagamento: dados?.numero_pagamento ?? null,
+            tp_despesa: tpDespesa,
             status_documental: ehDuplicata
               ? "revisar"
               : (valorValido && (temPagamento || dataVenc) ? "completo" : "revisar"),
@@ -425,6 +457,7 @@ function CapturaPage() {
               numero_extraido: dados?.numero ?? null,
               data_emissao: dados?.data_emissao ?? null,
               data_pagamento_extraida: dados?.data_pagamento ?? null,
+              forma_pagamento: dados?.forma_pagamento ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
               duplicata: ehDuplicata,
