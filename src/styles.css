@@ -194,6 +194,22 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 240);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.65 0.12 245);
+  /* Status — dark */
+  --success: oklch(0.7 0.16 150);
+  --success-foreground: oklch(0.15 0.05 150);
+  --success-soft: oklch(0.35 0.08 150);
+  --warning: oklch(0.78 0.16 75);
+  --warning-foreground: oklch(0.18 0.05 75);
+  --warning-soft: oklch(0.35 0.08 75);
+  --danger: oklch(0.7 0.2 28);
+  --danger-foreground: oklch(0.15 0.05 28);
+  --danger-soft: oklch(0.35 0.1 28);
+  --info: oklch(0.7 0.13 235);
+  --info-foreground: oklch(0.15 0.05 235);
+  --info-soft: oklch(0.35 0.08 235);
+  --pending: oklch(0.72 0.12 280);
+  --pending-foreground: oklch(0.15 0.05 280);
+  --pending-soft: oklch(0.32 0.08 280);
 }
 
 @layer base {
