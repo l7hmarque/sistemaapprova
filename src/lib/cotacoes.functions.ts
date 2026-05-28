@@ -87,6 +87,7 @@ export const criarCotacao = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("cotacoes")
       .insert({
+        organization_id: data.organization_id,
         objeto: data.objeto,
         termo: data.termo || null,
         mes_referencia: data.mes_referencia || null,
@@ -100,30 +101,35 @@ export const criarCotacao = createServerFn({ method: "POST" })
     return row;
   });
 
-export const listarCotacoes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth]).handler(async () => {
-  const { data, error } = await supabase
-    .from("cotacoes")
-    .select("*")
-    .order("criado_em", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarCotacoes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgOnly.parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabase
+      .from("cotacoes")
+      .select("*")
+      .eq("organization_id", data.organization_id)
+      .order("criado_em", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
 
 export const obterCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
     const { data: cot, error } = await supabase
       .from("cotacoes")
       .select("*")
       .eq("id", data.id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (error) throw new Error(error.message);
     const { data: orcs } = await supabase
       .from("orcamentos_salvos")
       .select("*")
       .eq("cotacao_id", data.id)
+      .eq("organization_id", data.organization_id)
       .order("criado_em", { ascending: true });
     return { cotacao: cot, orcamentos: orcs ?? [] };
   });
@@ -132,7 +138,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CotacaoUpdateSchema.parse(d))
   .handler(async ({ data }) => {
-    const { id, ...rest } = data;
+    const { id, organization_id, ...rest } = data;
     const patch: any = {};
     if (rest.objeto !== undefined) patch.objeto = rest.objeto;
     if (rest.termo !== undefined) patch.termo = rest.termo || null;
@@ -144,6 +150,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .update(patch)
       .eq("id", id)
+      .eq("organization_id", organization_id)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -152,9 +159,13 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
 
 export const removerCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("cotacoes").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("cotacoes")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
