@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendEmailViaResend } from "./email.server";
+import { tplConvite } from "./email-templates";
 
 function gerarToken(): string {
   const arr = new Uint8Array(24);
@@ -37,6 +40,23 @@ export const criarConviteMembro = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Busca nome da org + monta URL e dispara o e-mail (best-effort)
+    try {
+      const { data: org } = await supabaseAdmin
+        .from("organizations")
+        .select("nome")
+        .eq("id", data.organization_id)
+        .maybeSingle();
+      const req = getRequest();
+      const origin = req?.headers.get("origin") || `https://${req?.headers.get("host") ?? "sistemaapprova.lovable.app"}`;
+      const url = `${origin}/convite/${token}`;
+      const { subject, html } = tplConvite(org?.nome ?? "sua organização", url, data.role);
+      await sendEmailViaResend({ to: data.email, subject, html });
+    } catch (e) {
+      console.error("[criarConviteMembro] falha ao enviar e-mail:", e);
+    }
+
     return row;
   });
 

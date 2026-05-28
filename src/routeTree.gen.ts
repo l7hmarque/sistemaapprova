@@ -32,6 +32,7 @@ import { Route as OwnerSuporteRouteImport } from './routes/owner.suporte'
 import { Route as OwnerFinanceiroRouteImport } from './routes/owner.financeiro'
 import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
+import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
 import { Route as AdminSetupRouteImport } from './routes/admin.setup'
@@ -168,6 +169,11 @@ const OwnerClientesRoute = OwnerClientesRouteImport.update({
 const CotacaoTokenRoute = CotacaoTokenRouteImport.update({
   id: '/cotacao/$token',
   path: '/cotacao/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteTokenRoute = ConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogPainelScfvTceprRoute = BlogPainelScfvTceprRouteImport.update({
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/admin/setup': typeof AdminSetupRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
+    | '/convite/$token'
     | '/cotacao/$token'
     | '/owner/clientes'
     | '/owner/financeiro'
@@ -499,6 +509,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
+    | '/convite/$token'
     | '/cotacao/$token'
     | '/owner/clientes'
     | '/owner/financeiro'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
+    | '/convite/$token'
     | '/cotacao/$token'
     | '/owner/clientes'
     | '/owner/financeiro'
@@ -582,6 +594,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   ApiExtractRoute: typeof ApiExtractRoute
   BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
+  ConviteTokenRoute: typeof ConviteTokenRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
   ShowcaseScreenRoute: typeof ShowcaseScreenRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -749,6 +762,13 @@ declare module '@tanstack/react-router' {
       path: '/cotacao/$token'
       fullPath: '/cotacao/$token'
       preLoaderRoute: typeof CotacaoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite/$token': {
+      id: '/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/convite/$token'
+      preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/painel-scfv-tcepr': {
@@ -1030,6 +1050,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   ApiExtractRoute: ApiExtractRoute,
   BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
+  ConviteTokenRoute: ConviteTokenRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
   ShowcaseScreenRoute: ShowcaseScreenRoute,
   BlogIndexRoute: BlogIndexRoute,
@@ -1038,13 +1059,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
