@@ -173,6 +173,7 @@ export const removerCotacao = createServerFn({ method: "POST" })
 /* ============================ ORÇAMENTO POR FORNECEDOR ============================ */
 
 const GerarOrcCotacaoSchema = z.object({
+  organization_id: z.string().uuid(),
   cotacao_id: z.string().uuid(),
   fornecedor: z.object({
     razao: z.string().min(1).max(255),
@@ -193,6 +194,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .select("*")
       .eq("id", data.cotacao_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (errCot || !cot) throw new Error("Cotação não encontrada");
 
@@ -217,6 +219,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
     const { data: orcRow, error: errOrc } = await supabase
       .from("orcamentos_salvos")
       .insert({
+        organization_id: data.organization_id,
         tipo: "cotacao",
         objeto: cot.objeto,
         termo: cot.termo,
@@ -237,9 +240,13 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
 
 export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("orcamentos_salvos").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("orcamentos_salvos")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
