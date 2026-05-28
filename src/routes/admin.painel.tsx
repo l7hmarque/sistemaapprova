@@ -162,8 +162,19 @@ function PainelPage() {
       valor_efetivo: null,
       data_vencimento: null,
       data_pagamento: null,
+      data_emissao: null,
       origem: "manual",
       status_documental: "pendente",
+      id_interno: null,
+      tp_documento_despesa: null,
+      tp_doc_fav: null,
+      nr_doc_fav: null,
+      nm_favorecido: null,
+      nr_documento: null,
+      cd_modalidade_compra: null,
+      tp_documento_pagamento: null,
+      nr_documento_pagamento: null,
+      tp_despesa: null,
     });
     setValorPrevStr("");
     setValorEfetStr("");
@@ -176,20 +187,13 @@ function PainelPage() {
     setEditing({ ...e });
     setValorPrevStr(e.valor_previsto != null ? String(e.valor_previsto) : "");
     setValorEfetStr(e.valor_efetivo != null ? String(e.valor_efetivo) : "");
-    const meta = (e.metadata ?? {}) as Record<string, unknown>;
-    setNumeroDocStr(typeof meta.numero_extraido === "string" ? meta.numero_extraido : "");
-    setDataEmissaoStr(typeof meta.data_emissao === "string" ? meta.data_emissao : "");
+    setNumeroDocStr(e.nr_documento ?? "");
+    setDataEmissaoStr(e.data_emissao ?? "");
     setOpen(true);
   }
 
   async function salvar() {
     if (!editing) return;
-    const metaAtual = (editing.metadata ?? {}) as Record<string, unknown>;
-    const metadata = {
-      ...metaAtual,
-      numero_extraido: numeroDocStr.trim() || null,
-      data_emissao: dataEmissaoStr || null,
-    };
     const descricaoLimpa = (editing.descricao ?? "").slice(0, 200);
     const payload = {
       mes_referencia: editing.mes_referencia,
@@ -200,9 +204,20 @@ function PainelPage() {
       valor_efetivo: parseNum(valorEfetStr),
       data_vencimento: editing.data_vencimento,
       data_pagamento: editing.data_pagamento,
+      data_emissao: dataEmissaoStr || null,
       origem: editing.origem,
       status_documental: editing.status_documental,
-      metadata,
+      id_interno: editing.id_interno?.slice(0, 30) || null,
+      nr_documento: numeroDocStr.trim() || null,
+      tp_documento_despesa: editing.tp_documento_despesa,
+      tp_doc_fav: editing.tp_doc_fav,
+      nr_doc_fav: editing.nr_doc_fav?.replace(/\D/g, "") || null,
+      nm_favorecido: editing.nm_favorecido,
+      cd_modalidade_compra: editing.cd_modalidade_compra,
+      tp_documento_pagamento: editing.tp_documento_pagamento,
+      nr_documento_pagamento: editing.nr_documento_pagamento,
+      tp_despesa: editing.tp_despesa,
+      metadata: editing.metadata ?? {},
     };
     if (editing.id) {
       const { error } = await supabase.from("eventos_financeiros").update(payload).eq("id", editing.id);
@@ -216,6 +231,65 @@ function PainelPage() {
     setEditing(null);
     recarregar();
   }
+
+  const { activeOrgId } = useActiveOrg();
+
+  async function exportarSIT() {
+    if (!activeOrgId) return toast.error("Selecione uma organização");
+    const { data: cfg } = await supabase
+      .from("configuracoes")
+      .select("valor")
+      .eq("organization_id", activeOrgId)
+      .eq("chave", "sit_termo")
+      .maybeSingle();
+    const termo = cfg?.valor as DadosTermo | undefined;
+    if (!termo?.nrCNPJConcedente || !termo?.tpTransferencia || !termo?.anoTransferencia) {
+      return toast.error("Configure o Termo em Configurações > Organização");
+    }
+    const elegiveis: Evento[] = [];
+    const pendencias: { desc: string; falta: string[] }[] = [];
+    for (const e of filtrados) {
+      const falta = pendenciasSIT(e);
+      if (falta.length === 0) elegiveis.push(e);
+      else pendencias.push({ desc: e.descricao || e.id_interno || "(sem descrição)", falta });
+    }
+    if (pendencias.length > 0) {
+      const resumo = pendencias.slice(0, 5).map(p => `• ${p.desc}: ${p.falta.join(", ")}`).join("\n");
+      const ok = confirm(
+        `${pendencias.length} evento(s) sem todos os campos SIT (serão pulados):\n\n${resumo}${pendencias.length > 5 ? "\n…" : ""}\n\nGerar TXT com ${elegiveis.length} evento(s)?`,
+      );
+      if (!ok) return;
+    }
+    if (elegiveis.length === 0) return toast.error("Nenhum evento pronto para SIT neste mês");
+    const linhas = elegiveis.map((e) =>
+      formatLinhaSIT(termo, {
+        tpDespesa: e.tp_despesa,
+        tpDocumentoFavorecido: (e.tp_doc_fav as "CPF" | "CNPJ" | "EXT") ?? "CNPJ",
+        nrDocumentoFavorecido: e.nr_doc_fav ?? "",
+        nmFavorecido: e.nm_favorecido ?? "",
+        tpDocumentoDespesa: e.tp_documento_despesa!,
+        nrDocumentoDespesa: e.nr_documento ?? "",
+        vlDocumentoDespesa: e.valor_efetivo ?? 0,
+        dtDocumentoDespesa: e.data_emissao ?? e.data_vencimento ?? "",
+        cdModalidadeCompra: e.cd_modalidade_compra!,
+        tpDocumentoPagamento: e.tp_documento_pagamento!,
+        nrDocumentoPagamento: e.nr_documento_pagamento ?? "",
+        dtEmissaoPagamento: e.data_pagamento ?? "",
+        dtDebito: e.data_pagamento ?? null,
+        dsItemDespesa: e.descricao ?? "",
+      }),
+    );
+    const conteudo = linhas.join("\r\n") + "\r\n";
+    const blob = new Blob([encodeWin1252(conteudo)], { type: "text/plain;charset=windows-1252" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Despesa-${mes}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${elegiveis.length} linha(s) exportada(s)`);
+  }
+
 
 
   return (
