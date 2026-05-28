@@ -63,6 +63,14 @@ function AtualizarSenhaPage() {
             </div>
           </div>
 
+          {verificando ? (
+            <div className="text-sm text-muted-foreground">Verificando link…</div>
+          ) : !autorizado ? (
+            <div className="text-sm text-muted-foreground">
+              Link inválido ou expirado. Solicite um novo em
+              <a href="/esqueci-senha" className="ml-1 underline">esqueci-senha</a>.
+            </div>
+          ) : (
           <form onSubmit={submit} className="space-y-3">
             <div>
               <Label className="text-xs">Nova senha</Label>
