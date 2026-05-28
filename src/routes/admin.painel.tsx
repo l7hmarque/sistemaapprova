@@ -29,6 +29,7 @@ type Evento = {
   data_pagamento: string | null;
   origem: string;
   status_documental: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 type Fornecedor = { id: string; razao_social: string; cnpj: string };
