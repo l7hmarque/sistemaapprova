@@ -8,6 +8,9 @@ type Org = {
   nome: string;
   tipo: "osc" | "escritorio";
   parent_organization_id: string | null;
+  plano: string;
+  status: "trial" | "ativo" | "suspenso" | "cancelado";
+  trial_ate: string | null;
 };
 
 type ActiveOrgValue = {
@@ -39,7 +42,7 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
       if (parents.length === 0) return [] as Org[];
       const { data, error } = await supabase
         .from("organizations")
-        .select("id, nome, tipo, parent_organization_id")
+        .select("id, nome, tipo, parent_organization_id, plano, status, trial_ate")
         .in("parent_organization_id", parents);
       if (error) throw error;
       return (data ?? []) as Org[];
@@ -49,7 +52,15 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   const directOrgs: Org[] = memberships
     .map((m) => m.organizations)
     .filter((o): o is NonNullable<typeof o> => !!o)
-    .map((o) => ({ id: o.id, nome: o.nome, tipo: o.tipo, parent_organization_id: o.parent_organization_id }));
+    .map((o) => ({
+      id: o.id,
+      nome: o.nome,
+      tipo: o.tipo,
+      parent_organization_id: o.parent_organization_id,
+      plano: o.plano,
+      status: o.status,
+      trial_ate: o.trial_ate,
+    }));
 
   const all: Org[] = [...directOrgs, ...(childrenQ.data ?? [])];
   // dedup
