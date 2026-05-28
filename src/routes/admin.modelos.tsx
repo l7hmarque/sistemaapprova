@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Pencil, Trash2, CheckCircle2, ExternalLink, Plus } from "lucide-react";
+import { Pencil, Trash2, CheckCircle2, ExternalLink, Plus, HelpCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import {
   Dialog,
   DialogContent,
@@ -122,6 +123,13 @@ function ModelosPage() {
             padrão do sistema.
           </p>
         </div>
+        <Link
+          to="/admin/modelos/ajuda"
+          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Como preparar meus modelos
+        </Link>
       </header>
 
       {TIPOS.map((tipo) => {
