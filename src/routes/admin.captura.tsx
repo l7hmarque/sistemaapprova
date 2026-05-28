@@ -311,9 +311,9 @@ function CapturaPage() {
               (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
             )
           : null;
-        const mesRef = dados?.data && /^\d{4}-\d{2}-\d{2}$/.test(dados.data)
-          ? dados.data.slice(0, 7)
-          : mes;
+        // Sempre lança no mês selecionado na captura para aparecer no painel atual.
+        // A data extraída fica preservada em data_vencimento/data_pagamento.
+        const mesRef = mes;
         const categoria = inferirCategoria(dados);
         const descricaoBase = (dados?.descricao && dados.descricao.trim())
           || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
