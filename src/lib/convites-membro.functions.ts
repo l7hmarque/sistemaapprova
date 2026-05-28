@@ -103,7 +103,7 @@ export const aceitarConviteMembro = createServerFn({ method: "POST" })
         .insert({
           organization_id: convite.organization_id,
           user_id: userId,
-          role: convite.role,
+          role: convite.role as "owner" | "admin" | "membro",
         });
       if (errIns) throw new Error(errIns.message);
     }
