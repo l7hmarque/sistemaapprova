@@ -115,7 +115,7 @@ function HomePage() {
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
                 src={previewPrestacao}
-                alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no Approva, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
+                alt="Tela do Approva — Prestação do Termo de Fomento 042/2025: KPIs do mês, total R$ 38.420,00, 28 de 32 documentos com comprovante e tabela de lançamentos com status aprovado/pendente."
                 width={1600}
                 height={896}
                 fetchPriority="high"
@@ -143,7 +143,7 @@ function HomePage() {
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
                   src={previewCaptura}
-                  alt="Tela de importação do PDF mensal de prestação de contas no Approva, com lançamentos sendo lidos automaticamente pela IA."
+                  alt="Tela de Captura do Approva: área de upload de PDF e XMLs, com fila de leitura mostrando NF-e, boletos e holerites já reconhecidos pela IA."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -163,7 +163,7 @@ function HomePage() {
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
                   src={previewPrestacao}
-                  alt="Tabela de despesas com colunas de comprovante anexado, status de aprovação pendente/aprovado e revisão em duas mãos."
+                  alt="Tabela de lançamentos da prestação com colunas de rubrica, valor, comprovante anexado e status de aprovação em duas mãos."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -183,7 +183,7 @@ function HomePage() {
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
                   src={previewPainel}
-                  alt="Relatório de prestação de contas do termo de fomento 042/2025 com despesas por rubrica e exportação SIT/TCE-PR."
+                  alt="Painel financeiro do Approva mostrando saldo do termo, próximo repasse e execução por rubrica — pronto para exportar SIT/TCE-PR."
                   loading="lazy"
                   width={1600}
                   height={896}
