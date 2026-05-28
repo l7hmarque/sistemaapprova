@@ -14,6 +14,10 @@ import { Camera, Upload, Link2, Trash2, Loader2 } from "lucide-react";
 import { extractPdfText } from "@/lib/pdf/extractTextClient";
 import { extrairDocumento } from "@/lib/captura.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import {
+  inferirTpDocDespesa, inferirTpDocPagamento, inferirTpDocFav,
+  inferirTpDespesa, aplicarOverrideFavorecido, gerarIdInterno,
+} from "@/lib/sit/inferCaptura";
 
 export const Route = createFileRoute("/admin/captura")({ component: CapturaPage });
 
