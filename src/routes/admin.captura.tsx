@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Camera, Upload, Link2, Trash2, Loader2 } from "lucide-react";
 import { extractPdfText } from "@/lib/pdf/extractTextClient";
 import { extrairDocumento } from "@/lib/captura.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/captura")({ component: CapturaPage });
 
