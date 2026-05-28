@@ -62,6 +62,8 @@ function PainelPage() {
   // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
   const [valorPrevStr, setValorPrevStr] = useState<string>("");
   const [valorEfetStr, setValorEfetStr] = useState<string>("");
+  const [numeroDocStr, setNumeroDocStr] = useState<string>("");
+  const [dataEmissaoStr, setDataEmissaoStr] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
