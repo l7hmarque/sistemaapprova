@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, Trash2, Pencil, FileWarning, FileCheck2, FileDown } from "lucide-react";
+import { Plus, Trash2, Pencil, FileWarning, FileCheck2, FileDown, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoSnapshot } from "@/lib/prestacao-snapshot.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
@@ -357,8 +358,11 @@ function PainelPage() {
       </div>
 
       <div className="space-y-3">
-        <div className="text-sm uppercase tracking-wide text-muted-foreground">
-          Eventos ({filtrados.length})
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+          <span>Eventos ({filtrados.length})</span>
+          <span className="normal-case tracking-normal text-xs">
+            {filtrados.filter((e) => pendenciasSIT(e).length === 0).length} de {filtrados.length} prontos para SIT
+          </span>
         </div>
 
         {filtrados.length === 0 && (
@@ -394,6 +398,35 @@ function PainelPage() {
                           {e.status_documental}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]">{e.origem}</Badge>
+                        {(() => {
+                          const pend = pendenciasSIT(e);
+                          if (pend.length === 0) return null;
+                          return (
+                            <TooltipProvider delayDuration={150}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    aria-label={`${pend.length} pendência(s) SIT`}
+                                    className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700"
+                                    onClick={(ev) => ev.stopPropagation()}
+                                  >
+                                    <AlertCircle className="h-3.5 w-3.5" />
+                                    <span className="text-[10px] font-medium">{pend.length}</span>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <div className="text-[11px] font-semibold mb-1">Pendências SIT:</div>
+                                  <ul className="text-[11px] space-y-0.5">
+                                    {pend.map((p) => (
+                                      <li key={p}>• {p}</li>
+                                    ))}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
