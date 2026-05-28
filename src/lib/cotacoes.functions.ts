@@ -254,6 +254,7 @@ export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
 /* ============================ MAPA COMPARATIVO ============================ */
 
 const GerarMapaSchema = z.object({
+  organization_id: z.string().uuid(),
   cotacao_id: z.string().uuid(),
   orcamento_ids: z.array(z.string().uuid()).length(3),
 });
@@ -266,12 +267,14 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .select("*")
       .eq("id", data.cotacao_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (errCot || !cot) throw new Error("Cotação não encontrada");
 
     const { data: orcs, error: errOrc } = await supabase
       .from("orcamentos_salvos")
       .select("*")
+      .eq("organization_id", data.organization_id)
       .in("id", data.orcamento_ids);
     if (errOrc || !orcs || orcs.length !== 3) {
       throw new Error("Selecione exatamente 3 orçamentos preenchidos.");
