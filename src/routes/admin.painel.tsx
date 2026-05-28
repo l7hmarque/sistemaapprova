@@ -21,6 +21,7 @@ import {
   TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA,
   CATEGORIAS as CATEGORIAS_REO, CATEGORIA_TO_TPDESPESA,
 } from "@/lib/sit/catalogos";
+import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 
 export const Route = createFileRoute("/admin/painel")({ component: PainelPage });
 
