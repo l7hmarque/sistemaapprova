@@ -20,6 +20,7 @@ Leia o documento com atenção e retorne SOMENTE JSON válido, sem markdown, no 
 {
   "tipo": "boleto" | "nf" | "fatura" | "holerite" | "comprovante_pgto" | "guia" | "outro",
   "cnpj": "00000000000000" ou null,
+  "razao_social": "string" ou null,
   "valor": número (ex: 1234.56) ou null,
   "data": "AAAA-MM-DD" ou null,
   "numero": "string" ou null,
@@ -27,6 +28,7 @@ Leia o documento com atenção e retorne SOMENTE JSON válido, sem markdown, no 
 }
 Regras:
 - cnpj: apenas dígitos do EMITENTE/FORNECEDOR (quem cobra), não do cliente. Se houver CPF, use o CPF apenas dígitos.
+- razao_social: nome/razão social do EMITENTE/FORNECEDOR (quem cobra), exatamente como aparece no documento. Se for pessoa física, use o nome.
 - valor: valor TOTAL a pagar do documento. Em boletos, use o valor do boleto. Em NF, use o valor total. Em holerite, use o líquido. Sempre número (ponto decimal).
 - data: data de vencimento (boleto), data de emissão (NF) ou data de pagamento (comprovante), no formato AAAA-MM-DD.
 - numero: número do documento, nota, boleto, NF ou linha digitável curta.
@@ -36,6 +38,7 @@ Regras:
 export type DadosExtraidos = {
   tipo: string | null;
   cnpj: string | null;
+  razao_social: string | null;
   valor: number | null;
   data: string | null;
   numero: string | null;
@@ -61,9 +64,11 @@ function parseDados(raw: string): DadosExtraidos {
     typeof p.valor === "number" ? p.valor
     : typeof p.valor === "string" ? Number(String(p.valor).replace(/\./g, "").replace(",", ".")) : null;
   const cnpjStr = typeof p.cnpj === "string" ? p.cnpj.replace(/\D/g, "") : null;
+  const razao = typeof p.razao_social === "string" ? p.razao_social.trim() : null;
   return {
     tipo: typeof p.tipo === "string" ? p.tipo : null,
     cnpj: cnpjStr && cnpjStr.length >= 11 ? cnpjStr : null,
+    razao_social: razao && razao.length > 0 ? razao : null,
     valor: typeof valorNum === "number" && Number.isFinite(valorNum) ? valorNum : null,
     data: typeof p.data === "string" ? p.data : null,
     numero: typeof p.numero === "string" ? p.numero : null,
