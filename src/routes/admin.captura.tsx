@@ -275,11 +275,11 @@ function CapturaPage() {
       let eventoId = tentarVincular(dados);
       let eventoCriado = false;
 
-      // Se não casou com nenhum evento existente e a extração tem valor mínimo,
-      // criamos um novo evento financeiro automaticamente.
+      // Sempre cria um evento financeiro novo se não casou com nenhum existente,
+      // mesmo sem valor — vai para o painel para revisão manual.
       const valorNum = dados?.valor != null ? Number(dados.valor) : null;
-      const temDadosMinimos = valorNum != null && Number.isFinite(valorNum) && valorNum > 0;
-      if (!eventoId && temDadosMinimos) {
+      const valorValido = valorNum != null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null;
+      if (!eventoId) {
         const fornEncontrado = dados?.cnpj
           ? fornecedores.find(
               (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
@@ -289,8 +289,9 @@ function CapturaPage() {
           ? dados.data.slice(0, 7)
           : mes;
         const categoria = inferirCategoria(dados);
-        const descricao = (dados?.descricao && dados.descricao.trim())
+        const descricaoBase = (dados?.descricao && dados.descricao.trim())
           || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
+        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}` : descricaoBase;
         const evIns = await supabase
           .from("eventos_financeiros")
           .insert({
@@ -299,18 +300,23 @@ function CapturaPage() {
             categoria,
             descricao,
             fornecedor_id: fornEncontrado?.id ?? null,
-            valor_previsto: valorNum,
-            valor_efetivo: valorNum,
+            valor_previsto: valorValido,
+            valor_efetivo: valorValido,
             data_vencimento: dados?.data ?? null,
             data_pagamento: dados?.data ?? null,
             origem: "captura",
-            status_documental: "completo",
+            status_documental: ehDuplicata ? "revisar" : (valorValido ? "completo" : "revisar"),
             metadata: {
               tipo: dados?.tipo ?? null,
               cnpj_extraido: dados?.cnpj ?? null,
               numero_extraido: dados?.numero ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
+              duplicata: ehDuplicata,
+              precisa_revisao: ehDuplicata || !valorValido,
+              motivo_revisao: ehDuplicata
+                ? "Arquivo duplicado — revisar manualmente"
+                : (!valorValido ? "Valor não extraído" : null),
             },
           })
           .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
@@ -321,7 +327,6 @@ function CapturaPage() {
         }
         eventoId = evIns.data.id;
         eventoCriado = true;
-        // Atualiza lista local para próximos itens da fila reaproveitarem o evento.
         setEventos((prev) => [
           ...prev,
           {
@@ -353,10 +358,12 @@ function CapturaPage() {
             descricao: dados?.descricao ?? null,
             storage_path: path,
             bucket: "documentos",
+            duplicata: ehDuplicata,
           },
         })
         .select("id")
         .single();
+
       if (insertRes.error) {
         console.error("[captura] insert documentos_anexos error", insertRes.error, { activeOrgId });
         throw insertRes.error;
