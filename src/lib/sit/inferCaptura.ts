@@ -3,6 +3,7 @@
  * persistidos diretamente em `eventos_financeiros`.
  */
 import { FAVORECIDO_OVERRIDES, CATEGORIAS, CATEGORIA_TO_TPDESPESA } from "./catalogos";
+import { validarDocFavorecido } from "./validarDoc";
 
 export type CamposSIT = {
   tp_documento_despesa: number | null;
