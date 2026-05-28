@@ -266,7 +266,68 @@ function CapturaPage() {
         .createSignedUrl(path, 60 * 60 * 24 * 7);
       if (signedErr) console.warn("[captura] signed url falhou", signedErr);
 
-      const eventoId = tentarVincular(dados);
+      let eventoId = tentarVincular(dados);
+      let eventoCriado = false;
+
+      // Se não casou com nenhum evento existente e a extração tem valor mínimo,
+      // criamos um novo evento financeiro automaticamente.
+      const valorNum = dados?.valor != null ? Number(dados.valor) : null;
+      const temDadosMinimos = valorNum != null && Number.isFinite(valorNum) && valorNum > 0;
+      if (!eventoId && temDadosMinimos) {
+        const fornEncontrado = dados?.cnpj
+          ? fornecedores.find(
+              (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
+            )
+          : null;
+        const mesRef = dados?.data && /^\d{4}-\d{2}-\d{2}$/.test(dados.data)
+          ? dados.data.slice(0, 7)
+          : mes;
+        const categoria = inferirCategoria(dados);
+        const descricao = (dados?.descricao && dados.descricao.trim())
+          || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
+        const evIns = await supabase
+          .from("eventos_financeiros")
+          .insert({
+            organization_id: activeOrgId,
+            mes_referencia: mesRef,
+            categoria,
+            descricao,
+            fornecedor_id: fornEncontrado?.id ?? null,
+            valor_previsto: valorNum,
+            valor_efetivo: valorNum,
+            data_vencimento: dados?.data ?? null,
+            data_pagamento: dados?.data ?? null,
+            origem: "captura",
+            status_documental: "completo",
+            metadata: {
+              tipo: dados?.tipo ?? null,
+              cnpj_extraido: dados?.cnpj ?? null,
+              numero_extraido: dados?.numero ?? null,
+              nome_arquivo: it.file.name,
+              criado_via: "captura",
+            },
+          })
+          .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
+          .single();
+        if (evIns.error) {
+          console.error("[captura] insert eventos_financeiros error", evIns.error, { activeOrgId });
+          throw evIns.error;
+        }
+        eventoId = evIns.data.id;
+        eventoCriado = true;
+        // Atualiza lista local para próximos itens da fila reaproveitarem o evento.
+        setEventos((prev) => [
+          ...prev,
+          {
+            id: evIns.data.id,
+            descricao: evIns.data.descricao,
+            categoria: evIns.data.categoria,
+            valor_previsto: evIns.data.valor_previsto,
+            data_vencimento: evIns.data.data_vencimento,
+            fornecedor_id: evIns.data.fornecedor_id,
+          },
+        ]);
+      }
 
       const insertRes = await supabase
         .from("documentos_anexos")
@@ -295,11 +356,7 @@ function CapturaPage() {
         throw insertRes.error;
       }
 
-
-
-
-
-      if (eventoId) {
+      if (eventoId && !eventoCriado) {
         await supabase
           .from("eventos_financeiros")
           .update({ status_documental: "completo" })
@@ -312,7 +369,11 @@ function CapturaPage() {
         dados,
         docId: insertRes.data.id,
         eventoId,
-        mensagem: eventoId ? "Vinculado automaticamente" : "Sem evento correspondente",
+        mensagem: eventoCriado
+          ? "Lançado automaticamente"
+          : eventoId
+            ? "Vinculado a evento existente"
+            : "Sem valor extraído — revisar manualmente",
       });
     } catch (e) {
       console.error("[captura] falha ao processar", e);
