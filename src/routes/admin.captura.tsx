@@ -350,11 +350,38 @@ function CapturaPage() {
       const valorNum = dados?.valor != null ? Number(dados.valor) : null;
       const valorValido = valorNum != null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null;
       if (!eventoId) {
-        const fornEncontrado = dados?.cnpj
-          ? fornecedores.find(
-              (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
-            )
+        const cnpjDigits = dados?.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null;
+        let fornEncontrado = cnpjDigits
+          ? fornecedores.find((f) => f.cnpj.replace(/\D/g, "") === cnpjDigits)
           : null;
+
+        // Auto-cadastro: se a IA extraiu CNPJ + razão social e ainda não existe fornecedor, cria.
+        if (!fornEncontrado && cnpjDigits && dados?.razao_social) {
+          const fIns = await supabase
+            .from("fornecedores")
+            .insert({
+              organization_id: activeOrgId,
+              cnpj: cnpjDigits,
+              razao_social: dados.razao_social,
+            })
+            .select("id, razao_social, cnpj")
+            .single();
+          if (fIns.error) {
+            // pode ser conflito de unicidade — tenta buscar
+            console.warn("[captura] auto-cadastro fornecedor falhou, tentando buscar", fIns.error);
+            const { data: jaExiste } = await supabase
+              .from("fornecedores")
+              .select("id, razao_social, cnpj")
+              .eq("organization_id", activeOrgId)
+              .eq("cnpj", cnpjDigits)
+              .maybeSingle();
+            if (jaExiste) fornEncontrado = jaExiste as Fornecedor;
+          } else if (fIns.data) {
+            fornEncontrado = fIns.data as Fornecedor;
+            setFornecedores((prev) => [...prev, fIns.data as Fornecedor]);
+          }
+        }
+
         // Sempre lança no mês selecionado na captura para aparecer no painel atual.
         // A data extraída fica preservada em data_vencimento/data_pagamento.
         const mesRef = mes;
