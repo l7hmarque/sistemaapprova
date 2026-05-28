@@ -73,6 +73,7 @@ function ModelosPage() {
 
   const salvar = async () => {
     if (!editando) return;
+    if (!activeOrgId) return toast.error("Selecione uma organização");
     const id = extrairSheetId(editando.template_id || "");
     if (!id) return toast.error("Informe o ID ou URL da planilha");
     if (!editando.nome?.trim()) return toast.error("Informe um nome");
@@ -86,13 +87,14 @@ function ModelosPage() {
     };
     const q = editando.id
       ? supabase.from("modelos_planilha").update(payload).eq("id", editando.id)
-      : supabase.from("modelos_planilha").insert(payload);
+      : supabase.from("modelos_planilha").insert({ ...payload, organization_id: activeOrgId });
     const { error } = await q;
     if (error) return toast.error("Erro ao salvar: " + error.message);
     toast.success("Modelo salvo");
     setEditando(null);
     void carregar();
   };
+
 
   const excluir = async (m: Modelo) => {
     if (!confirm(`Excluir "${m.nome}"?`)) return;
