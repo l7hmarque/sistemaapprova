@@ -198,9 +198,6 @@ export function pendenciasSIT(e: {
   if (!e.tp_doc_fav) f.push("tipo doc favorecido");
   if (!e.nr_doc_fav) f.push("nº doc favorecido");
   else {
-    // valida dígitos verificadores
-    // import dinâmico evita ciclo
-    const { validarDocFavorecido } = require("./validarDoc") as typeof import("./validarDoc");
     const v = validarDocFavorecido(e.tp_doc_fav, e.nr_doc_fav);
     if (!v.ok) f.push(`doc favorecido (${v.motivo})`);
   }
