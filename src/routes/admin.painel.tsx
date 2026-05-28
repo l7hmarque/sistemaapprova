@@ -145,11 +145,15 @@ function PainelPage() {
       origem: "manual",
       status_documental: "pendente",
     });
+    setValorPrevStr("");
+    setValorEfetStr("");
     setOpen(true);
   }
 
   function abrirEdit(e: Evento) {
     setEditing({ ...e });
+    setValorPrevStr(e.valor_previsto != null ? String(e.valor_previsto) : "");
+    setValorEfetStr(e.valor_efetivo != null ? String(e.valor_efetivo) : "");
     setOpen(true);
   }
 
@@ -160,8 +164,8 @@ function PainelPage() {
       fornecedor_id: editing.fornecedor_id,
       categoria: editing.categoria,
       descricao: editing.descricao,
-      valor_previsto: editing.valor_previsto,
-      valor_efetivo: editing.valor_efetivo,
+      valor_previsto: parseNum(valorPrevStr),
+      valor_efetivo: parseNum(valorEfetStr),
       data_vencimento: editing.data_vencimento,
       data_pagamento: editing.data_pagamento,
       origem: editing.origem,
@@ -179,6 +183,7 @@ function PainelPage() {
     setEditing(null);
     recarregar();
   }
+
 
   return (
     <div className="p-8 space-y-6">
