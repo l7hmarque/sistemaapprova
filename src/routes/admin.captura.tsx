@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Camera, Upload, Link2, Trash2, Loader2 } from "lucide-react";
 import { extractPdfText } from "@/lib/pdf/extractTextClient";
 import { extrairDocumento } from "@/lib/captura.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/captura")({ component: CapturaPage });
 
@@ -107,22 +108,30 @@ function msgErro(e: unknown): string {
 
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
+  const { activeOrgId, activeOrg, loading: orgLoading } = useActiveOrg();
   const [itens, setItens] = useState<Item[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
-  const [orgId, setOrgId] = useState<string | null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
 
-
   useEffect(() => {
+    if (!activeOrgId) {
+      setEventos([]);
+      setFornecedores([]);
+      return;
+    }
     (async () => {
       const [{ data: ev }, { data: fo }, { data: cfg }] = await Promise.all([
-        supabase.from("eventos_financeiros").select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id").eq("mes_referencia", mes),
-        supabase.from("fornecedores").select("id, razao_social, cnpj"),
-        supabase.from("configuracoes").select("valor").eq("chave", "auto_vinculo").maybeSingle(),
+        supabase
+          .from("eventos_financeiros")
+          .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
+          .eq("organization_id", activeOrgId)
+          .eq("mes_referencia", mes),
+        supabase.from("fornecedores").select("id, razao_social, cnpj").eq("organization_id", activeOrgId),
+        supabase.from("configuracoes").select("valor").eq("organization_id", activeOrgId).eq("chave", "auto_vinculo").maybeSingle(),
       ]);
       setEventos((ev ?? []) as Evento[]);
       setFornecedores((fo ?? []) as Fornecedor[]);
@@ -134,22 +143,9 @@ function CapturaPage() {
         });
       }
     })();
-  }, [mes]);
+  }, [mes, activeOrgId]);
 
-  useEffect(() => {
-    (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data: m } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", u.user.id)
-        .order("criado_em", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (m?.organization_id) setOrgId(m.organization_id);
-    })();
-  }, []);
+
 
 
   const adicionar = useCallback((files: FileList | null) => {
@@ -253,24 +249,31 @@ function CapturaPage() {
 
 
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      if (!orgId) throw new Error("Organização do usuário não carregada — recarregue a página e tente novamente");
+      if (!activeOrgId) throw new Error("Selecione uma organização ativa antes de processar");
       const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
-      const path = `${orgId}/${hash.slice(0, 16)}-${safeName}`;
+      const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
       const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
         contentType: arquivo.type || undefined,
       });
-      if (up.error) throw up.error;
-      const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
-
+      if (up.error) {
+        console.error("[captura] storage upload error", up.error, { path, activeOrgId });
+        throw up.error;
+      }
+      const { data: signed, error: signedErr } = await supabase
+        .storage
+        .from("documentos")
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      if (signedErr) console.warn("[captura] signed url falhou", signedErr);
 
       const eventoId = tentarVincular(dados);
 
       const insertRes = await supabase
         .from("documentos_anexos")
         .insert({
+          organization_id: activeOrgId,
           tipo: dados?.tipo ?? "outro",
-          arquivo_url: pub.publicUrl,
+          arquivo_url: signed?.signedUrl ?? null,
           arquivo_hash: hash,
           cnpj_extraido: dados?.cnpj ?? null,
           valor_extraido: dados?.valor ?? null,
@@ -281,11 +284,17 @@ function CapturaPage() {
           metadata: {
             nome_original: it.file.name,
             descricao: dados?.descricao ?? null,
+            storage_path: path,
+            bucket: "documentos",
           },
         })
         .select("id")
         .single();
-      if (insertRes.error) throw insertRes.error;
+      if (insertRes.error) {
+        console.error("[captura] insert documentos_anexos error", insertRes.error, { activeOrgId });
+        throw insertRes.error;
+      }
+
 
 
 
@@ -373,6 +382,17 @@ function CapturaPage() {
         </div>
       </header>
 
+      {!orgLoading && !activeOrgId && (
+        <div className="border border-destructive/50 bg-destructive/10 text-destructive rounded-md px-4 py-3 text-sm">
+          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de processar arquivos.
+        </div>
+      )}
+      {activeOrg && (
+        <div className="text-xs text-muted-foreground">
+          Organização ativa: <strong>{activeOrg.nome}</strong>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-6 flex flex-wrap gap-3">
           <input
@@ -397,7 +417,7 @@ function CapturaPage() {
           <Button onClick={() => inputCam.current?.click()} variant="outline">
             <Camera className="mr-2 h-4 w-4" /> Tirar foto
           </Button>
-          <Button onClick={processarTudo} disabled={!itens.some((i) => i.status === "fila")}>
+          <Button onClick={processarTudo} disabled={!activeOrgId || !itens.some((i) => i.status === "fila")}>
             Processar fila
           </Button>
           <div className="ml-auto text-xs text-muted-foreground self-center">

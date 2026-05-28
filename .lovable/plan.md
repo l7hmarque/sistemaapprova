@@ -1,65 +1,39 @@
-## Causa raiz
+## Diagnóstico
 
-Na última passada de segurança, as policies amplas do bucket `documentos` foram removidas. Agora **só permitem upload se o caminho começar com o UUID da organização** do usuário (ex: `<org_id>/arquivo.pdf`).
+O backend está saudável e não encontrei erro de cota de IA. O erro `new row violates row-level security policy` está vindo do controle de acesso do banco/armazenamento.
 
-Em `src/routes/admin.captura.tsx`, o upload é feito assim:
+O ponto mais provável é a página `/admin/captura`: ela usa a primeira organização direta do usuário para montar o caminho do arquivo, mas o painel tem seletor de organização ativa. Se o super admin/escritório está visualizando outra OSC, o arquivo pode ser enviado para uma organização diferente da organização ativa, e depois o registro em `documentos_anexos` entra com `organization_id` padrão incorreto ou não compatível com a política.
 
-```ts
-const path = `${hash}-${arquivo.name}`.slice(0, 200);
-await supabase.storage.from("documentos").upload(path, arquivo, {...});
-```
-
-→ não tem prefixo de organização → RLS bloqueia → `up.error` é lançado.
-
-Como `up.error` é um `StorageError` (objeto plano, não instância de `Error`), o `catch` cai em:
-```ts
-mensagem: e instanceof Error ? e.message : "Falha"
-```
-Resultado: badge "erro" sem mensagem útil. Não é cota de IA.
-
-Bônus: `getPublicUrl` num bucket privado retorna URL que não funciona — depois é melhor usar signed URL.
+Além disso, o bucket `documentos` é privado, mas a tela ainda usa `getPublicUrl`, que não é adequado para acesso posterior a arquivos privados.
 
 ## Plano de correção
 
-**1. `src/routes/admin.captura.tsx` — prefixar caminho com `organization_id`**
+1. **Usar a organização ativa em `/admin/captura`**
+   - Trocar o `orgId` carregado manualmente por `activeOrgId` do `useActiveOrg()`.
+   - Bloquear o processamento enquanto a organização ativa não estiver carregada.
+   - Fazer as consultas de eventos, fornecedores e configurações filtrarem pela organização ativa.
 
-- Obter o `organization_id` ativo do usuário no início do componente (via `useActiveOrg` ou consulta a `organization_members`).
-- Trocar:
-  ```ts
-  const path = `${hash}-${arquivo.name}`.slice(0, 200);
-  ```
-  por:
-  ```ts
-  const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
-  const path = `${orgId}/${hash.slice(0, 16)}-${safeName}`;
-  ```
-- Bloquear `processar()` se `orgId` ainda não carregou (toast "carregando organização").
+2. **Gravar `organization_id` explicitamente**
+   - No `insert` em `documentos_anexos`, enviar `organization_id: activeOrgId`.
+   - No vínculo automático/manual, só considerar eventos da organização ativa.
+   - Isso evita depender do `current_user_org()`, que pode apontar para a primeira organização do usuário e não para a OSC selecionada no painel.
 
-**2. URL do arquivo — usar signed URL (bucket é privado)**
+3. **Padronizar o caminho rastreável do PDF**
+   - Manter o prefixo obrigatório do bucket: `<organization_id>/...`.
+   - Usar nome seguro com hash curto para rastreabilidade e evitar caracteres problemáticos.
 
-Trocar `getPublicUrl` por `createSignedUrl(path, 60 * 60 * 24 * 7)` e armazenar o `path` no `metadata` para regenerar quando o link expirar. Alternativa mínima: salvar só o `path` em `arquivo_url` e gerar signed URL on-demand na listagem. Vou pelo segundo caminho (mais simples e correto).
+4. **Ajustar URL de arquivo privado**
+   - Substituir `getPublicUrl` por `createSignedUrl`.
+   - Salvar também o caminho interno no `metadata`, para regenerar link assinado depois.
 
-**3. Mensagem de erro real no catch**
+5. **Melhorar diagnóstico visível**
+   - Exibir erro mais claro quando a falha vier de RLS/storage.
+   - Incluir detalhes úteis no console para confirmar se falhou no upload, insert ou update.
 
-Trocar:
-```ts
-mensagem: e instanceof Error ? e.message : "Falha"
-```
-por um helper que extrai `message` de `Error`, `StorageError`, `PostgrestError` ou objeto qualquer:
-```ts
-function msgErro(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (e && typeof e === "object" && "message" in e) return String((e as {message: unknown}).message);
-  try { return JSON.stringify(e); } catch { return "Falha desconhecida"; }
-}
-```
-E `console.error` continua para inspeção futura.
+## Arquivo afetado
 
-**4. Validação rápida**
+- `src/routes/admin.captura.tsx`
 
-Reprocessar o PDF de teste após o deploy e confirmar que o item vai para `vinculado` ou `orfao` em vez de `erro`.
+## Resultado esperado
 
-## Fora do escopo
-
-- Reprocessar registros antigos com path sem organização (não há histórico relevante ainda).
-- Mover `extrairDocumento` para outro modelo — gateway respondeu 200, sem indício de cota.
+Ao processar o PDF na organização correta, o upload e o registro em `documentos_anexos` devem passar pela RLS e o item deve terminar como `vinculado` ou `orfao`, não como `erro`.
