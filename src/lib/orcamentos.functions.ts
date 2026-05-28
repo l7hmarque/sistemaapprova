@@ -185,8 +185,10 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
 export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DadosMapaSchema.parse(d))
-  .handler(async ({ data }) => {
-    const modelo = await carregarModeloAtivo("mapa");
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const orgId = await resolverOrgId(supabase);
+    const modelo = await carregarModeloAtivo(supabase, "mapa");
     const templateId = modelo?.template_id || TEMPLATE_MAPA_ID;
     const aba = modelo?.aba || ABA_MAPA;
     const M = { ...MAPA_MODEL, ...(modelo?.params ?? {}) };
@@ -219,7 +221,6 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
       { range: `${aba}!C9`, values: [[data.objeto]] },
     ];
 
-    // Fornecedores nas linhas 13,14,15: A=razão, F=CNPJ, H=data emissão, J=validade, L=prazo
     data.fornecedores.forEach((f, i) => {
       const linha = 13 + i;
       updates.push({ range: `${aba}!A${linha}`, values: [[f.razao]] });
@@ -229,12 +230,10 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
       updates.push({ range: `${aba}!L${linha}`, values: [[f.prazoDias]] });
     });
 
-    // Nomes dos fornecedores no header dos preços (linha 17, cols E, G, I)
     updates.push({ range: `${aba}!E17`, values: [[data.fornecedores[0].razao]] });
     updates.push({ range: `${aba}!G17`, values: [[data.fornecedores[1].razao]] });
     updates.push({ range: `${aba}!I17`, values: [[data.fornecedores[2].razao]] });
 
-    // Itens: A=item, B=descrição, C=unidade, D=qtd, E/G/I=preço unit
     const linha0 = M.linhaPrimeiroItem1;
     data.itens.forEach((it, i) => {
       const linha = linha0 + i;
@@ -250,6 +249,7 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     await sheetsValuesBatchUpdate(copy.id, updates);
 
     await supabase.from("orcamentos_salvos").insert({
+      organization_id: orgId,
       tipo: "mapa_comparativo",
       objeto: data.objeto,
       termo: data.termo,
@@ -260,7 +260,7 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
       drive_file_url: copy.webViewLink,
     });
 
-    await registrarObjeto(data.objeto);
+    await registrarObjeto(supabase, orgId, data.objeto);
 
     return { fileId: copy.id, url: copy.webViewLink, nome: copy.name };
   });
@@ -275,13 +275,24 @@ async function safeFolder(parts: string[]): Promise<string[] | undefined> {
   }
 }
 
-async function registrarObjeto(descricao: string): Promise<void> {
+async function resolverOrgId(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase.rpc("current_user_org");
+  if (error || !data) throw new Error("Organização ativa não encontrada para o usuário");
+  return data as unknown as string;
+}
+
+async function registrarObjeto(
+  supabase: SupabaseClient,
+  orgId: string,
+  descricao: string,
+): Promise<void> {
   const d = descricao.trim();
   if (!d) return;
-  // Tabela tem unique index em lower(descricao); insert duplicado simplesmente falha (sem update).
-  try {
-    await supabase.from("objetos_cotacao").insert({ descricao: d, uso_count: 1 });
-  } catch {
-    /* duplicado — ignora */
+  const { error } = await supabase
+    .from("objetos_cotacao")
+    .insert({ organization_id: orgId, descricao: d, uso_count: 1 });
+  if (error && !/duplicate|unique/i.test(error.message)) {
+    console.warn("registrarObjeto:", error.message);
   }
 }
+
