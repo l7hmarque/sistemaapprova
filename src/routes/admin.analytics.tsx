@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { obterAnalytics } from "@/lib/analytics.functions";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useViewAs } from "@/hooks/use-view-as";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -10,7 +12,7 @@ import {
 export const Route = createFileRoute("/admin/analytics")({
   head: () => ({
     meta: [
-      { title: "Analytics — SIT" },
+      { title: "Analytics — Approva" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -18,12 +20,26 @@ export const Route = createFileRoute("/admin/analytics")({
 });
 
 function AnalyticsPage() {
+  const { isSuperAdmin, loading } = useCurrentUser();
+  const { role: viewAsRole } = useViewAs();
+  const nav = useNavigate();
+  const canSee = isSuperAdmin && viewAsRole === "real";
+
+  useEffect(() => {
+    if (!loading && !canSee) {
+      nav({ to: "/admin", replace: true });
+    }
+  }, [loading, canSee, nav]);
+
   const [dias, setDias] = useState(30);
   const fetchAnalytics = useServerFn(obterAnalytics);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["analytics", dias],
     queryFn: () => fetchAnalytics({ data: { dias } }),
+    enabled: canSee,
   });
+
+  if (!canSee) return null;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
