@@ -319,6 +319,9 @@ function PainelPage() {
             </Select>
           </div>
           <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
+          <Button onClick={exportarSIT} variant="outline">
+            <FileDown className="mr-1 h-4 w-4" /> Exportar Despesa.txt
+          </Button>
           <Button onClick={handleFecharMes} disabled={fechando} variant="secondary">
             <FileCheck2 className="mr-1 h-4 w-4" />
             {fechando ? "Gerando…" : "Fechar mês"}
