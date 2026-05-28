@@ -53,18 +53,22 @@ function PrestacaoPage() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
+  const { activeOrgId } = useActiveOrg();
 
   const carregar = async () => {
+    if (!activeOrgId) { setDocs([]); setSnapshots([]); return; }
     setLoading(true);
     const [docsRes, snapRes] = await Promise.all([
       supabase
         .from("prestacao_documentos")
         .select("*")
+        .eq("organization_id", activeOrgId)
         .eq("mes_referencia", mes)
         .order("ordem", { ascending: true }),
       supabase
         .from("prestacoes_snapshot")
         .select("id, titulo, assinatura_hash, total_eventos, total_documentos, gerado_em, pdf_path")
+        .eq("organization_id", activeOrgId)
         .eq("mes_referencia", mes)
         .order("gerado_em", { ascending: false }),
     ]);
@@ -83,7 +87,7 @@ function PrestacaoPage() {
     }
   };
 
-  useEffect(() => { void carregar(); }, [mes]);
+  useEffect(() => { void carregar(); }, [mes, activeOrgId]);
 
   const novo = () => setEdit({
     nome: "", descricao: "", arquivo_url: "",
