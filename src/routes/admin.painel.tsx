@@ -233,7 +233,8 @@ function PainelPage() {
       const { error } = await supabase.from("eventos_financeiros").update(payload as any).eq("id", editing.id);
       if (error) return toast.error(error.message);
     } else {
-      const { error } = await supabase.from("eventos_financeiros").insert(payload as any);
+      if (!activeOrgId) return toast.error("Selecione uma organização ativa");
+      const { error } = await supabase.from("eventos_financeiros").insert({ ...payload, organization_id: activeOrgId } as any);
       if (error) return toast.error(error.message);
     }
     toast.success("Evento salvo");
