@@ -59,9 +59,20 @@ function PainelPage() {
   const [mes, setMes] = useState(mesAtual());
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [editing, setEditing] = useState<Evento | null>(null);
+  // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
+  const [valorPrevStr, setValorPrevStr] = useState<string>("");
+  const [valorEfetStr, setValorEfetStr] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
+
+  function parseNum(s: string): number | null {
+    const t = s.trim().replace(",", ".");
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  }
+
 
   async function handleFecharMes() {
     if (eventos.length === 0) return toast.error("Sem eventos no mês.");
