@@ -11,9 +11,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, Trash2, Pencil, FileWarning, FileCheck2 } from "lucide-react";
+import { Plus, Trash2, Pencil, FileWarning, FileCheck2, FileDown } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoSnapshot } from "@/lib/prestacao-snapshot.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
+import { encodeWin1252 } from "@/lib/sit/ansiEncode";
+import {
+  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS,
+} from "@/lib/sit/catalogos";
+import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 
 export const Route = createFileRoute("/admin/painel")({ component: PainelPage });
 
