@@ -70,8 +70,15 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   }, [user?.id, orgs.length]);
 
   const setActiveOrgId = (id: string) => {
+    if (id === activeOrgId) return;
     setActiveOrgIdState(id);
-    try { localStorage.setItem(KEY, id); } catch {}
+    try {
+      localStorage.setItem(KEY, id);
+      // Limpa rascunhos e fila de captura escopados pela org anterior
+      localStorage.removeItem("synsit:rascunho-auto");
+    } catch {}
+    // Invalida todo o cache pra não vazar dados da org anterior
+    queryClient.removeQueries();
   };
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId) ?? null;
