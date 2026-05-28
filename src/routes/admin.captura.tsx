@@ -253,13 +253,16 @@ function CapturaPage() {
 
 
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      const path = `${hash}-${arquivo.name}`.slice(0, 200);
+      if (!orgId) throw new Error("Organização do usuário não carregada — recarregue a página e tente novamente");
+      const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+      const path = `${orgId}/${hash.slice(0, 16)}-${safeName}`;
       const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
         contentType: arquivo.type || undefined,
       });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
+
 
       const eventoId = tentarVincular(dados);
 
