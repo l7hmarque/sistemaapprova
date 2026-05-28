@@ -79,7 +79,7 @@ import type { ExtracaoResultado, ReceitaExtraida } from "@/lib/extract/schema";
 export const Route = createFileRoute("/ferramenta")({
   head: () => ({
     meta: [
-      { title: "SIT — Prestação de Contas TCE-PR" },
+      { title: "Approva — Prestação de Contas TCE-PR" },
       {
         name: "description",
         content:

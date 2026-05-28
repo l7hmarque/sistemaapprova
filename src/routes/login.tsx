@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -15,7 +16,7 @@ const searchSchema = z.object({ redirect: z.string().optional() });
 export const Route = createFileRoute("/login")({
   validateSearch: (s) => searchSchema.parse(s),
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Entrar — SIT" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Approva" }] }),
 });
 
 function LoginPage() {
@@ -78,7 +79,7 @@ function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardContent className="p-6 space-y-5">
           <div>
-            <div className="font-display text-2xl uppercase">SIT</div>
+            <ApprovaLogo size="lg" />
             <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
               {modo === "login" ? "Entrar no painel" : "Criar conta"}
             </div>
