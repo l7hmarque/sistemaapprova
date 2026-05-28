@@ -105,10 +105,12 @@ function ModelosPage() {
   };
 
   const ativar = async (m: Modelo) => {
-    // desativa todos do mesmo tipo, depois ativa este
+    if (!activeOrgId) return toast.error("Selecione uma organização");
+    // desativa todos do mesmo tipo na org, depois ativa este
     const { error: e1 } = await supabase
       .from("modelos_planilha")
       .update({ ativo: false })
+      .eq("organization_id", activeOrgId)
       .eq("tipo", m.tipo);
     if (e1) return toast.error("Erro: " + e1.message);
     const { error: e2 } = await supabase
@@ -119,6 +121,7 @@ function ModelosPage() {
     toast.success("Modelo ativado");
     void carregar();
   };
+
 
   return (
     <div className="p-8 space-y-8">
