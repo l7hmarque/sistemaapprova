@@ -116,7 +116,9 @@ export function formatLinhaSIT(termo: DadosTermo, d: DespesaInput): string {
     String(d.tpDocumentoPagamento ?? ""),                                  // 20
     truncate(cleanText(d.nrDocumentoPagamento), 15),                       // 21
     toBrDate(d.dtEmissaoPagamento),                                        // 22
-    toBrDate(d.dtDebito ?? ""),                                            // 23
+    // dtDebito (23): só faz sentido para Débito em Conta (código 6).
+    // Demais formas (Cheque, OB, DOC, TED, PIX, Depósito) vão vazias.
+    d.tpDocumentoPagamento === 6 ? toBrDate(d.dtDebito ?? "") : "",        // 23
     truncate(cleanText(d.dsItemDespesa), 2000),                            // 24
   ];
 
