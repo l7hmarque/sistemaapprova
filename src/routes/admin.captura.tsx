@@ -203,61 +203,80 @@ function CapturaPage() {
       const arquivo = await resizeImage(it.file);
       const hash = await sha256(arquivo);
 
-      // Dedup local pelo hash — reusa dados extraídos do gêmeo
+      // Dedup local pelo hash — se já existe um registro com evento vinculado,
+      // consideramos concluído. Caso contrário, reaproveitamos dados e seguimos
+      // o fluxo para criar/lançar o evento.
       const { data: existentes } = await supabase
         .from("documentos_anexos")
-        .select("id, evento_id, tipo, cnpj_extraido, valor_extraido, data_extraida, numero_extraido")
+        .select("id, evento_id, tipo, cnpj_extraido, valor_extraido, data_extraida, numero_extraido, metadata")
         .eq("arquivo_hash", hash)
+        .eq("organization_id", activeOrgId)
         .limit(1);
-      if (existentes && existentes.length) {
-        const g = existentes[0];
+      const gemeo = existentes && existentes.length ? existentes[0] : null;
+      if (gemeo && gemeo.evento_id) {
         atualiza(it.id, {
-          status: "duplicata",
+          status: "vinculado",
           hash,
-          mensagem: "Arquivo já cadastrado — dados reaproveitados",
-          docId: g.id,
-          eventoId: g.evento_id,
+          mensagem: "Arquivo já cadastrado e vinculado",
+          docId: gemeo.id,
+          eventoId: gemeo.evento_id,
           dados: {
-            tipo: g.tipo ?? undefined,
-            cnpj: g.cnpj_extraido,
-            valor: g.valor_extraido != null ? Number(g.valor_extraido) : null,
-            data: g.data_extraida,
-            numero: g.numero_extraido,
+            tipo: gemeo.tipo ?? undefined,
+            cnpj: gemeo.cnpj_extraido,
+            valor: gemeo.valor_extraido != null ? Number(gemeo.valor_extraido) : null,
+            data: gemeo.data_extraida,
+            numero: gemeo.numero_extraido,
           },
         });
         return;
       }
 
-      atualiza(it.id, { mensagem: "extraindo conteúdo" });
-      let texto = "";
-      const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
-      const ehImagem = arquivo.type.startsWith("image/");
-      if (ehPdf) {
-        try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
-      }
-
-      atualiza(it.id, { mensagem: "processando documento" });
       let dados: Item["dados"] = {};
-      const temTextoUtil = texto.trim().length > 20;
-      if (temTextoUtil || ehImagem) {
-        const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
-          nomeArquivo: arquivo.name,
+      if (gemeo) {
+        // Reaproveita extração anterior — pula chamada de IA
+        atualiza(it.id, { mensagem: "reaproveitando extração anterior" });
+        dados = {
+          tipo: gemeo.tipo ?? undefined,
+          cnpj: gemeo.cnpj_extraido ?? undefined,
+          valor: gemeo.valor_extraido != null ? Number(gemeo.valor_extraido) : undefined,
+          data: gemeo.data_extraida ?? undefined,
+          numero: gemeo.numero_extraido ?? undefined,
+          descricao:
+            (gemeo.metadata && typeof gemeo.metadata === "object" && "descricao" in gemeo.metadata
+              ? ((gemeo.metadata as Record<string, unknown>).descricao as string | null)
+              : null) ?? undefined,
         };
-        if (temTextoUtil) payload.texto = texto;
-        if (ehImagem && !temTextoUtil) {
-          payload.imagemBase64 = await fileToBase64(arquivo);
-          payload.mimeType = arquivo.type || "image/jpeg";
+      } else {
+        atualiza(it.id, { mensagem: "extraindo conteúdo" });
+        let texto = "";
+        const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
+        const ehImagem = arquivo.type.startsWith("image/");
+        if (ehPdf) {
+          try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
         }
-        const r = (await extrair({ data: payload })) as
-          | { ok: true; dados: Item["dados"] }
-          | { ok: false; erro: string };
-        if (r.ok) {
-          dados = r.dados;
+
+        atualiza(it.id, { mensagem: "processando documento" });
+        const temTextoUtil = texto.trim().length > 20;
+        if (temTextoUtil || ehImagem) {
+          const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
+            nomeArquivo: arquivo.name,
+          };
+          if (temTextoUtil) payload.texto = texto;
+          if (ehImagem && !temTextoUtil) {
+            payload.imagemBase64 = await fileToBase64(arquivo);
+            payload.mimeType = arquivo.type || "image/jpeg";
+          }
+          const r = (await extrair({ data: payload })) as
+            | { ok: true; dados: Item["dados"] }
+            | { ok: false; erro: string };
+          if (r.ok) {
+            dados = r.dados;
+          } else {
+            dados = { descricao: arquivo.name, tipo: "outro" };
+          }
         } else {
           dados = { descricao: arquivo.name, tipo: "outro" };
         }
-      } else {
-        dados = { descricao: arquivo.name, tipo: "outro" };
       }
 
 
