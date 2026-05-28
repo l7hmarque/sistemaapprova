@@ -93,6 +93,18 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
   }
 }
 
+function msgErro(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.error === "string" && o.error) return o.error;
+    if (typeof o.hint === "string" && o.hint) return o.hint;
+    try { return JSON.stringify(e); } catch { /* noop */ }
+  }
+  return "Falha desconhecida";
+}
+
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
   const [itens, setItens] = useState<Item[]>([]);
@@ -100,8 +112,10 @@ function CapturaPage() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
+  const [orgId, setOrgId] = useState<string | null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     (async () => {
@@ -121,6 +135,22 @@ function CapturaPage() {
       }
     })();
   }, [mes]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: m } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", u.user.id)
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (m?.organization_id) setOrgId(m.organization_id);
+    })();
+  }, []);
+
 
   const adicionar = useCallback((files: FileList | null) => {
     if (!files || !files.length) return;
@@ -223,13 +253,16 @@ function CapturaPage() {
 
 
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      const path = `${hash}-${arquivo.name}`.slice(0, 200);
+      if (!orgId) throw new Error("Organização do usuário não carregada — recarregue a página e tente novamente");
+      const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+      const path = `${orgId}/${hash.slice(0, 16)}-${safeName}`;
       const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
         contentType: arquivo.type || undefined,
       });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
+
 
       const eventoId = tentarVincular(dados);
 
@@ -273,11 +306,12 @@ function CapturaPage() {
         mensagem: eventoId ? "Vinculado automaticamente" : "Sem evento correspondente",
       });
     } catch (e) {
-      console.error(e);
+      console.error("[captura] falha ao processar", e);
       atualiza(it.id, {
         status: "erro",
-        mensagem: e instanceof Error ? e.message : "Falha",
+        mensagem: msgErro(e),
       });
+
     }
   }
 
