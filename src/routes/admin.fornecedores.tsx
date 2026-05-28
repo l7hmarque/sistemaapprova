@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import { listarFornecedores, salvarFornecedor, removerFornecedor } from "@/lib/fornecedores.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/fornecedores")({
   head: () => ({ meta: [{ title: "Fornecedores — Approva" }] }),
