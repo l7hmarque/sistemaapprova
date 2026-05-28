@@ -18,8 +18,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { type Modelo, type TipoModelo, TIPO_LABEL, extrairSheetId } from "@/lib/modelos";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/modelos")({ component: ModelosPage });
+
 
 const TIPOS: TipoModelo[] = ["orcamento", "mapa", "controle_bancario"];
 
@@ -30,15 +32,18 @@ const DEFAULTS_PARAMS: Record<TipoModelo, { aba: string; linhaPrimeiroItem1: num
 };
 
 function ModelosPage() {
+  const { activeOrgId } = useActiveOrg();
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState<Partial<Modelo> | null>(null);
 
   const carregar = async () => {
+    if (!activeOrgId) { setModelos([]); setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from("modelos_planilha")
       .select("*")
+      .eq("organization_id", activeOrgId)
       .order("tipo", { ascending: true })
       .order("criado_em", { ascending: false });
     if (error) toast.error("Erro ao carregar modelos");
@@ -46,7 +51,8 @@ function ModelosPage() {
     setLoading(false);
   };
 
-  useEffect(() => { void carregar(); }, []);
+  useEffect(() => { void carregar(); }, [activeOrgId]);
+
 
   const novo = (tipo: TipoModelo) => {
     const d = DEFAULTS_PARAMS[tipo];
@@ -67,6 +73,7 @@ function ModelosPage() {
 
   const salvar = async () => {
     if (!editando) return;
+    if (!activeOrgId) return toast.error("Selecione uma organização");
     const id = extrairSheetId(editando.template_id || "");
     if (!id) return toast.error("Informe o ID ou URL da planilha");
     if (!editando.nome?.trim()) return toast.error("Informe um nome");
@@ -80,13 +87,14 @@ function ModelosPage() {
     };
     const q = editando.id
       ? supabase.from("modelos_planilha").update(payload).eq("id", editando.id)
-      : supabase.from("modelos_planilha").insert(payload);
+      : supabase.from("modelos_planilha").insert({ ...payload, organization_id: activeOrgId });
     const { error } = await q;
     if (error) return toast.error("Erro ao salvar: " + error.message);
     toast.success("Modelo salvo");
     setEditando(null);
     void carregar();
   };
+
 
   const excluir = async (m: Modelo) => {
     if (!confirm(`Excluir "${m.nome}"?`)) return;
@@ -97,10 +105,12 @@ function ModelosPage() {
   };
 
   const ativar = async (m: Modelo) => {
-    // desativa todos do mesmo tipo, depois ativa este
+    if (!activeOrgId) return toast.error("Selecione uma organização");
+    // desativa todos do mesmo tipo na org, depois ativa este
     const { error: e1 } = await supabase
       .from("modelos_planilha")
       .update({ ativo: false })
+      .eq("organization_id", activeOrgId)
       .eq("tipo", m.tipo);
     if (e1) return toast.error("Erro: " + e1.message);
     const { error: e2 } = await supabase
@@ -111,6 +121,7 @@ function ModelosPage() {
     toast.success("Modelo ativado");
     void carregar();
   };
+
 
   return (
     <div className="p-8 space-y-8">
