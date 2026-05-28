@@ -17,6 +17,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
 import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
 import { Badge } from "@/components/ui/badge";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/prestacao")({ component: PrestacaoPage });
 
@@ -52,18 +53,22 @@ function PrestacaoPage() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
+  const { activeOrgId } = useActiveOrg();
 
   const carregar = async () => {
+    if (!activeOrgId) { setDocs([]); setSnapshots([]); return; }
     setLoading(true);
     const [docsRes, snapRes] = await Promise.all([
       supabase
         .from("prestacao_documentos")
         .select("*")
+        .eq("organization_id", activeOrgId)
         .eq("mes_referencia", mes)
         .order("ordem", { ascending: true }),
       supabase
         .from("prestacoes_snapshot")
         .select("id, titulo, assinatura_hash, total_eventos, total_documentos, gerado_em, pdf_path")
+        .eq("organization_id", activeOrgId)
         .eq("mes_referencia", mes)
         .order("gerado_em", { ascending: false }),
     ]);
@@ -82,7 +87,7 @@ function PrestacaoPage() {
     }
   };
 
-  useEffect(() => { void carregar(); }, [mes]);
+  useEffect(() => { void carregar(); }, [mes, activeOrgId]);
 
   const novo = () => setEdit({
     nome: "", descricao: "", arquivo_url: "",
@@ -105,7 +110,10 @@ function PrestacaoPage() {
     };
     const q = edit.id
       ? supabase.from("prestacao_documentos").update(payload).eq("id", edit.id)
-      : supabase.from("prestacao_documentos").insert(payload);
+      : (activeOrgId
+          ? supabase.from("prestacao_documentos").insert({ ...payload, organization_id: activeOrgId })
+          : null);
+    if (!q) return toast.error("Selecione uma organização ativa");
     const { error } = await q;
     if (error) return toast.error("Erro: " + error.message);
     toast.success("Salvo");
