@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
-import previewUpload from "@/assets/preview-upload.png";
-import previewRevisao from "@/assets/preview-revisao.png";
-import previewRelatorio from "@/assets/preview-relatorio.png";
+import previewCaptura from "@/assets/screens/captura.png";
+import previewPrestacao from "@/assets/screens/prestacao.png";
+import previewPainel from "@/assets/screens/painel.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
