@@ -314,7 +314,11 @@ function PainelPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Emissão</div>
+                      <div>{emissaoMeta ?? "—"}</div>
+                    </div>
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Vencimento</div>
                       <div>{e.data_vencimento ?? "—"}</div>
@@ -323,6 +327,8 @@ function PainelPage() {
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</div>
                       <div>{e.data_pagamento ?? "—"}</div>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Previsto</div>
                       <div className="font-display text-base">
