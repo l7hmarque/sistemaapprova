@@ -49,12 +49,24 @@ export function useCurrentUser() {
     },
   });
 
+  const isSuperAdmin = (role.data ?? []).includes("super_admin");
+
+  // Marca o navegador como tráfego interno quando o usuário é super_admin,
+  // para que o analytics público ignore as visitas dele em todas as rotas.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (isSuperAdmin) localStorage.setItem("synsit_interno", "1");
+    } catch {}
+  }, [isSuperAdmin]);
+
   return {
     user,
     loading: loading || memberships.isLoading || role.isLoading,
     memberships: memberships.data ?? [],
-    isSuperAdmin: (role.data ?? []).includes("super_admin"),
+    isSuperAdmin,
     activeOrg: memberships.data?.[0]?.organizations ?? null,
     activeRole: memberships.data?.[0]?.role ?? null,
   };
 }
+
