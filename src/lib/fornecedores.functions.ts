@@ -38,7 +38,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FornecedorSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const payload: Record<string, unknown> = {
+    const payload = {
       razao_social: data.razao_social,
       cnpj: data.cnpj,
       representante_legal: data.representante_legal || null,
