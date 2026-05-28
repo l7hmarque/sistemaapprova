@@ -18,7 +18,8 @@ import { useActiveOrg } from "@/hooks/use-active-org";
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import {
-  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS as CATEGORIAS_REO,
+  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA,
+  CATEGORIAS as CATEGORIAS_REO, CATEGORIA_TO_TPDESPESA,
 } from "@/lib/sit/catalogos";
 import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 
@@ -319,6 +320,9 @@ function PainelPage() {
             </Select>
           </div>
           <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
+          <Button onClick={exportarSIT} variant="outline">
+            <FileDown className="mr-1 h-4 w-4" /> Exportar Despesa.txt
+          </Button>
           <Button onClick={handleFecharMes} disabled={fechando} variant="secondary">
             <FileCheck2 className="mr-1 h-4 w-4" />
             {fechando ? "Gerando…" : "Fechar mês"}
@@ -548,6 +552,118 @@ function PainelPage() {
                     <SelectItem value="duplicata_suspeita">duplicata_suspeita</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="col-span-2 mt-2 border-t pt-3">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                  Campos SIT (TCE-PR)
+                </div>
+              </div>
+              <div>
+                <Label>ID interno (≤30)</Label>
+                <Input value={editing.id_interno ?? ""} maxLength={30}
+                  onChange={(e) => setEditing({ ...editing, id_interno: e.target.value.slice(0, 30) || null })} />
+              </div>
+              <div>
+                <Label>Tipo despesa (REO)</Label>
+                <Select
+                  value={editing.tp_despesa != null ? String(editing.tp_despesa) : "none"}
+                  onValueChange={(v) => setEditing({ ...editing, tp_despesa: v === "none" ? null : Number(v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— sem código —</SelectItem>
+                    {CATEGORIAS_REO.map((c) => {
+                      const cod = (CATEGORIA_TO_TPDESPESA as Record<string, number>)[c.codigo];
+                      return cod ? (
+                        <SelectItem key={c.codigo} value={String(cod)}>
+                          {c.codigo} — {c.nome}
+                        </SelectItem>
+                      ) : null;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Tipo doc despesa</Label>
+                <Select
+                  value={editing.tp_documento_despesa != null ? String(editing.tp_documento_despesa) : "none"}
+                  onValueChange={(v) => setEditing({ ...editing, tp_documento_despesa: v === "none" ? null : Number(v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {TIPOS_DOC_DESPESA.map((t) => (
+                      <SelectItem key={t.codigo} value={String(t.codigo)}>
+                        {t.codigo} — {t.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Modalidade compra</Label>
+                <Select
+                  value={editing.cd_modalidade_compra != null ? String(editing.cd_modalidade_compra) : "none"}
+                  onValueChange={(v) => setEditing({ ...editing, cd_modalidade_compra: v === "none" ? null : Number(v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {MODALIDADES_COMPRA.map((m) => (
+                      <SelectItem key={m.codigo} value={String(m.codigo)}>
+                        {m.codigo} — {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Tipo doc favorecido</Label>
+                <Select
+                  value={editing.tp_doc_fav ?? "none"}
+                  onValueChange={(v) => setEditing({ ...editing, tp_doc_fav: v === "none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    <SelectItem value="CNPJ">CNPJ</SelectItem>
+                    <SelectItem value="CPF">CPF</SelectItem>
+                    <SelectItem value="EXT">EXT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Nº doc favorecido</Label>
+                <Input value={editing.nr_doc_fav ?? ""}
+                  onChange={(e) => setEditing({ ...editing, nr_doc_fav: e.target.value || null })} />
+              </div>
+              <div className="col-span-2">
+                <Label>Nome favorecido (sobrepõe fornecedor no TXT)</Label>
+                <Input value={editing.nm_favorecido ?? ""} maxLength={250}
+                  onChange={(e) => setEditing({ ...editing, nm_favorecido: e.target.value.slice(0, 250) || null })} />
+              </div>
+              <div>
+                <Label>Tipo doc pagamento</Label>
+                <Select
+                  value={editing.tp_documento_pagamento != null ? String(editing.tp_documento_pagamento) : "none"}
+                  onValueChange={(v) => setEditing({ ...editing, tp_documento_pagamento: v === "none" ? null : Number(v) })}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">—</SelectItem>
+                    {TIPOS_DOC_PAGAMENTO.map((t) => (
+                      <SelectItem key={t.codigo} value={String(t.codigo)}>
+                        {t.codigo} — {t.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Nº doc pagamento</Label>
+                <Input value={editing.nr_documento_pagamento ?? ""} maxLength={15}
+                  onChange={(e) => setEditing({ ...editing, nr_documento_pagamento: e.target.value.slice(0, 15) || null })} />
               </div>
             </div>
           )}
