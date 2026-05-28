@@ -406,6 +406,7 @@ function CapturaPage() {
             metadata: {
               tipo: dados?.tipo ?? null,
               cnpj_extraido: dados?.cnpj ?? null,
+              razao_social_extraida: dados?.razao_social ?? null,
               numero_extraido: dados?.numero ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
