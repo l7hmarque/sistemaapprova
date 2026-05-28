@@ -69,6 +69,25 @@
   --color-brand-muted: var(--brand-muted);
   --color-brand-line: var(--brand-line);
   --color-brand-accent: var(--brand-accent);
+  /* Semantic status */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-pending: var(--pending);
+  --color-pending-foreground: var(--pending-foreground);
+  --color-pending-soft: var(--pending-soft);
+  /* Module accents (via --module-accent variable) */
+  --color-module: var(--module-accent, var(--primary));
+  --color-module-soft: var(--module-accent-soft, var(--secondary));
 }
 
 :root {
