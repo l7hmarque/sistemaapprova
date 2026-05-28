@@ -28,6 +28,7 @@ type Item = {
   dados?: {
     tipo?: string;
     cnpj?: string | null;
+    razao_social?: string | null;
     valor?: number | null;
     data?: string | null;
     numero?: string | null;
