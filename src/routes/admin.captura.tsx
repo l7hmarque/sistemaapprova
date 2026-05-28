@@ -30,8 +30,10 @@ type Item = {
     cnpj?: string | null;
     razao_social?: string | null;
     valor?: number | null;
-    data?: string | null;
     numero?: string | null;
+    data_emissao?: string | null;
+    data_vencimento?: string | null;
+    data_pagamento?: string | null;
     descricao?: string;
   };
   eventoId?: string | null;
