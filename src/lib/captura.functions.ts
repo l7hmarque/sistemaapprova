@@ -16,32 +16,40 @@ const InputSchema = z.object({
 );
 
 const SYSTEM = `Você extrai dados de documentos financeiros brasileiros (boleto, NF/NFS-e, fatura, holerite, comprovante de pagamento, guia DARF/GPS/GFIP, cupom fiscal).
-Leia o documento com atenção e retorne SOMENTE JSON válido, sem markdown, no formato exato:
+O PDF/imagem pode conter MAIS DE UM documento (ex.: a nota/boleto + o comprovante de pagamento juntos). Leia TODAS as páginas e CONSOLIDE em um único JSON: use os dados do fornecedor/valor/número da nota ou boleto e a data efetiva do comprovante de pagamento, quando houver.
+
+Retorne SOMENTE JSON válido, sem markdown, no formato exato:
 {
   "tipo": "boleto" | "nf" | "fatura" | "holerite" | "comprovante_pgto" | "guia" | "outro",
   "cnpj": "00000000000000" ou null,
   "razao_social": "string" ou null,
   "valor": número (ex: 1234.56) ou null,
-  "data": "AAAA-MM-DD" ou null,
   "numero": "string" ou null,
-  "descricao": "resumo curto em 1 linha"
+  "data_emissao": "AAAA-MM-DD" ou null,
+  "data_vencimento": "AAAA-MM-DD" ou null,
+  "data_pagamento": "AAAA-MM-DD" ou null,
+  "descricao": "resumo curto (máx 200 caracteres, SEM o número do documento)"
 }
 Regras:
 - cnpj: apenas dígitos do EMITENTE/FORNECEDOR (quem cobra), não do cliente. Se houver CPF, use o CPF apenas dígitos.
-- razao_social: nome/razão social do EMITENTE/FORNECEDOR (quem cobra), exatamente como aparece no documento. Se for pessoa física, use o nome.
-- valor: valor TOTAL a pagar do documento. Em boletos, use o valor do boleto. Em NF, use o valor total. Em holerite, use o líquido. Sempre número (ponto decimal).
-- data: data de vencimento (boleto), data de emissão (NF) ou data de pagamento (comprovante), no formato AAAA-MM-DD.
-- numero: número do documento, nota, boleto, NF ou linha digitável curta.
-- descricao: 1 linha objetiva (ex.: "Energia COPEL mar/2025", "NF 1234 Papelaria X").
-- Se não tiver certeza absoluta sobre um campo, use null. Não invente.`;
+- razao_social: nome/razão social do EMITENTE/FORNECEDOR exatamente como aparece. Pessoa física: use o nome.
+- valor: valor TOTAL a pagar. Boleto: valor do boleto. NF: total. Holerite: líquido. Sempre número (ponto decimal).
+- numero: número da NF/boleto/documento (somente o número, em campo próprio — NÃO repetir na descrição).
+- data_emissao: data de emissão da NF/fatura.
+- data_vencimento: vencimento do boleto/fatura.
+- data_pagamento: data EFETIVA do comprovante (transferência, PIX, recibo bancário), quando o PDF incluir comprovante.
+- descricao: 1 linha objetiva, até 200 caracteres, NÃO incluir o número do documento (ex.: "Energia elétrica COPEL mar/2025", "Serviços de contabilidade — Papelaria X").
+- Se não tiver certeza, use null. Não invente.`;
 
 export type DadosExtraidos = {
   tipo: string | null;
   cnpj: string | null;
   razao_social: string | null;
   valor: number | null;
-  data: string | null;
   numero: string | null;
+  data_emissao: string | null;
+  data_vencimento: string | null;
+  data_pagamento: string | null;
   descricao: string | null;
 };
 
@@ -57,6 +65,12 @@ function sanitizeJson(text: string): string {
   return s;
 }
 
+function parseData(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
 function parseDados(raw: string): DadosExtraidos {
   let p: Record<string, unknown> = {};
   try { p = JSON.parse(sanitizeJson(raw)); } catch { /* noop */ }
@@ -65,14 +79,20 @@ function parseDados(raw: string): DadosExtraidos {
     : typeof p.valor === "string" ? Number(String(p.valor).replace(/\./g, "").replace(",", ".")) : null;
   const cnpjStr = typeof p.cnpj === "string" ? p.cnpj.replace(/\D/g, "") : null;
   const razao = typeof p.razao_social === "string" ? p.razao_social.trim() : null;
+  const descricaoRaw = typeof p.descricao === "string" ? p.descricao.trim() : null;
+  const descricao = descricaoRaw ? descricaoRaw.slice(0, 200) : null;
+  // backward-compat: aceita "data" legado caso o modelo retorne
+  const dataLegacy = parseData((p as Record<string, unknown>).data);
   return {
     tipo: typeof p.tipo === "string" ? p.tipo : null,
     cnpj: cnpjStr && cnpjStr.length >= 11 ? cnpjStr : null,
     razao_social: razao && razao.length > 0 ? razao : null,
     valor: typeof valorNum === "number" && Number.isFinite(valorNum) ? valorNum : null,
-    data: typeof p.data === "string" ? p.data : null,
     numero: typeof p.numero === "string" ? p.numero : null,
-    descricao: typeof p.descricao === "string" ? p.descricao : null,
+    data_emissao: parseData(p.data_emissao),
+    data_vencimento: parseData(p.data_vencimento) ?? dataLegacy,
+    data_pagamento: parseData(p.data_pagamento),
+    descricao,
   };
 }
 

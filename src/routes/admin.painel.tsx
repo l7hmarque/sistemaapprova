@@ -62,6 +62,8 @@ function PainelPage() {
   // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
   const [valorPrevStr, setValorPrevStr] = useState<string>("");
   const [valorEfetStr, setValorEfetStr] = useState<string>("");
+  const [numeroDocStr, setNumeroDocStr] = useState<string>("");
+  const [dataEmissaoStr, setDataEmissaoStr] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
@@ -147,6 +149,8 @@ function PainelPage() {
     });
     setValorPrevStr("");
     setValorEfetStr("");
+    setNumeroDocStr("");
+    setDataEmissaoStr("");
     setOpen(true);
   }
 
@@ -154,22 +158,33 @@ function PainelPage() {
     setEditing({ ...e });
     setValorPrevStr(e.valor_previsto != null ? String(e.valor_previsto) : "");
     setValorEfetStr(e.valor_efetivo != null ? String(e.valor_efetivo) : "");
+    const meta = (e.metadata ?? {}) as Record<string, unknown>;
+    setNumeroDocStr(typeof meta.numero_extraido === "string" ? meta.numero_extraido : "");
+    setDataEmissaoStr(typeof meta.data_emissao === "string" ? meta.data_emissao : "");
     setOpen(true);
   }
 
   async function salvar() {
     if (!editing) return;
+    const metaAtual = (editing.metadata ?? {}) as Record<string, unknown>;
+    const metadata = {
+      ...metaAtual,
+      numero_extraido: numeroDocStr.trim() || null,
+      data_emissao: dataEmissaoStr || null,
+    };
+    const descricaoLimpa = (editing.descricao ?? "").slice(0, 200);
     const payload = {
       mes_referencia: editing.mes_referencia,
       fornecedor_id: editing.fornecedor_id,
       categoria: editing.categoria,
-      descricao: editing.descricao,
+      descricao: descricaoLimpa,
       valor_previsto: parseNum(valorPrevStr),
       valor_efetivo: parseNum(valorEfetStr),
       data_vencimento: editing.data_vencimento,
       data_pagamento: editing.data_pagamento,
       origem: editing.origem,
       status_documental: editing.status_documental,
+      metadata,
     };
     if (editing.id) {
       const { error } = await supabase.from("eventos_financeiros").update(payload).eq("id", editing.id);
@@ -256,6 +271,7 @@ function PainelPage() {
             const cnpjMeta = typeof meta.cnpj_extraido === "string" ? meta.cnpj_extraido : null;
             const razaoMeta = typeof meta.razao_social_extraida === "string" ? meta.razao_social_extraida : null;
             const numeroMeta = typeof meta.numero_extraido === "string" ? meta.numero_extraido : null;
+            const emissaoMeta = typeof meta.data_emissao === "string" ? meta.data_emissao : null;
             const motivoMeta = typeof meta.motivo_revisao === "string" ? meta.motivo_revisao : null;
             const dif = (Number(e.valor_efetivo) || 0) - (Number(e.valor_previsto) || 0);
             return (
@@ -298,7 +314,11 @@ function PainelPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Emissão</div>
+                      <div>{emissaoMeta ?? "—"}</div>
+                    </div>
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Vencimento</div>
                       <div>{e.data_vencimento ?? "—"}</div>
@@ -307,6 +327,8 @@ function PainelPage() {
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</div>
                       <div>{e.data_pagamento ?? "—"}</div>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Previsto</div>
                       <div className="font-display text-base">
@@ -358,9 +380,24 @@ function PainelPage() {
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label>Descrição</Label>
-                <Input value={editing.descricao ?? ""}
-                  onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} />
+                <Label className="flex justify-between">
+                  <span>Descrição</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {(editing.descricao ?? "").length}/200
+                  </span>
+                </Label>
+                <Input value={editing.descricao ?? ""} maxLength={200}
+                  onChange={(e) => setEditing({ ...editing, descricao: e.target.value.slice(0, 200) })} />
+              </div>
+              <div>
+                <Label>Nº do documento</Label>
+                <Input value={numeroDocStr} placeholder="—"
+                  onChange={(e) => setNumeroDocStr(e.target.value)} />
+              </div>
+              <div>
+                <Label>Data de emissão</Label>
+                <Input type="date" value={dataEmissaoStr}
+                  onChange={(e) => setDataEmissaoStr(e.target.value)} />
               </div>
               <div className="col-span-2">
                 <Label>Fornecedor</Label>

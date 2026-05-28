@@ -1,30 +1,57 @@
 ## Objetivo
-Fazer a captura identificar dados do PDF de forma confiável — valor, fornecedor/CNPJ, data, número e descrição — mesmo quando o PDF não tem texto selecionável ou quando a extração local vem vazia/fraca.
+Melhorar a captura e a edição no painel financeiro: extrair múltiplos documentos por PDF (nota/boleto + comprovante de pagamento), separar datas (emissão, vencimento, pagamento), simplificar a descrição e permitir editar o Nº do documento.
 
-## Diagnóstico
-O fluxo atual em `admin.captura` só envia o PDF para a IA quando consegue extrair texto útil no navegador. Se o PDF for escaneado/imagem, ou se o `pdfjs` extrair pouco texto, o sistema cai direto em `{ descricao: nome do arquivo, tipo: outro }`, sem mandar o PDF original para análise visual. Além disso, a função de IA da captura usa uma chamada manual ao gateway com header incorreto/legado, enquanto o projeto já tem o helper correto via AI SDK.
+## 1. Extração (`src/lib/captura.functions.ts`)
 
-## Plano de implementação
-1. **Aceitar PDF bruto na função de extração**
-   - Atualizar `src/lib/captura.functions.ts` para aceitar `pdfBase64` além de `texto` e `imagemBase64`.
-   - Enviar PDF como arquivo multimodal para Lovable AI quando a extração por texto for ruim ou ausente.
+Trocar o schema/prompt para um único objeto consolidado, lendo TODAS as páginas do PDF (a nota/boleto E o comprovante quando vierem juntos):
 
-2. **Trocar a chamada manual de IA pelo padrão correto do projeto**
-   - Usar `createLovableAiGatewayProvider` + `generateText` do AI SDK.
-   - Manter retorno JSON no mesmo formato atual (`tipo`, `cnpj`, `valor`, `data`, `numero`, `descricao`).
-   - Usar modelo multimodal para PDF/imagem e fallback mais forte quando vier vazio.
+```json
+{
+  "tipo": "...",
+  "cnpj": "...",
+  "razao_social": "...",
+  "valor": 123.45,
+  "numero": "string|null",
+  "data_emissao": "AAAA-MM-DD|null",
+  "data_vencimento": "AAAA-MM-DD|null",
+  "data_pagamento": "AAAA-MM-DD|null",
+  "descricao": "resumo curto (máx 200 caracteres, SEM número do documento)"
+}
+```
 
-3. **Melhorar o critério de “texto útil”**
-   - Em `src/routes/admin.captura.tsx`, considerar ruim quando o PDF extrai texto muito curto ou quase sem letras/números.
-   - Nesses casos, enviar o PDF original em base64 para análise visual, em vez de desistir.
+Regras adicionais no SYSTEM prompt:
+- "O PDF pode conter mais de um documento (nota/boleto + comprovante de pagamento). Combine as informações: dados do fornecedor/valor da nota e a data de pagamento do comprovante."
+- "Se houver comprovante de pagamento anexo, preencha `data_pagamento` com a data efetiva da transação."
+- "`data_emissao` = data da NF; `data_vencimento` = vencimento do boleto; `data_pagamento` = data do comprovante."
+- "`descricao`: até 200 caracteres, em 1 linha, NÃO incluir o número do documento (ele vai em campo próprio)."
 
-4. **Preservar o lançamento no painel financeiro**
-   - Mesmo se a IA ainda não conseguir todos os campos, continuar criando o evento financeiro para revisão manual.
-   - Quando a extração vier parcial, gravar os campos encontrados e marcar revisão apenas para o que faltar.
+Atualizar `DadosExtraidos`, `parseDados` e `pareceVazio` para os novos campos. Truncar `descricao` em 200 chars no parse.
 
-5. **Adicionar mensagens de status mais claras**
-   - Mostrar quando o sistema está tentando leitura visual do PDF.
-   - Se voltar sem valor/fornecedor, indicar que o documento foi lançado para revisão, não que “não processou”.
+## 2. Inserção do evento (`src/routes/admin.captura.tsx`)
 
-## Resultado esperado
-Ao capturar o mesmo PDF, o sistema tentará primeiro texto selecionável e depois leitura visual do PDF inteiro. Isso deve permitir identificar automaticamente valores e fornecedor em boletos, notas, faturas e PDFs escaneados, e ainda lançar no painel financeiro para revisão quando houver incerteza.
+- Mapear: `data_vencimento = dados.data_vencimento ?? dados.data_emissao`, `data_pagamento = dados.data_pagamento` (não copiar mais a mesma data nos dois).
+- `descricao`: usar `dados.descricao` truncada em 200 chars, sem prefixar número.
+- `metadata`: gravar `numero_extraido`, `data_emissao`, `data_pagamento_extraida`.
+- Se `data_pagamento` veio preenchido pelo comprovante e `valor` existe → `status_documental = "completo"`; senão segue regra atual.
+
+## 3. Painel — exibição e edição (`src/routes/admin.painel.tsx`)
+
+No card do evento, exibir três linhas de data: **Emissão**, **Vencimento**, **Pagamento**, além de **Nº doc** (vindo de `metadata.numero_extraido`).
+
+No diálogo de edição, adicionar campos:
+- `Nº do documento` (input text) — gravar em `metadata.numero_extraido` (merge com metadata atual).
+- `Data de emissão` (input date) — gravar em `metadata.data_emissao`.
+- `Data de vencimento` (já existe).
+- `Data de pagamento` (já existe).
+- `Descrição` com `maxLength={200}` e contador.
+
+No `salvar()`, fazer update incluindo `metadata: { ...metadataAtual, numero_extraido, data_emissao }` junto com os campos nativos.
+
+## Arquivos alterados
+- `src/lib/captura.functions.ts` — schema, prompt, parse.
+- `src/routes/admin.captura.tsx` — mapeamento dos campos extraídos.
+- `src/routes/admin.painel.tsx` — card com as 3 datas + Nº doc, diálogo com novos campos e merge de metadata.
+
+## Observações
+- Não há mudança de schema do banco: número do doc, data de emissão e dados extras continuam em `metadata` (jsonb). Vencimento e pagamento usam colunas nativas.
+- Comprovante junto: como o PDF inteiro já é enviado para a IA, basta o prompt instruir a leitura combinada — não precisa de novo upload.

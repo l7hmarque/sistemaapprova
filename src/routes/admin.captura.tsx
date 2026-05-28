@@ -30,8 +30,10 @@ type Item = {
     cnpj?: string | null;
     razao_social?: string | null;
     valor?: number | null;
-    data?: string | null;
     numero?: string | null;
+    data_emissao?: string | null;
+    data_vencimento?: string | null;
+    data_pagamento?: string | null;
     descricao?: string;
   };
   eventoId?: string | null;
@@ -230,8 +232,9 @@ function CapturaPage() {
       if (e.fornecedor_id !== forn.id) return false;
       if (e.valor_previsto == null) return false;
       if (Math.abs(Number(e.valor_previsto) - Number(dados.valor)) > tolValor) return false;
-      if (dados.data && e.data_vencimento) {
-        const dDoc = new Date(dados.data).getTime();
+      const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
+      if (dataDoc && e.data_vencimento) {
+        const dDoc = new Date(dataDoc).getTime();
         const dVen = new Date(e.data_vencimento).getTime();
         if (Math.abs(dDoc - dVen) > tolMs) return false;
       }
@@ -383,12 +386,16 @@ function CapturaPage() {
         }
 
         // Sempre lança no mês selecionado na captura para aparecer no painel atual.
-        // A data extraída fica preservada em data_vencimento/data_pagamento.
+        // As datas extraídas ficam preservadas em colunas/metadata.
         const mesRef = mes;
         const categoria = inferirCategoria(dados);
-        const descricaoBase = (dados?.descricao && dados.descricao.trim())
-          || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
-        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}` : descricaoBase;
+        const descricaoRaw = (dados?.descricao && dados.descricao.trim())
+          || (dados?.tipo ? `${dados.tipo}` : it.file.name);
+        const descricaoBase = descricaoRaw.slice(0, 200);
+        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
+        const dataVenc = dados?.data_vencimento ?? dados?.data_emissao ?? null;
+        const dataPag = dados?.data_pagamento ?? null;
+        const temPagamento = !!dataPag;
         const evIns = await supabase
           .from("eventos_financeiros")
           .insert({
@@ -398,16 +405,20 @@ function CapturaPage() {
             descricao,
             fornecedor_id: fornEncontrado?.id ?? null,
             valor_previsto: valorValido,
-            valor_efetivo: valorValido,
-            data_vencimento: dados?.data ?? null,
-            data_pagamento: dados?.data ?? null,
+            valor_efetivo: temPagamento ? valorValido : null,
+            data_vencimento: dataVenc,
+            data_pagamento: dataPag,
             origem: "captura",
-            status_documental: ehDuplicata ? "revisar" : (valorValido ? "completo" : "revisar"),
+            status_documental: ehDuplicata
+              ? "revisar"
+              : (valorValido && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados?.tipo ?? null,
               cnpj_extraido: dados?.cnpj ?? null,
               razao_social_extraida: dados?.razao_social ?? null,
               numero_extraido: dados?.numero ?? null,
+              data_emissao: dados?.data_emissao ?? null,
+              data_pagamento_extraida: dados?.data_pagamento ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
               duplicata: ehDuplicata,
@@ -448,7 +459,7 @@ function CapturaPage() {
           cnpj_extraido: dados?.cnpj ?? null,
           valor_extraido: dados?.valor ?? null,
           numero_extraido: dados?.numero ?? null,
-          data_extraida: dados?.data ?? null,
+          data_extraida: dados?.data_emissao ?? dados?.data_vencimento ?? dados?.data_pagamento ?? null,
           origem: "manual",
           evento_id: eventoId,
           metadata: {
@@ -621,7 +632,9 @@ function CapturaPage() {
                       {it.dados?.tipo && <span>tipo: {it.dados.tipo}</span>}
                       {it.dados?.cnpj && <span>CNPJ: {it.dados.cnpj}</span>}
                       {it.dados?.valor != null && <span>R$ {Number(it.dados.valor).toFixed(2)}</span>}
-                      {it.dados?.data && <span>{it.dados.data}</span>}
+                      {(it.dados?.data_vencimento || it.dados?.data_emissao || it.dados?.data_pagamento) && (
+                        <span>{it.dados?.data_vencimento ?? it.dados?.data_emissao ?? it.dados?.data_pagamento}</span>
+                      )}
                     </div>
                     {it.mensagem && <div className="text-xs text-muted-foreground mt-1 italic">{it.mensagem}</div>}
                   </div>
