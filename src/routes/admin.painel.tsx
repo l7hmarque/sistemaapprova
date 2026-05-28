@@ -217,13 +217,13 @@ function PainelPage() {
       tp_documento_pagamento: editing.tp_documento_pagamento,
       nr_documento_pagamento: editing.nr_documento_pagamento,
       tp_despesa: editing.tp_despesa,
-      metadata: editing.metadata ?? {},
+      metadata: (editing.metadata ?? {}) as any,
     };
     if (editing.id) {
-      const { error } = await supabase.from("eventos_financeiros").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("eventos_financeiros").update(payload as any).eq("id", editing.id);
       if (error) return toast.error(error.message);
     } else {
-      const { error } = await supabase.from("eventos_financeiros").insert(payload);
+      const { error } = await supabase.from("eventos_financeiros").insert(payload as any);
       if (error) return toast.error(error.message);
     }
     toast.success("Evento salvo");
