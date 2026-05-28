@@ -404,6 +404,7 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
 
 const PresetSchema = z.object({
   id: z.string().uuid().optional(),
+  organization_id: z.string().uuid(),
   nome: z.string().min(1).max(255),
   objeto: z.string().max(500).nullish(),
   termo: z.string().max(120).nullish(),
@@ -421,15 +422,18 @@ const PresetSchema = z.object({
     .default([]),
 });
 
-export const listarPresets = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth]).handler(async () => {
-  const { data, error } = await supabase
-    .from("cotacao_presets")
-    .select("*")
-    .order("nome", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarPresets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgOnly.parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabase
+      .from("cotacao_presets")
+      .select("*")
+      .eq("organization_id", data.organization_id)
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
 
 export const salvarPreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -447,6 +451,7 @@ export const salvarPreset = createServerFn({ method: "POST" })
         .from("cotacao_presets")
         .update(payload)
         .eq("id", data.id)
+        .eq("organization_id", data.organization_id)
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -454,7 +459,7 @@ export const salvarPreset = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await supabase
       .from("cotacao_presets")
-      .insert(payload)
+      .insert({ ...payload, organization_id: data.organization_id })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -463,9 +468,13 @@ export const salvarPreset = createServerFn({ method: "POST" })
 
 export const removerPreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("cotacao_presets").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("cotacao_presets")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -473,13 +482,20 @@ export const removerPreset = createServerFn({ method: "POST" })
 export const criarCotacaoDePreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ preset_id: z.string().uuid(), mes_referencia: z.string().max(7).optional() }).parse(d),
+    z
+      .object({
+        organization_id: z.string().uuid(),
+        preset_id: z.string().uuid(),
+        mes_referencia: z.string().max(7).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const { data: preset, error } = await supabase
       .from("cotacao_presets")
       .select("*")
       .eq("id", data.preset_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (error || !preset) throw new Error("Modelo não encontrado");
 
@@ -488,6 +504,7 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
     const { data: cot, error: errCot } = await supabase
       .from("cotacoes")
       .insert({
+        organization_id: data.organization_id,
         objeto: preset.objeto || preset.nome,
         termo: preset.termo,
         mes_referencia: mes,
@@ -497,6 +514,7 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
       .select()
       .single();
     if (errCot) throw new Error(errCot.message);
+
 
     return { cotacao: cot, fornecedores_sugeridos: preset.fornecedores_sugeridos };
   });
