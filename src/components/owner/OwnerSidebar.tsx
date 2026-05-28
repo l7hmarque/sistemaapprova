@@ -7,7 +7,8 @@ import {
   ArrowLeft,
   LogOut,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { signOutLimpo } from "@/lib/auth/signOutLimpo";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -22,9 +23,10 @@ export function OwnerSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
   const nav = useNavigate();
+  const queryClient = useQueryClient();
 
   const sair = async () => {
-    await supabase.auth.signOut();
+    await signOutLimpo(queryClient);
     toast.success("Sessão encerrada");
     nav({ to: "/login", replace: true });
   };
