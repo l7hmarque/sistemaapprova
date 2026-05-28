@@ -91,7 +91,10 @@ function sanitizarNome(s: string): string {
 
 /* ============================ GERAR ORÇAMENTO ============================ */
 
-async function carregarModeloAtivo(tipo: "orcamento" | "mapa" | "controle_bancario") {
+async function carregarModeloAtivo(
+  supabase: SupabaseClient,
+  tipo: "orcamento" | "mapa" | "controle_bancario",
+) {
   const { data } = await supabase
     .from("modelos_planilha")
     .select("template_id, aba, params")
