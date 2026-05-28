@@ -27,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as ShowcaseScreenRouteImport } from './routes/showcase.$screen'
 import { Route as OwnerSuporteRouteImport } from './routes/owner.suporte'
 import { Route as OwnerFinanceiroRouteImport } from './routes/owner.financeiro'
 import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
@@ -143,6 +144,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const ShowcaseScreenRoute = ShowcaseScreenRouteImport.update({
+  id: '/showcase/$screen',
+  path: '/showcase/$screen',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerSuporteRoute = OwnerSuporteRouteImport.update({
   id: '/suporte',
@@ -312,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/owner/': typeof OwnerIndexRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByTo {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/owner': typeof OwnerIndexRoute
@@ -402,6 +410,7 @@ export interface FileRoutesById {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/owner/': typeof OwnerIndexRoute
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin/'
     | '/blog/'
     | '/owner/'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin'
     | '/blog'
     | '/owner'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin/'
     | '/blog/'
     | '/owner/'
@@ -571,6 +583,7 @@ export interface RootRouteChildren {
   ApiExtractRoute: typeof ApiExtractRoute
   BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
+  ShowcaseScreenRoute: typeof ShowcaseScreenRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
 }
@@ -702,6 +715,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/showcase/$screen': {
+      id: '/showcase/$screen'
+      path: '/showcase/$screen'
+      fullPath: '/showcase/$screen'
+      preLoaderRoute: typeof ShowcaseScreenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/owner/suporte': {
       id: '/owner/suporte'
@@ -1011,6 +1031,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiExtractRoute: ApiExtractRoute,
   BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
+  ShowcaseScreenRoute: ShowcaseScreenRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
 }

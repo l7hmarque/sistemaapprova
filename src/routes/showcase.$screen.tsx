@@ -274,7 +274,7 @@ function AprovacoesMock() {
             <CardContent className="p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="text-sm font-semibold text-[#0f1b3d]">{it.titulo}</div>
-                <StatusBadge variant="pending">Pendente</StatusBadge>
+                <StatusBadge kind="pending">Pendente</StatusBadge>
               </div>
               <div className="text-xs text-[#7c7565]">{it.fornecedor}</div>
               <div className="text-2xl font-display text-[#0f1b3d]">{it.valor}</div>
