@@ -149,6 +149,8 @@ function PainelPage() {
     });
     setValorPrevStr("");
     setValorEfetStr("");
+    setNumeroDocStr("");
+    setDataEmissaoStr("");
     setOpen(true);
   }
 
@@ -156,6 +158,9 @@ function PainelPage() {
     setEditing({ ...e });
     setValorPrevStr(e.valor_previsto != null ? String(e.valor_previsto) : "");
     setValorEfetStr(e.valor_efetivo != null ? String(e.valor_efetivo) : "");
+    const meta = (e.metadata ?? {}) as Record<string, unknown>;
+    setNumeroDocStr(typeof meta.numero_extraido === "string" ? meta.numero_extraido : "");
+    setDataEmissaoStr(typeof meta.data_emissao === "string" ? meta.data_emissao : "");
     setOpen(true);
   }
 
