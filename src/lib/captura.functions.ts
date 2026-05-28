@@ -100,6 +100,8 @@ function parseDados(raw: string): DadosExtraidos {
     data_vencimento: parseData(p.data_vencimento) ?? dataLegacy,
     data_pagamento: parseData(p.data_pagamento),
     descricao,
+    forma_pagamento: typeof p.forma_pagamento === "string" ? p.forma_pagamento : null,
+    numero_pagamento: typeof p.numero_pagamento === "string" ? p.numero_pagamento : null,
   };
 }
 
