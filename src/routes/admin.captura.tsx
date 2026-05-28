@@ -106,6 +106,20 @@ function msgErro(e: unknown): string {
   return "Falha desconhecida";
 }
 
+function inferirCategoria(dados?: { tipo?: string; descricao?: string }): string {
+  const txt = `${dados?.tipo ?? ""} ${dados?.descricao ?? ""}`.toLowerCase();
+  if (/holerite|sal[áa]rio|folha|rescis[ãa]o|rpa/.test(txt)) return "salario";
+  if (/energia|copel|eletric/.test(txt)) return "energia";
+  if (/[áa]gua|sanepar|saae/.test(txt)) return "agua";
+  if (/internet|telef|vivo|claro|tim|oi\b/.test(txt)) return "internet";
+  if (/aluguel|loca[çc][ãa]o/.test(txt)) return "aluguel";
+  if (/darf|gps|gfip|inss|fgts|iss|tribut|guia/.test(txt)) return "tributos";
+  if (/manuten[çc][ãa]o|reparo|conserto/.test(txt)) return "manutencao";
+  if (/servi[çc]o|nf|nfs|nota\s*fiscal/.test(txt)) return "servico";
+  if (/boleto|fatura|cupom|compra/.test(txt)) return "compra_eventual";
+  return "outros";
+}
+
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
   const { activeOrgId, activeOrg, loading: orgLoading } = useActiveOrg();
