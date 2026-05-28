@@ -26,22 +26,30 @@ function DashboardRoute() {
 type Orc = { criado_em: string; tipo: string; fornecedor_id: string | null; dados: any };
 
 function Dashboard() {
+  const { activeOrgId } = useActiveOrg();
   const [orcs, setOrcs] = useState<Orc[]>([]);
   const [fornCount, setFornCount] = useState(0);
   const [objCount, setObjCount] = useState(0);
 
   useEffect(() => {
+    if (!activeOrgId) { setOrcs([]); setFornCount(0); setObjCount(0); return; }
     (async () => {
       const [o, f, ob] = await Promise.all([
-        supabase.from("orcamentos_salvos").select("criado_em, tipo, fornecedor_id, dados").order("criado_em", { ascending: false }).limit(500),
-        supabase.from("fornecedores").select("id", { count: "exact", head: true }),
-        supabase.from("objetos_cotacao").select("id", { count: "exact", head: true }),
+        supabase.from("orcamentos_salvos").select("criado_em, tipo, fornecedor_id, dados")
+          .eq("organization_id", activeOrgId)
+          .order("criado_em", { ascending: false }).limit(500),
+        supabase.from("fornecedores").select("id", { count: "exact", head: true })
+          .eq("organization_id", activeOrgId),
+        supabase.from("objetos_cotacao").select("id", { count: "exact", head: true })
+          .eq("organization_id", activeOrgId),
       ]);
       if (o.data) setOrcs(o.data as Orc[]);
+      else setOrcs([]);
       setFornCount(f.count ?? 0);
       setObjCount(ob.count ?? 0);
     })();
-  }, []);
+  }, [activeOrgId]);
+
 
   const now = new Date();
   const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
