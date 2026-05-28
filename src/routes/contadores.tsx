@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
+import escritorioShot from "@/assets/screens/escritorio.png";
 
 export const Route = createFileRoute("/contadores")({
   head: () => ({
@@ -61,7 +62,19 @@ function ContadoresPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Painel do escritório</p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">Toda sua carteira de OSCs em uma visão.</h2>
+            <p className="mt-4 text-brand-muted leading-relaxed">
+              Veja status de prestação por entidade — em dia, com pendências ou atrasadas — e clique para entrar no contexto de qualquer cliente sem precisar trocar de login.
+            </p>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-brand-line shadow-xl bg-white">
+            <img src={escritorioShot} alt="Painel do escritório no Approva listando 6 OSCs com KPIs de status (em dia, com pendências, atrasadas) e cards por organização." loading="lazy" className="w-full h-auto" />
+          </div>
+        </div>
+        <div className="mt-16 grid gap-6 md:grid-cols-3">
           {VANTAGENS.map((v) => (
             <div key={v.t} className="rounded-xl border border-brand-line p-6 bg-white">
               <h3 className="text-xl font-serif text-brand-navy">{v.t}</h3>

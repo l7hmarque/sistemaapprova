@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
-import previewUpload from "@/assets/preview-upload.png";
-import previewRevisao from "@/assets/preview-revisao.png";
-import previewRelatorio from "@/assets/preview-relatorio.png";
+import previewCaptura from "@/assets/screens/captura.png";
+import previewPrestacao from "@/assets/screens/prestacao.png";
+import previewPainel from "@/assets/screens/painel.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,9 +15,9 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Revise lançamentos, anexe comprovantes e exporte no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/" },
-      { property: "og:image", content: "https://synsit.lovable.app" + previewRevisao },
+      { property: "og:image", content: "https://synsit.lovable.app" + previewPrestacao },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://synsit.lovable.app" + previewRevisao },
+      { name: "twitter:image", content: "https://synsit.lovable.app" + previewPrestacao },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
     scripts: [
@@ -89,18 +89,18 @@ function HomePage() {
               comprovantes com aprovação em duas mãos e exporte direto no padrão
               SIT/TCE-PR — sem planilhas paralelas.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/demonstracao"
                 data-track-cta="hero-demo"
-                className="rounded-md bg-brand-navy text-white px-6 py-3 text-base font-medium hover:bg-brand-navy-soft transition-colors"
+                className="text-center rounded-md bg-brand-navy text-white px-6 py-3 text-base font-medium hover:bg-brand-navy-soft transition-colors"
               >
                 Começar 30 dias grátis
               </Link>
               <a
                 href="#planos"
                 data-track-cta="hero-planos"
-                className="rounded-md border border-brand-navy text-brand-navy px-6 py-3 text-base font-medium hover:bg-white transition-colors"
+                className="text-center rounded-md border border-brand-navy text-brand-navy px-6 py-3 text-base font-medium hover:bg-white transition-colors"
               >
                 Ver planos
               </a>
@@ -114,8 +114,8 @@ function HomePage() {
             <div className="absolute -inset-4 bg-brand-blue/5 rounded-3xl blur-2xl" aria-hidden="true" />
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
-                src={previewRevisao}
-                alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no Approva, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
+                src={previewPrestacao}
+                alt="Tela do Approva — Prestação do Termo de Fomento 042/2025: KPIs do mês, total R$ 38.420,00, 28 de 32 documentos com comprovante e tabela de lançamentos com status aprovado/pendente."
                 width={1600}
                 height={896}
                 fetchPriority="high"
@@ -142,8 +142,8 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewUpload}
-                  alt="Tela de importação do PDF mensal de prestação de contas no Approva, com lançamentos sendo lidos automaticamente pela IA."
+                  src={previewCaptura}
+                  alt="Tela de Captura do Approva: área de upload de PDF e XMLs, com fila de leitura mostrando NF-e, boletos e holerites já reconhecidos pela IA."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -162,8 +162,8 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewRevisao}
-                  alt="Tabela de despesas com colunas de comprovante anexado, status de aprovação pendente/aprovado e revisão em duas mãos."
+                  src={previewPrestacao}
+                  alt="Tabela de lançamentos da prestação com colunas de rubrica, valor, comprovante anexado e status de aprovação em duas mãos."
                   loading="lazy"
                   width={1600}
                   height={896}
@@ -182,8 +182,8 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewRelatorio}
-                  alt="Relatório de prestação de contas do termo de fomento 042/2025 com despesas por rubrica e exportação SIT/TCE-PR."
+                  src={previewPainel}
+                  alt="Painel financeiro do Approva mostrando saldo do termo, próximo repasse e execução por rubrica — pronto para exportar SIT/TCE-PR."
                   loading="lazy"
                   width={1600}
                   height={896}

@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
+import painelShot from "@/assets/screens/painel.png";
+import aprovacoesShot from "@/assets/screens/aprovacoes.png";
 
 export const Route = createFileRoute("/gestores")({
   head: () => ({
@@ -63,7 +65,31 @@ function GestoresPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-6xl px-6 py-20 space-y-16">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+          <div className="rounded-xl overflow-hidden border border-brand-line shadow-xl bg-white order-2 lg:order-1">
+            <img src={painelShot} alt="Painel financeiro do Approva com saldo do termo, próximo repasse e execução por rubrica em barras coloridas." loading="lazy" className="w-full h-auto" />
+          </div>
+          <div className="order-1 lg:order-2">
+            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Visão clara do orçamento</p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">Saiba quanto sobrou — sem abrir 6 planilhas.</h2>
+            <p className="mt-4 text-brand-muted leading-relaxed">
+              Saldo do termo, próximo repasse e execução por rubrica em tempo real. Quando a diretoria perguntar, a resposta está na tela.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Aprovação em duas mãos</p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">Nenhuma despesa passa sem revisão.</h2>
+            <p className="mt-4 text-brand-muted leading-relaxed">
+              Solicitante, valor, fornecedor e tempo na fila — tudo num cartão. Aprovar ou rejeitar leva um clique, com trilha auditável.
+            </p>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-brand-line shadow-xl bg-white">
+            <img src={aprovacoesShot} alt="Tela de aprovações do Approva com três despesas pendentes em cards, mostrando fornecedor, valor, solicitante e botões aprovar/rejeitar." loading="lazy" className="w-full h-auto" />
+          </div>
+        </div>
         <div className="grid gap-6 md:grid-cols-3">
           {VANTAGENS.map((v) => (
             <div key={v.t} className="rounded-xl border border-brand-line p-6 bg-white">

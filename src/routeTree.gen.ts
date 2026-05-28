@@ -27,6 +27,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as ShowcaseScreenRouteImport } from './routes/showcase.$screen'
 import { Route as OwnerSuporteRouteImport } from './routes/owner.suporte'
 import { Route as OwnerFinanceiroRouteImport } from './routes/owner.financeiro'
 import { Route as OwnerClientesRouteImport } from './routes/owner.clientes'
@@ -47,6 +48,7 @@ import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as OwnerClientesIdRouteImport } from './routes/owner.clientes.$id'
+import { Route as AdminModelosAjudaRouteImport } from './routes/admin.modelos.ajuda'
 import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id'
 import { Route as AdminConfiguracoesOrganizacaoRouteImport } from './routes/admin.configuracoes.organizacao'
 import { Route as AdminConfiguracoesEquipeRouteImport } from './routes/admin.configuracoes.equipe'
@@ -142,6 +144,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const ShowcaseScreenRoute = ShowcaseScreenRouteImport.update({
+  id: '/showcase/$screen',
+  path: '/showcase/$screen',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerSuporteRoute = OwnerSuporteRouteImport.update({
   id: '/suporte',
@@ -243,6 +250,11 @@ const OwnerClientesIdRoute = OwnerClientesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => OwnerClientesRoute,
 } as any)
+const AdminModelosAjudaRoute = AdminModelosAjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => AdminModelosRoute,
+} as any)
 const AdminCotacoesIdRoute = AdminCotacoesIdRouteImport.update({
   id: '/cotacoes/$id',
   path: '/cotacoes/$id',
@@ -294,7 +306,7 @@ export interface FileRoutesByFullPath {
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
-  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/modelos': typeof AdminModelosRouteWithChildren
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
@@ -306,12 +318,14 @@ export interface FileRoutesByFullPath {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
@@ -336,7 +350,7 @@ export interface FileRoutesByTo {
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
-  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/modelos': typeof AdminModelosRouteWithChildren
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
@@ -348,12 +362,14 @@ export interface FileRoutesByTo {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/owner': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
@@ -382,7 +398,7 @@ export interface FileRoutesById {
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
-  '/admin/modelos': typeof AdminModelosRoute
+  '/admin/modelos': typeof AdminModelosRouteWithChildren
   '/admin/objetos': typeof AdminObjetosRoute
   '/admin/orcamentos': typeof AdminOrcamentosRoute
   '/admin/painel': typeof AdminPainelRoute
@@ -394,12 +410,14 @@ export interface FileRoutesById {
   '/owner/clientes': typeof OwnerClientesRouteWithChildren
   '/owner/financeiro': typeof OwnerFinanceiroRoute
   '/owner/suporte': typeof OwnerSuporteRoute
+  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AdminConfiguracoesOrganizacaoRoute
   '/admin/cotacoes/$id': typeof AdminCotacoesIdRoute
+  '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
@@ -441,12 +459,14 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin/'
     | '/blog/'
     | '/owner/'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
@@ -483,12 +503,14 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin'
     | '/blog'
     | '/owner'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes'
     | '/api/public/cotacao/$token'
@@ -528,12 +550,14 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/showcase/$screen'
     | '/admin/'
     | '/blog/'
     | '/owner/'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
     | '/admin/cotacoes/$id'
+    | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token'
@@ -559,6 +583,7 @@ export interface RootRouteChildren {
   ApiExtractRoute: typeof ApiExtractRoute
   BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
+  ShowcaseScreenRoute: typeof ShowcaseScreenRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
 }
@@ -690,6 +715,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/showcase/$screen': {
+      id: '/showcase/$screen'
+      path: '/showcase/$screen'
+      fullPath: '/showcase/$screen'
+      preLoaderRoute: typeof ShowcaseScreenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/owner/suporte': {
       id: '/owner/suporte'
@@ -831,6 +863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerClientesIdRouteImport
       parentRoute: typeof OwnerClientesRoute
     }
+    '/admin/modelos/ajuda': {
+      id: '/admin/modelos/ajuda'
+      path: '/ajuda'
+      fullPath: '/admin/modelos/ajuda'
+      preLoaderRoute: typeof AdminModelosAjudaRouteImport
+      parentRoute: typeof AdminModelosRoute
+    }
     '/admin/cotacoes/$id': {
       id: '/admin/cotacoes/$id'
       path: '/cotacoes/$id'
@@ -884,6 +923,18 @@ const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
 const AdminConfiguracoesRouteWithChildren =
   AdminConfiguracoesRoute._addFileChildren(AdminConfiguracoesRouteChildren)
 
+interface AdminModelosRouteChildren {
+  AdminModelosAjudaRoute: typeof AdminModelosAjudaRoute
+}
+
+const AdminModelosRouteChildren: AdminModelosRouteChildren = {
+  AdminModelosAjudaRoute: AdminModelosAjudaRoute,
+}
+
+const AdminModelosRouteWithChildren = AdminModelosRoute._addFileChildren(
+  AdminModelosRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
@@ -891,7 +942,7 @@ interface AdminRouteChildren {
   AdminCapturaRoute: typeof AdminCapturaRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
-  AdminModelosRoute: typeof AdminModelosRoute
+  AdminModelosRoute: typeof AdminModelosRouteWithChildren
   AdminObjetosRoute: typeof AdminObjetosRoute
   AdminOrcamentosRoute: typeof AdminOrcamentosRoute
   AdminPainelRoute: typeof AdminPainelRoute
@@ -908,7 +959,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCapturaRoute: AdminCapturaRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminFornecedoresRoute: AdminFornecedoresRoute,
-  AdminModelosRoute: AdminModelosRoute,
+  AdminModelosRoute: AdminModelosRouteWithChildren,
   AdminObjetosRoute: AdminObjetosRoute,
   AdminOrcamentosRoute: AdminOrcamentosRoute,
   AdminPainelRoute: AdminPainelRoute,
@@ -980,6 +1031,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiExtractRoute: ApiExtractRoute,
   BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
+  ShowcaseScreenRoute: ShowcaseScreenRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
 }
