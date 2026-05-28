@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, FolderOpen, FileText, ArrowRight } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/orcamentos")({
   head: () => ({ meta: [{ title: "Cotações — Approva" }] }),
@@ -39,23 +40,35 @@ function CotacoesPage() {
   const remover = useServerFn(removerCotacao);
   const criarDePreset = useServerFn(criarCotacaoDePreset);
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
 
-  const { data, isLoading } = useQuery({ queryKey: ["cotacoes"], queryFn: () => fetchAll() });
-  const { data: presets } = useQuery({ queryKey: ["cotacao-presets"], queryFn: () => fetchPresets() });
+  const { data, isLoading } = useQuery({
+    queryKey: ["cotacoes", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchAll({ data: { organization_id: activeOrgId! } }),
+  });
+  const { data: presets } = useQuery({
+    queryKey: ["cotacao-presets", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchPresets({ data: { organization_id: activeOrgId! } }),
+  });
 
   const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; mes: string; itens: Item[] } | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
 
   const mutCreate = useMutation({
-    mutationFn: () =>
-      criar({
+    mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return criar({
         data: {
+          organization_id: activeOrgId,
           objeto: novo!.objeto,
           termo: novo!.termo,
           mes_referencia: novo!.mes,
           itens: novo!.itens.filter((i) => i.descricao.trim()),
         },
-      }),
+      });
+    },
     onSuccess: (cot: any) => {
       qc.invalidateQueries({ queryKey: ["cotacoes"] });
       toast.success("Cotação criada");
@@ -66,7 +79,10 @@ function CotacoesPage() {
   });
 
   const mutDel = useMutation({
-    mutationFn: (id: string) => remover({ data: { id } }),
+    mutationFn: (id: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return remover({ data: { id, organization_id: activeOrgId } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cotacoes"] });
       toast.success("Cotação removida");
@@ -75,7 +91,10 @@ function CotacoesPage() {
   });
 
   const mutDePreset = useMutation({
-    mutationFn: (preset_id: string) => criarDePreset({ data: { preset_id, mes_referencia: mesAtual() } }),
+    mutationFn: (preset_id: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return criarDePreset({ data: { organization_id: activeOrgId, preset_id, mes_referencia: mesAtual() } });
+    },
     onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["cotacoes"] });
       toast.success("Cotação criada do modelo");

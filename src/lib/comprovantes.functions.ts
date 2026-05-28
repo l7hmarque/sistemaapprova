@@ -182,17 +182,21 @@ export const aprovarComprovante = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export const listarPendentes = createServerFn({ method: "GET" })
+export const listarPendentes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) =>
+    z.object({ organization_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data, error } = await supabase
+    const { data: rows, error } = await supabase
       .from("prestacao_documentos")
       .select("id, nome, despesa_uid, extracao_id, criado_em, mime_type, tamanho_bytes, descricao, arquivo_url")
+      .eq("organization_id", data.organization_id)
       .eq("status_aprovacao", "pendente")
       .not("extracao_id", "is", null)
       .order("criado_em", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return { pendentes: data ?? [] };
+    return { pendentes: rows ?? [] };
   });

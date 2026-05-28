@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Package } from "lucide-react";
 import { listarObjetos, salvarObjeto, removerObjeto } from "@/lib/objetos.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/objetos")({
   head: () => ({ meta: [{ title: "Objetos de cotação — Approva" }] }),
@@ -24,18 +25,30 @@ function ObjetosPage() {
   const salvar = useServerFn(salvarObjeto);
   const remover = useServerFn(removerObjeto);
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["objetos-cotacao"],
-    queryFn: () => fetchAll(),
+    queryKey: ["objetos-cotacao", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchAll({ data: { organization_id: activeOrgId! } }),
   });
 
   const [busca, setBusca] = useState("");
   const [editing, setEditing] = useState<Partial<Objeto> | null>(null);
 
   const mutSave = useMutation({
-    mutationFn: (input: Partial<Objeto>) =>
-      salvar({ data: { id: input.id, descricao: input.descricao!, unidade_padrao: input.unidade_padrao, categoria: input.categoria } }),
+    mutationFn: (input: Partial<Objeto>) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return salvar({
+        data: {
+          id: input.id,
+          organization_id: activeOrgId,
+          descricao: input.descricao!,
+          unidade_padrao: input.unidade_padrao,
+          categoria: input.categoria,
+        },
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["objetos-cotacao"] });
       toast.success("Objeto salvo");
@@ -45,7 +58,10 @@ function ObjetosPage() {
   });
 
   const mutDel = useMutation({
-    mutationFn: (id: string) => remover({ data: { id } }),
+    mutationFn: (id: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return remover({ data: { id, organization_id: activeOrgId } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["objetos-cotacao"] });
       toast.success("Removido");

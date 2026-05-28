@@ -11,6 +11,7 @@ import {
   aprovarComprovante,
   linkComprovante,
 } from "@/lib/comprovantes.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { CheckCircle2, XCircle, FileText, ExternalLink, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/admin/aprovacoes")({
@@ -32,10 +33,12 @@ function AprovacoesPage() {
   const aprovar = useServerFn(aprovarComprovante);
   const link = useServerFn(linkComprovante);
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["aprovacoes-pendentes"],
-    queryFn: () => fetchPendentes(),
+    queryKey: ["aprovacoes-pendentes", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchPendentes({ data: { organization_id: activeOrgId! } }),
   });
 
   const mut = useMutation({

@@ -24,6 +24,7 @@ const ItemSchema = z.object({
 });
 
 const CotacaoCreateSchema = z.object({
+  organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500),
   termo: z.string().max(120).default(""),
   mes_referencia: z.string().max(7).optional(),
@@ -33,6 +34,7 @@ const CotacaoCreateSchema = z.object({
 
 const CotacaoUpdateSchema = z.object({
   id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500).optional(),
   termo: z.string().max(120).optional(),
   mes_referencia: z.string().max(7).optional(),
@@ -40,6 +42,9 @@ const CotacaoUpdateSchema = z.object({
   status: z.enum(["coletando", "pronto_para_mapa", "finalizado"]).optional(),
   observacoes: z.string().max(2000).nullish(),
 });
+
+const OrgScopedId = z.object({ id: z.string().uuid(), organization_id: z.string().uuid() });
+const OrgOnly = z.object({ organization_id: z.string().uuid() });
 
 // ENTIDADE_DEFAULT importado de ./cotacoes.server
 
@@ -82,6 +87,7 @@ export const criarCotacao = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("cotacoes")
       .insert({
+        organization_id: data.organization_id,
         objeto: data.objeto,
         termo: data.termo || null,
         mes_referencia: data.mes_referencia || null,
@@ -95,30 +101,35 @@ export const criarCotacao = createServerFn({ method: "POST" })
     return row;
   });
 
-export const listarCotacoes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth]).handler(async () => {
-  const { data, error } = await supabase
-    .from("cotacoes")
-    .select("*")
-    .order("criado_em", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarCotacoes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgOnly.parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabase
+      .from("cotacoes")
+      .select("*")
+      .eq("organization_id", data.organization_id)
+      .order("criado_em", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
 
 export const obterCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
     const { data: cot, error } = await supabase
       .from("cotacoes")
       .select("*")
       .eq("id", data.id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (error) throw new Error(error.message);
     const { data: orcs } = await supabase
       .from("orcamentos_salvos")
       .select("*")
       .eq("cotacao_id", data.id)
+      .eq("organization_id", data.organization_id)
       .order("criado_em", { ascending: true });
     return { cotacao: cot, orcamentos: orcs ?? [] };
   });
@@ -127,7 +138,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CotacaoUpdateSchema.parse(d))
   .handler(async ({ data }) => {
-    const { id, ...rest } = data;
+    const { id, organization_id, ...rest } = data;
     const patch: any = {};
     if (rest.objeto !== undefined) patch.objeto = rest.objeto;
     if (rest.termo !== undefined) patch.termo = rest.termo || null;
@@ -139,6 +150,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .update(patch)
       .eq("id", id)
+      .eq("organization_id", organization_id)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -147,9 +159,13 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
 
 export const removerCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("cotacoes").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("cotacoes")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -157,6 +173,7 @@ export const removerCotacao = createServerFn({ method: "POST" })
 /* ============================ ORÇAMENTO POR FORNECEDOR ============================ */
 
 const GerarOrcCotacaoSchema = z.object({
+  organization_id: z.string().uuid(),
   cotacao_id: z.string().uuid(),
   fornecedor: z.object({
     razao: z.string().min(1).max(255),
@@ -177,6 +194,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .select("*")
       .eq("id", data.cotacao_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (errCot || !cot) throw new Error("Cotação não encontrada");
 
@@ -201,6 +219,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
     const { data: orcRow, error: errOrc } = await supabase
       .from("orcamentos_salvos")
       .insert({
+        organization_id: data.organization_id,
         tipo: "cotacao",
         objeto: cot.objeto,
         termo: cot.termo,
@@ -221,9 +240,13 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
 
 export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("orcamentos_salvos").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("orcamentos_salvos")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -231,6 +254,7 @@ export const removerOrcamentoCotacao = createServerFn({ method: "POST" })
 /* ============================ MAPA COMPARATIVO ============================ */
 
 const GerarMapaSchema = z.object({
+  organization_id: z.string().uuid(),
   cotacao_id: z.string().uuid(),
   orcamento_ids: z.array(z.string().uuid()).length(3),
 });
@@ -243,12 +267,14 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
       .from("cotacoes")
       .select("*")
       .eq("id", data.cotacao_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (errCot || !cot) throw new Error("Cotação não encontrada");
 
     const { data: orcs, error: errOrc } = await supabase
       .from("orcamentos_salvos")
       .select("*")
+      .eq("organization_id", data.organization_id)
       .in("id", data.orcamento_ids);
     if (errOrc || !orcs || orcs.length !== 3) {
       throw new Error("Selecione exatamente 3 orçamentos preenchidos.");
@@ -348,6 +374,7 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
     await sheetsValuesBatchUpdate(copy.id, updates);
 
     await supabase.from("orcamentos_salvos").insert({
+      organization_id: data.organization_id,
       tipo: "mapa_comparativo",
       objeto: cot.objeto,
       termo: cot.termo,
@@ -367,7 +394,8 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
         mapa_drive_file_id: copy.id,
         mapa_drive_file_url: copy.webViewLink,
       })
-      .eq("id", cot.id);
+      .eq("id", cot.id)
+      .eq("organization_id", data.organization_id);
 
     return { fileId: copy.id, url: copy.webViewLink };
   });
@@ -376,6 +404,7 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
 
 const PresetSchema = z.object({
   id: z.string().uuid().optional(),
+  organization_id: z.string().uuid(),
   nome: z.string().min(1).max(255),
   objeto: z.string().max(500).nullish(),
   termo: z.string().max(120).nullish(),
@@ -393,15 +422,18 @@ const PresetSchema = z.object({
     .default([]),
 });
 
-export const listarPresets = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth]).handler(async () => {
-  const { data, error } = await supabase
-    .from("cotacao_presets")
-    .select("*")
-    .order("nome", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarPresets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgOnly.parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabase
+      .from("cotacao_presets")
+      .select("*")
+      .eq("organization_id", data.organization_id)
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
 
 export const salvarPreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -419,6 +451,7 @@ export const salvarPreset = createServerFn({ method: "POST" })
         .from("cotacao_presets")
         .update(payload)
         .eq("id", data.id)
+        .eq("organization_id", data.organization_id)
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -426,7 +459,7 @@ export const salvarPreset = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await supabase
       .from("cotacao_presets")
-      .insert(payload)
+      .insert({ ...payload, organization_id: data.organization_id })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -435,9 +468,13 @@ export const salvarPreset = createServerFn({ method: "POST" })
 
 export const removerPreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
   .handler(async ({ data }) => {
-    const { error } = await supabase.from("cotacao_presets").delete().eq("id", data.id);
+    const { error } = await supabase
+      .from("cotacao_presets")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -445,13 +482,20 @@ export const removerPreset = createServerFn({ method: "POST" })
 export const criarCotacaoDePreset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ preset_id: z.string().uuid(), mes_referencia: z.string().max(7).optional() }).parse(d),
+    z
+      .object({
+        organization_id: z.string().uuid(),
+        preset_id: z.string().uuid(),
+        mes_referencia: z.string().max(7).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const { data: preset, error } = await supabase
       .from("cotacao_presets")
       .select("*")
       .eq("id", data.preset_id)
+      .eq("organization_id", data.organization_id)
       .single();
     if (error || !preset) throw new Error("Modelo não encontrado");
 
@@ -460,6 +504,7 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
     const { data: cot, error: errCot } = await supabase
       .from("cotacoes")
       .insert({
+        organization_id: data.organization_id,
         objeto: preset.objeto || preset.nome,
         termo: preset.termo,
         mes_referencia: mes,
@@ -469,6 +514,7 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
       .select()
       .single();
     if (errCot) throw new Error(errCot.message);
+
 
     return { cotacao: cot, fornecedores_sugeridos: preset.fornecedores_sugeridos };
   });
