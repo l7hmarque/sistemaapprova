@@ -93,6 +93,18 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
   }
 }
 
+function msgErro(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.error === "string" && o.error) return o.error;
+    if (typeof o.hint === "string" && o.hint) return o.hint;
+    try { return JSON.stringify(e); } catch { /* noop */ }
+  }
+  return "Falha desconhecida";
+}
+
 function CapturaPage() {
   const extrair = useServerFn(extrairDocumento);
   const [itens, setItens] = useState<Item[]>([]);
@@ -100,8 +112,10 @@ function CapturaPage() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
+  const [orgId, setOrgId] = useState<string | null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     (async () => {
