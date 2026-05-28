@@ -115,23 +115,32 @@ function PainelPage() {
     }
   }
 
+  const { activeOrgId } = useActiveOrg();
+
   async function recarregar() {
+    if (!activeOrgId) { setEventos([]); return; }
     const { data, error } = await supabase
       .from("eventos_financeiros")
       .select("*")
+      .eq("organization_id", activeOrgId)
       .eq("mes_referencia", mes)
       .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (error) toast.error("Falha ao carregar eventos: " + error.message);
     else setEventos((data ?? []) as Evento[]);
   }
 
-  useEffect(() => { void recarregar(); }, [mes]);
+  useEffect(() => { void recarregar(); }, [mes, activeOrgId]);
   useEffect(() => {
+    if (!activeOrgId) { setFornecedores([]); return; }
     (async () => {
-      const { data } = await supabase.from("fornecedores").select("id, razao_social, cnpj").order("razao_social");
+      const { data } = await supabase
+        .from("fornecedores")
+        .select("id, razao_social, cnpj")
+        .eq("organization_id", activeOrgId)
+        .order("razao_social");
       setFornecedores((data ?? []) as Fornecedor[]);
     })();
-  }, []);
+  }, [activeOrgId]);
 
   const filtrados = useMemo(
     () => eventos.filter((e) => filtroCategoria === "todas" || e.categoria === filtroCategoria),
