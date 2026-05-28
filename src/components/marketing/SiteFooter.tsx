@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-brand-line bg-brand-cream-soft mt-24">
       <div className="mx-auto max-w-6xl px-6 py-14 grid gap-10 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="text-2xl font-serif text-brand-navy">Approva</div>
+          <div className="text-brand-navy"><ApprovaLogo variant="full" size="lg" /></div>
           <p className="mt-3 text-sm text-brand-muted max-w-sm leading-relaxed">
             Plataforma de gestão financeira e prestação de contas para organizações da
             sociedade civil e escritórios de contabilidade do terceiro setor.
