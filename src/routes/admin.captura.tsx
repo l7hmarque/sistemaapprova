@@ -198,10 +198,15 @@ function CapturaPage() {
   }
 
   async function processar(it: Item) {
+    if (!activeOrgId) {
+      atualiza(it.id, { status: "erro", mensagem: "Selecione uma organização ativa antes de processar" });
+      return;
+    }
     atualiza(it.id, { status: "processando", mensagem: "calculando hash" });
     try {
       const arquivo = await resizeImage(it.file);
       const hash = await sha256(arquivo);
+
 
       // Dedup local pelo hash — se já existe um registro com evento vinculado,
       // consideramos concluído. Caso contrário, reaproveitamos dados e seguimos
