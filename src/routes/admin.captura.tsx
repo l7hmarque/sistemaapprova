@@ -459,7 +459,7 @@ function CapturaPage() {
           cnpj_extraido: dados?.cnpj ?? null,
           valor_extraido: dados?.valor ?? null,
           numero_extraido: dados?.numero ?? null,
-          data_extraida: dados?.data ?? null,
+          data_extraida: dados?.data_emissao ?? dados?.data_vencimento ?? dados?.data_pagamento ?? null,
           origem: "manual",
           evento_id: eventoId,
           metadata: {
