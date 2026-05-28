@@ -20,7 +20,7 @@ O PDF/imagem pode conter MAIS DE UM documento (ex.: a nota/boleto + o comprovant
 
 Retorne SOMENTE JSON válido, sem markdown, no formato exato:
 {
-  "tipo": "boleto" | "nf" | "fatura" | "holerite" | "comprovante_pgto" | "guia" | "outro",
+  "tipo": "boleto" | "nf" | "fatura" | "holerite" | "comprovante_pgto" | "guia" | "darf" | "gps" | "gfip" | "grrf" | "gfd" | "cupom" | "recibo" | "outro",
   "cnpj": "00000000000000" ou null,
   "razao_social": "string" ou null,
   "valor": número (ex: 1234.56) ou null,
@@ -28,17 +28,22 @@ Retorne SOMENTE JSON válido, sem markdown, no formato exato:
   "data_emissao": "AAAA-MM-DD" ou null,
   "data_vencimento": "AAAA-MM-DD" ou null,
   "data_pagamento": "AAAA-MM-DD" ou null,
-  "descricao": "resumo curto (máx 200 caracteres, SEM o número do documento)"
+  "descricao": "resumo curto (máx 200 caracteres, SEM o número do documento)",
+  "forma_pagamento": "pix" | "ted" | "doc" | "cheque" | "ordem bancaria" | "debito em conta" | "deposito" | null,
+  "numero_pagamento": "string" ou null
 }
 Regras:
-- cnpj: apenas dígitos do EMITENTE/FORNECEDOR (quem cobra), não do cliente. Se houver CPF, use o CPF apenas dígitos.
+- cnpj: apenas dígitos do EMITENTE/FORNECEDOR. Para guias federais (DARF/GPS/GFIP/GRRF/GFD), pode deixar null — o sistema preenche automaticamente.
 - razao_social: nome/razão social do EMITENTE/FORNECEDOR exatamente como aparece. Pessoa física: use o nome.
-- valor: valor TOTAL a pagar. Boleto: valor do boleto. NF: total. Holerite: líquido. Sempre número (ponto decimal).
-- numero: número da NF/boleto/documento (somente o número, em campo próprio — NÃO repetir na descrição).
+- valor: valor TOTAL a pagar. Sempre número (ponto decimal).
+- numero: número da NF/boleto/documento (somente o número).
 - data_emissao: data de emissão da NF/fatura.
-- data_vencimento: vencimento do boleto/fatura.
-- data_pagamento: data EFETIVA do comprovante (transferência, PIX, recibo bancário), quando o PDF incluir comprovante.
-- descricao: 1 linha objetiva, até 200 caracteres, NÃO incluir o número do documento (ex.: "Energia elétrica COPEL mar/2025", "Serviços de contabilidade — Papelaria X").
+- data_vencimento: vencimento do boleto/fatura/guia.
+- data_pagamento: data EFETIVA do comprovante (PIX, TED, transferência, recibo bancário) quando incluso no PDF.
+- descricao: 1 linha objetiva, até 200 caracteres, SEM o número do documento.
+- forma_pagamento: identifique se o comprovante foi PIX, TED, DOC, cheque, depósito, ordem bancária ou débito em conta. null se não houver comprovante.
+- numero_pagamento: nº de autenticação/transação/ID do comprovante (ID PIX, nº TED, nº cheque), quando houver.
+- Identifique guias federais corretamente: DARF (Receita Federal), GPS (INSS), GFIP/GRRF/GFD (Caixa/FGTS).
 - Se não tiver certeza, use null. Não invente.`;
 
 export type DadosExtraidos = {
@@ -51,6 +56,8 @@ export type DadosExtraidos = {
   data_vencimento: string | null;
   data_pagamento: string | null;
   descricao: string | null;
+  forma_pagamento: string | null;
+  numero_pagamento: string | null;
 };
 
 export type ExtracaoResposta =
@@ -93,6 +100,8 @@ function parseDados(raw: string): DadosExtraidos {
     data_vencimento: parseData(p.data_vencimento) ?? dataLegacy,
     data_pagamento: parseData(p.data_pagamento),
     descricao,
+    forma_pagamento: typeof p.forma_pagamento === "string" ? p.forma_pagamento : null,
+    numero_pagamento: typeof p.numero_pagamento === "string" ? p.numero_pagamento : null,
   };
 }
 

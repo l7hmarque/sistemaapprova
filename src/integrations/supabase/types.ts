@@ -380,54 +380,87 @@ export type Database = {
       eventos_financeiros: {
         Row: {
           categoria: string
+          cd_modalidade_compra: number | null
           created_at: string
+          data_emissao: string | null
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
           fornecedor_id: string | null
           id: string
+          id_interno: string | null
           mes_referencia: string
           metadata: Json
+          nm_favorecido: string | null
+          nr_doc_fav: string | null
+          nr_documento: string | null
+          nr_documento_pagamento: string | null
           organization_id: string
           origem: string
           prestacao_snapshot_id: string | null
           status_documental: string
+          tp_despesa: number | null
+          tp_doc_fav: string | null
+          tp_documento_despesa: number | null
+          tp_documento_pagamento: number | null
           updated_at: string
           valor_efetivo: number | null
           valor_previsto: number | null
         }
         Insert: {
           categoria: string
+          cd_modalidade_compra?: number | null
           created_at?: string
+          data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           fornecedor_id?: string | null
           id?: string
+          id_interno?: string | null
           mes_referencia: string
           metadata?: Json
+          nm_favorecido?: string | null
+          nr_doc_fav?: string | null
+          nr_documento?: string | null
+          nr_documento_pagamento?: string | null
           organization_id?: string
           origem?: string
           prestacao_snapshot_id?: string | null
           status_documental?: string
+          tp_despesa?: number | null
+          tp_doc_fav?: string | null
+          tp_documento_despesa?: number | null
+          tp_documento_pagamento?: number | null
           updated_at?: string
           valor_efetivo?: number | null
           valor_previsto?: number | null
         }
         Update: {
           categoria?: string
+          cd_modalidade_compra?: number | null
           created_at?: string
+          data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           fornecedor_id?: string | null
           id?: string
+          id_interno?: string | null
           mes_referencia?: string
           metadata?: Json
+          nm_favorecido?: string | null
+          nr_doc_fav?: string | null
+          nr_documento?: string | null
+          nr_documento_pagamento?: string | null
           organization_id?: string
           origem?: string
           prestacao_snapshot_id?: string | null
           status_documental?: string
+          tp_despesa?: number | null
+          tp_doc_fav?: string | null
+          tp_documento_despesa?: number | null
+          tp_documento_pagamento?: number | null
           updated_at?: string
           valor_efetivo?: number | null
           valor_previsto?: number | null
