@@ -127,7 +127,38 @@
   --sidebar-accent-foreground: oklch(0.22 0.06 260);
   --sidebar-border: oklch(0.9 0.015 245);
   --sidebar-ring: oklch(0.55 0.1 245);
+  /* Status — light */
+  --success: oklch(0.62 0.15 150);
+  --success-foreground: oklch(0.98 0 0);
+  --success-soft: oklch(0.94 0.05 150);
+  --warning: oklch(0.72 0.16 75);
+  --warning-foreground: oklch(0.2 0.05 75);
+  --warning-soft: oklch(0.95 0.06 80);
+  --danger: oklch(0.6 0.2 28);
+  --danger-foreground: oklch(0.98 0 0);
+  --danger-soft: oklch(0.94 0.06 28);
+  --info: oklch(0.6 0.13 235);
+  --info-foreground: oklch(0.98 0 0);
+  --info-soft: oklch(0.94 0.04 235);
+  --pending: oklch(0.65 0.1 280);
+  --pending-foreground: oklch(0.98 0 0);
+  --pending-soft: oklch(0.94 0.04 280);
 }
+
+/* Module accent presets — apply via data-module="..." on a wrapper */
+[data-module="dashboard"]      { --module-accent: oklch(0.34 0.08 260); --module-accent-soft: oklch(0.93 0.03 245); }
+[data-module="orcamentos"]     { --module-accent: oklch(0.65 0.16 70);  --module-accent-soft: oklch(0.95 0.06 75); }
+[data-module="cotacoes"]       { --module-accent: oklch(0.5 0.16 270);  --module-accent-soft: oklch(0.94 0.05 270); }
+[data-module="fornecedores"]   { --module-accent: oklch(0.55 0.11 200); --module-accent-soft: oklch(0.94 0.04 200); }
+[data-module="objetos"]        { --module-accent: oklch(0.62 0.12 220); --module-accent-soft: oklch(0.95 0.04 220); }
+[data-module="modelos"]        { --module-accent: oklch(0.55 0.14 305); --module-accent-soft: oklch(0.95 0.04 305); }
+[data-module="prestacao"]      { --module-accent: oklch(0.55 0.14 150); --module-accent-soft: oklch(0.94 0.05 150); }
+[data-module="aprovacoes"]     { --module-accent: oklch(0.5 0.18 295);  --module-accent-soft: oklch(0.94 0.05 295); }
+[data-module="agenda"]         { --module-accent: oklch(0.62 0.18 350); --module-accent-soft: oklch(0.95 0.05 350); }
+[data-module="captura"]        { --module-accent: oklch(0.62 0.18 45);  --module-accent-soft: oklch(0.95 0.06 50); }
+[data-module="painel"]         { --module-accent: oklch(0.6 0.15 165);  --module-accent-soft: oklch(0.94 0.05 165); }
+[data-module="analytics"]      { --module-accent: oklch(0.5 0.05 250);  --module-accent-soft: oklch(0.94 0.02 250); }
+[data-module="configuracoes"]  { --module-accent: oklch(0.5 0.02 260);  --module-accent-soft: oklch(0.95 0.01 260); }
 
 .dark {
   /* Navy Trust — dark */
