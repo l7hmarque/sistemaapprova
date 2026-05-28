@@ -158,6 +158,53 @@ export type Database = {
           },
         ]
       }
+      convites_membro: {
+        Row: {
+          aceito_em: string | null
+          aceito_por: string | null
+          convidado_por: string
+          criado_em: string
+          email: string
+          expira_em: string
+          id: string
+          organization_id: string
+          role: string
+          token: string
+        }
+        Insert: {
+          aceito_em?: string | null
+          aceito_por?: string | null
+          convidado_por: string
+          criado_em?: string
+          email: string
+          expira_em?: string
+          id?: string
+          organization_id: string
+          role?: string
+          token: string
+        }
+        Update: {
+          aceito_em?: string | null
+          aceito_por?: string | null
+          convidado_por?: string
+          criado_em?: string
+          email?: string
+          expira_em?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_membro_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotacao_presets: {
         Row: {
           atualizado_em: string
