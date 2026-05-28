@@ -89,18 +89,18 @@ function HomePage() {
               comprovantes com aprovação em duas mãos e exporte direto no padrão
               SIT/TCE-PR — sem planilhas paralelas.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/demonstracao"
                 data-track-cta="hero-demo"
-                className="rounded-md bg-brand-navy text-white px-6 py-3 text-base font-medium hover:bg-brand-navy-soft transition-colors"
+                className="text-center rounded-md bg-brand-navy text-white px-6 py-3 text-base font-medium hover:bg-brand-navy-soft transition-colors"
               >
                 Começar 30 dias grátis
               </Link>
               <a
                 href="#planos"
                 data-track-cta="hero-planos"
-                className="rounded-md border border-brand-navy text-brand-navy px-6 py-3 text-base font-medium hover:bg-white transition-colors"
+                className="text-center rounded-md border border-brand-navy text-brand-navy px-6 py-3 text-base font-medium hover:bg-white transition-colors"
               >
                 Ver planos
               </a>
