@@ -9,12 +9,12 @@ function gerarToken(): string {
   return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const RoleSchema = z.enum(["owner", "admin", "member", "viewer"]);
+const RoleSchema = z.enum(["owner", "admin", "membro"]);
 
 const CriarConviteMembroSchema = z.object({
   organization_id: z.string().uuid(),
   email: z.string().email().max(255),
-  role: RoleSchema.default("member"),
+  role: RoleSchema.default("membro"),
   validade_dias: z.number().min(1).max(60).default(14),
 });
 
