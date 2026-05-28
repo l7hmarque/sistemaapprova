@@ -1,103 +1,68 @@
-# QA Profundo End-to-End — SynSIT
+# Rebrand: SynSIT → Approva
 
-Auditoria completa fingindo ser cliente novo. Org isolada, Drive real, chaos testing, e pacote de artefatos exemplo em `/mnt/documents/`.
+## Identidade
 
-## Fase 1 — Setup do sandbox isolado (~5 min)
+**Nome:** Approva
+**Posicionamento:** Plataforma de gestão financeira com fluxo de aprovação em duas mãos para o Terceiro Setor.
+**Tagline:** "Aprovado. Arquivado. Em conformidade."
+**Tom:** Tech moderno — frases curtas, diretas, confirmações com check, sem jargão fiscal pesado.
 
-1. Migração criando organization `QA Sandbox — DELETE ME` (tipo `osc`, status `trial`).
-2. Adicionar usuário logado atual como `owner` em `organization_members`.
-3. Adicionar flag em `configuracoes` marcando a org como `__qa_sandbox: true` (pra facilitar limpeza depois).
-4. **Entregar SQL de rollback** em `/mnt/documents/qa-rollback.sql` que apaga toda a org e dados vinculados.
+## Identidade visual
 
-## Fase 2 — Validação de integrações (~10 min)
+**Logo — wordmark tipográfico**
+- Texto puro "approva" (lowercase) em fonte grotesque moderna (Space Grotesk ou similar já no projeto)
+- Detalhe sutil: o segundo "p" com terminação levemente arredondada OU um micro-check substituindo o pingo de um caractere — assinatura discreta sem virar ícone
+- Versão reduzida: monograma "ap." para favicon e avatares
+- Sem símbolo separado — a tipografia é a marca
 
-5. `verify_credentials` em Google Drive, Docs, Sheets via gateway.
-6. Verificar wizard `/admin/setup`: criar pasta-raiz real "SynSIT — QA Sandbox" + 4 subpastas (Orçamentos, Cotações, Documentos, Prestações).
-7. Cadastrar 2 templates reais (1 Sheets, 1 Docs) via API e validar leitura.
-8. **Smoke test** dos endpoints `/api/extract` (PDF → JSON) e dos server functions de cada domínio (analytics, convites, cotações, fornecedores, objetos, orçamentos, prestação) — chamada via `invoke-server-function`.
+**Paleta Navy Trust (tokens em `src/styles.css`)**
+```
+--background:        #f8fafc  (quase branco, leve frio)
+--foreground:        #0f1b3d  (navy profundo, texto)
+--primary:           #1e3a5f  (navy médio, ações principais)
+--primary-foreground:#e8edf3
+--accent:            #3b6fa0  (azul links, destaques)
+--muted:             #e8edf3
+--border:            #d6dde8
+--success:           #0d7a5f  (verde discreto para "aprovado")
+--destructive:       #b91c1c
+```
+Modo escuro: inverte para fundo `#0f1b3d` com cards `#1e3a5f`.
 
-## Fase 3 — Fluxo feliz como usuário novo (~15 min)
+**Tipografia**
+- Headings: Space Grotesk (já usado em padrões tech modernos)
+- Body: Inter ou DM Sans
+- Mono (números financeiros, IDs): JetBrains Mono
 
-Browser + chamadas diretas, gerando dados reais na sandbox:
+## Escopo da mudança (apenas frontend/apresentação)
 
-9. **Captura**: gerar 4 PDFs simulados em `/tmp/` (NF, boleto, guia, recibo) com `reportlab` → upload em `/admin/captura` → conferir extração automática e vínculo a evento financeiro previsto.
-10. **Fornecedores**: cadastrar 3 fornecedores (com CNPJs reais válidos do BrasilAPI sample).
-11. **Objetos de cotação**: criar 2 objetos recorrentes (lanche escolar, material esportivo).
-12. **Cotação**: criar cotação de Junho/2026 com 5 itens, enviar 3 convites públicos.
-13. **Resposta de fornecedor**: simular preenchimento da página pública do convite (3 respostas) → conferir geração do mapa comparativo no Sheets.
-14. **Orçamento**: gerar orçamento vencedor → conferir Docs criado no Drive.
-15. **Prestação**: anexar 6 documentos ao mês, gerar snapshot → conferir PDF da prestação + TXT do SIT + manifest.
-16. **Agenda**: criar 2 compromissos (vencimento + prazo TCE).
-17. **Aprovações**: aprovar 4 documentos, rejeitar 2 com observação.
-18. **Painel/Analytics**: verificar se os totais batem com o que foi inserido.
+1. **Tokens `src/styles.css`** — substituir paleta atual pela Navy Trust em light e dark, manter estrutura de variáveis OKLCH.
+2. **Wordmark** — criar `src/components/brand/ApprovaLogo.tsx` (SVG inline, variantes: full / mono / icon-only) usado em header, sidebar, login, emails.
+3. **Substituição textual global** — todas as strings visíveis "SynSIT" → "Approva":
+   - Header / sidebar / footer
+   - `index.html` (title, meta description, og:tags)
+   - `head()` de cada rota (titles, descriptions)
+   - Páginas de login / signup / landing (`src/routes/index.tsx`)
+   - Templates de email (assunto + corpo) se existirem
+   - README / manifest / favicon alt
+4. **Tom de voz** — revisar microcopy chave para padrão tech moderno:
+   - Toasts: "Prestação aprovada ✓" em vez de "A prestação foi aprovada com sucesso"
+   - Botões: verbos diretos ("Aprovar", "Arquivar", "Enviar")
+   - Estados vazios: 1 linha + 1 CTA
+5. **Favicon + OG image** — gerar novos assets com wordmark sobre fundo navy.
+6. **SEO** — meta description nova: "Approva — gestão financeira e prestação de contas para o Terceiro Setor."
 
-## Fase 4 — Chaos testing (cometer cagada) (~15 min)
+## Fora de escopo
+- Lógica de negócio, schema, RLS, server functions (intactos)
+- Renomear tabelas/colunas/projeto no Supabase
+- Mudar o domínio publicado (`synsit.lovable.app` continua funcionando; trocar domínio é passo separado quando você quiser)
 
-Bateria documentada — cada teste registra: **input ruim → comportamento esperado → comportamento observado → fix sugerido**.
-
-**Dados inválidos:**
-- CNPJ com dígito verificador errado
-- Valor negativo em evento financeiro
-- Data de pagamento anterior à de emissão
-- PDF de 0 bytes / PDF corrompido
-- Campos obrigatórios vazios em todos os forms críticos
-
-**Fluxo fora de ordem:**
-- Gerar prestação sem nenhum documento anexado
-- Aprovar documento de uma org que não é a do usuário (cross-tenant probe via RLS)
-- Deletar fornecedor com cotação ativa
-- Gerar TXT do SIT sem mes_referencia
-- Wizard sem credenciais Google
-
-**Conflitos / concorrência:**
-- 2 requests simultâneos editando a mesma cotação (race condition em `itens` jsonb)
-- Mesmo CNPJ inserido 2x (sem unique constraint? verificar)
-- 2 snapshots de prestação do mesmo `mes_referencia`
-- Convite com `expira_em` no passado
-
-**Recuperação:**
-- Para cada falha, tentar a UI de correção. Se não existir, sinalizar como gap.
-
-## Fase 5 — Gargalos & vínculos (~10 min)
-
-19. **Performance**: queries lentas via `pg_stat_statements`, N+1 em loaders, falta de índices em FKs implícitas (`cotacao_id`, `fornecedor_id`, `evento_id`, `mes_referencia`).
-20. **Vínculos órfãos**: documentos sem evento, eventos sem categoria, convites sem fornecedor cadastrado, snapshots sem documentos.
-21. **Consistência multi-tenant**: scan de queries server-fn que esqueceram filtro `organization_id` (RLS protege, mas custa performance).
-22. **RLS audit**: probe com 2º usuário fora da org pra confirmar isolamento.
-
-## Fase 6 — Pacote de artefatos (~5 min)
-
-Gerados em `/mnt/documents/` (alguns reais do Drive, outros mocks do fluxo):
-
-- `qa-report.md` — relatório executivo
-- `qa-bugs.md` — lista priorizada de bugs achados (P0/P1/P2)
-- `qa-rollback.sql` — script de limpeza da sandbox
-- `exemplo-extracao.json` — JSON da extração de PDF
-- `exemplo-cotacao-mapa.xlsx` — mapa comparativo (baixado do Drive)
-- `exemplo-orcamento.xlsx` — orçamento vencedor
-- `exemplo-convite-fornecedor.pdf` — PDF do convite enviado
-- `exemplo-resposta-fornecedor.pdf` — PDF consolidado de resposta
-- `exemplo-prestacao.pdf` — PDF da prestação de contas
-- `exemplo-sit.txt` — TXT do SIT pronto pro TCE-PR
-- `exemplo-manifest.json` — manifest do snapshot
-- `exemplo-relatorio.docx` — Docs gerado
-- `exemplo-auditoria.csv` — dump da `audit_log` filtrada
-- `qa-screenshots/` — capturas de cada tela visitada
-
-## Riscos & avisos
-
-- **Drive real**: cria pasta `SynSIT — QA Sandbox` e ~12 arquivos no seu Google Drive. Não toca em nada existente.
-- **Banco**: tudo dentro da org sandbox. SQL de rollback entregue no fim.
-- **Tempo total**: ~60 min de execução.
-- **Cross-tenant probe**: tento ler dados de outra org pelo client autenticado. Espero 0 linhas (RLS); se vier qualquer coisa, é P0.
-- **Sem destrutivo na sua org real**: só leio dados existentes pra comparação, não modifico.
+## Verificação pós-build
+- Buscar `rg -i "synsit"` no projeto — deve retornar zero ocorrências em código de UI (ok ficar em migrations antigas).
+- Conferir preview: header, login, dashboard, página de prestação — wordmark + paleta aplicados.
+- Lighthouse meta tags atualizadas.
 
 ## Detalhes técnicos
-
-- Geração de PDFs simulados: `reportlab` com layouts realistas (cabeçalho do emitente, CNPJ formatado, valor, data, código de barras fake pro boleto).
-- Chamadas server-fn via `stack_modern--invoke-server-function` com `Authorization` da sessão do preview.
-- Drive/Docs/Sheets via `connector-gateway.lovable.dev` com `LOVABLE_API_KEY` + `GOOGLE_*_API_KEY`.
-- Browser usado pra validar 3 telas críticas (captura, cotação pública, prestação) — resto via API direta pra economizar tempo.
-- Relatório formatado em markdown com seções: Setup, Fluxo feliz, Chaos (tabela), Performance, Vínculos, RLS, Recomendações priorizadas.
-
-Aprova pra eu executar?
+- Paleta convertida para OKLCH antes de gravar em `styles.css` (formato exigido pelo template).
+- Logo como componente SVG (não PNG) para escalar e respeitar `currentColor` em tema claro/escuro.
+- Manter `synsit.lovable.app` como published URL — só rebrand visual, sem migração de domínio nesta etapa.
