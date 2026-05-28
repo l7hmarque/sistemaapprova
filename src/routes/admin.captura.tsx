@@ -136,6 +136,22 @@ function CapturaPage() {
     })();
   }, [mes]);
 
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: m } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", u.user.id)
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (m?.organization_id) setOrgId(m.organization_id);
+    })();
+  }, []);
+
+
   const adicionar = useCallback((files: FileList | null) => {
     if (!files || !files.length) return;
     const novos: Item[] = Array.from(files).map((f) => ({
