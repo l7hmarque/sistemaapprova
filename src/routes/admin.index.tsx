@@ -3,24 +3,26 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
 import { FileText, Users, Package, CalendarClock, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { startAdminTour } from "@/components/tour/AdminTour";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 
-export const Route = createFileRoute("/admin/")({ component: Dashboard });
+export const Route = createFileRoute("/admin/")({ component: DashboardRoute });
+
+type Orc = { criado_em: string; tipo: string; fornecedor_id: string | null; dados: any };
+
+function DashboardRoute() {
+  const { activeOrg } = useActiveOrg();
+  if (activeOrg?.tipo === "escritorio") {
+    return <EscritorioDashboard escritorioOrgId={activeOrg.id} />;
+  }
+  return <Dashboard />;
+}
 
 type Orc = { criado_em: string; tipo: string; fornecedor_id: string | null; dados: any };
 
