@@ -14,7 +14,6 @@ import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 
 export const Route = createFileRoute("/admin/")({ component: DashboardRoute });
 
-type Orc = { criado_em: string; tipo: string; fornecedor_id: string | null; dados: any };
 
 function DashboardRoute() {
   const { activeOrg } = useActiveOrg();
