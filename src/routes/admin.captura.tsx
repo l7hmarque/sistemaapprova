@@ -232,8 +232,9 @@ function CapturaPage() {
       if (e.fornecedor_id !== forn.id) return false;
       if (e.valor_previsto == null) return false;
       if (Math.abs(Number(e.valor_previsto) - Number(dados.valor)) > tolValor) return false;
-      if (dados.data && e.data_vencimento) {
-        const dDoc = new Date(dados.data).getTime();
+      const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
+      if (dataDoc && e.data_vencimento) {
+        const dDoc = new Date(dataDoc).getTime();
         const dVen = new Date(e.data_vencimento).getTime();
         if (Math.abs(dDoc - dVen) > tolMs) return false;
       }
