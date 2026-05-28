@@ -1,8 +1,9 @@
 /**
  * Formatação da linha do arquivo Despesa.txt no padrão SIT (TCE-PR).
  *
- * 24 campos separados por pipe (|), terminando obrigatoriamente com pipe.
- * Datas DD-MM-AAAA. Valores 0.00 (ponto). Campos vazios viram "||".
+ * 24 campos separados por pipe (|). A linha NÃO termina com pipe — apenas
+ * separa os campos. Datas DD-MM-AAAA. Valores 0.00 (ponto). Campos vazios
+ * geram separadores consecutivos ("||").
  *
  * Ordem dos campos (conforme PDF de layout v1):
  *  1. nrCNPJConcedente            (14 dígitos)
@@ -115,7 +116,9 @@ export function formatLinhaSIT(termo: DadosTermo, d: DespesaInput): string {
     String(d.tpDocumentoPagamento ?? ""),                                  // 20
     truncate(cleanText(d.nrDocumentoPagamento), 15),                       // 21
     toBrDate(d.dtEmissaoPagamento),                                        // 22
-    toBrDate(d.dtDebito ?? ""),                                            // 23
+    // dtDebito (23): só faz sentido para Débito em Conta (código 6).
+    // Demais formas (Cheque, OB, DOC, TED, PIX, Depósito) vão vazias.
+    d.tpDocumentoPagamento === 6 ? toBrDate(d.dtDebito ?? "") : "",        // 23
     truncate(cleanText(d.dsItemDespesa), 2000),                            // 24
   ];
 

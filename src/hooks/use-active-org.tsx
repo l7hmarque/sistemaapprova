@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "./use-current-user";
 
@@ -23,6 +23,7 @@ const Ctx = createContext<ActiveOrgValue | null>(null);
 
 export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   const { memberships, user, loading: userLoading } = useCurrentUser();
+  const queryClient = useQueryClient();
   const [activeOrgId, setActiveOrgIdState] = useState<string | null>(null);
 
   // memberships dá orgs onde sou membro direto. Para escritórios,
@@ -69,8 +70,15 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   }, [user?.id, orgs.length]);
 
   const setActiveOrgId = (id: string) => {
+    if (id === activeOrgId) return;
     setActiveOrgIdState(id);
-    try { localStorage.setItem(KEY, id); } catch {}
+    try {
+      localStorage.setItem(KEY, id);
+      // Limpa rascunhos e fila de captura escopados pela org anterior
+      localStorage.removeItem("synsit:rascunho-auto");
+    } catch {}
+    // Invalida todo o cache pra não vazar dados da org anterior
+    queryClient.removeQueries();
   };
 
   const activeOrg = orgs.find((o) => o.id === activeOrgId) ?? null;
