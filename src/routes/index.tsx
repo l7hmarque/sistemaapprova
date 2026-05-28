@@ -15,9 +15,9 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Revise lançamentos, anexe comprovantes e exporte no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://synsit.lovable.app/" },
-      { property: "og:image", content: "https://synsit.lovable.app" + previewRevisao },
+      { property: "og:image", content: "https://synsit.lovable.app" + previewPrestacao },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://synsit.lovable.app" + previewRevisao },
+      { name: "twitter:image", content: "https://synsit.lovable.app" + previewPrestacao },
     ],
     links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
     scripts: [
@@ -114,7 +114,7 @@ function HomePage() {
             <div className="absolute -inset-4 bg-brand-blue/5 rounded-3xl blur-2xl" aria-hidden="true" />
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
-                src={previewRevisao}
+                src={previewPrestacao}
                 alt="Tela de revisão da prestação do Termo de Fomento 042/2025 no Approva, mostrando KPIs de execução do mês, documentos com lastro, aguardando aprovação e tabela de despesas com colunas de comprovante anexado e status de aprovação."
                 width={1600}
                 height={896}
@@ -142,7 +142,7 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewUpload}
+                  src={previewCaptura}
                   alt="Tela de importação do PDF mensal de prestação de contas no Approva, com lançamentos sendo lidos automaticamente pela IA."
                   loading="lazy"
                   width={1600}
@@ -162,7 +162,7 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewRevisao}
+                  src={previewPrestacao}
                   alt="Tabela de despesas com colunas de comprovante anexado, status de aprovação pendente/aprovado e revisão em duas mãos."
                   loading="lazy"
                   width={1600}
@@ -182,7 +182,7 @@ function HomePage() {
             <li>
               <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
                 <img
-                  src={previewRelatorio}
+                  src={previewPainel}
                   alt="Relatório de prestação de contas do termo de fomento 042/2025 com despesas por rubrica e exportação SIT/TCE-PR."
                   loading="lazy"
                   width={1600}
