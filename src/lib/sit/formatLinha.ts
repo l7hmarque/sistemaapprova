@@ -1,8 +1,9 @@
 /**
  * Formatação da linha do arquivo Despesa.txt no padrão SIT (TCE-PR).
  *
- * 24 campos separados por pipe (|), terminando obrigatoriamente com pipe.
- * Datas DD-MM-AAAA. Valores 0.00 (ponto). Campos vazios viram "||".
+ * 24 campos separados por pipe (|). A linha NÃO termina com pipe — apenas
+ * separa os campos. Datas DD-MM-AAAA. Valores 0.00 (ponto). Campos vazios
+ * geram separadores consecutivos ("||").
  *
  * Ordem dos campos (conforme PDF de layout v1):
  *  1. nrCNPJConcedente            (14 dígitos)
