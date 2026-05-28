@@ -119,7 +119,7 @@ function Topbar() {
 function DashboardMock() {
   return (
     <div className="space-y-6">
-      <Header title="Dashboard" subtitle="Visão geral · Termo de Fomento 042/2025" />
+      <Header title="Dashboard" subtitle="Visão geral · Convênio 042/2025" />
       <div className="grid grid-cols-4 gap-4">
         <Kpi label="Orçamentos no mês" value="14" />
         <Kpi label="Fornecedores" value="38" />

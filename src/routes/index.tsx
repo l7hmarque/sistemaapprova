@@ -9,8 +9,8 @@ import previewPainel from "@/assets/screens/painel.png";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Approva — Prestação de contas de Termo de Fomento (TCE-PR)" },
-      { name: "description", content: "Importe o PDF mensal do seu termo de fomento, revise lançamentos com IA, anexe comprovantes e exporte direto no padrão SIT/TCE-PR. 30 dias grátis." },
+      { title: "Approva — Prestação de contas de repasses públicos (TCE-PR)" },
+      { name: "description", content: "Importe o PDF mensal dos seus repasses públicos, revise lançamentos com IA, anexe comprovantes e exporte direto no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:title", content: "Approva — Prestação de contas para OSCs" },
       { property: "og:description", content: "Revise lançamentos, anexe comprovantes e exporte no padrão SIT/TCE-PR. 30 dias grátis." },
       { property: "og:type", content: "website" },
@@ -82,7 +82,7 @@ function HomePage() {
               Plataforma Approva · por 3RD TECH
             </p>
             <h1 className="mt-4 text-4xl md:text-6xl font-serif text-brand-navy leading-[1.05]">
-              Prestação de contas do seu Termo de Fomento <em className="not-italic text-brand-blue">sem fricção</em>.
+              Prestação de contas dos seus repasses públicos <em className="not-italic text-brand-blue">sem fricção</em>.
             </h1>
             <p className="mt-6 text-lg text-brand-muted max-w-xl leading-relaxed">
               Importe o PDF mensal, revise os lançamentos extraídos por IA, anexe
@@ -115,7 +115,7 @@ function HomePage() {
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
                 src={previewPrestacao}
-                alt="Tela do Approva — Prestação do Termo de Fomento 042/2025: KPIs do mês, total R$ 38.420,00, 28 de 32 documentos com comprovante e tabela de lançamentos com status aprovado/pendente."
+                alt="Tela do Approva — Prestação do Convênio 042/2025: KPIs do mês, total R$ 38.420,00, 28 de 32 documentos com comprovante e tabela de lançamentos com status aprovado/pendente."
                 width={1600}
                 height={896}
                 fetchPriority="high"
