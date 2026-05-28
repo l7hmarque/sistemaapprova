@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,8 +29,7 @@ export const Route = createFileRoute("/admin/configuracoes/equipe")({
 });
 
 function EquipePage() {
-  const { activeRole } = useCurrentUser();
-  const { activeOrg, activeOrgId } = useActiveOrg();
+  const { activeOrg, activeOrgId, activeRole } = useActiveOrg();
   const qc = useQueryClient();
   const [removendo, setRemovendo] = useState<string | null>(null);
   const [email, setEmail] = useState("");
