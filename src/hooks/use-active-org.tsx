@@ -23,6 +23,7 @@ const Ctx = createContext<ActiveOrgValue | null>(null);
 
 export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   const { memberships, user, loading: userLoading } = useCurrentUser();
+  const queryClient = useQueryClient();
   const [activeOrgId, setActiveOrgIdState] = useState<string | null>(null);
 
   // memberships dá orgs onde sou membro direto. Para escritórios,
