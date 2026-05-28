@@ -44,7 +44,7 @@ export const Route = createFileRoute("/api/public/cotacao/$token/pdf")({
           });
         } catch (e) {
           console.error("Falha ao exportar PDF:", e);
-          return new Response("Falha ao gerar PDF: " + (e as Error).message, { status: 502 });
+          return new Response("Falha ao processar solicitação. Tente novamente ou contate o suporte.", { status: 502 });
         }
       },
     },

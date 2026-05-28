@@ -148,7 +148,7 @@ export const Route = createFileRoute("/api/public/cotacao/$token")({
           });
         } catch (e) {
           console.error("criarSheetOrcamentoCotacao falhou:", e);
-          return new Response("Falha ao gerar planilha: " + (e as Error).message, { status: 502 });
+          return new Response("Falha ao processar solicitação. Tente novamente ou contate o suporte.", { status: 502 });
         }
 
         // Anexa respostas (com flag indisponivel)
