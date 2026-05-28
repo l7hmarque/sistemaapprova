@@ -99,6 +99,7 @@ function AtualizarSenhaPage() {
               Salvar senha
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>
