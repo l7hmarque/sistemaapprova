@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
+
 
 export type Membership = {
   organization_id: string;
