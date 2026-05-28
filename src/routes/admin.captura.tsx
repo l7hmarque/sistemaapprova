@@ -208,81 +208,49 @@ function CapturaPage() {
       const hash = await sha256(arquivo);
 
 
-      // Dedup local pelo hash — se já existe um registro com evento vinculado,
-      // consideramos concluído. Caso contrário, reaproveitamos dados e seguimos
-      // o fluxo para criar/lançar o evento.
+      // Dedup desativado temporariamente — sempre processa.
+      // Apenas marcamos como "duplicata" para revisão manual no painel financeiro
+      // se o hash já existir, mas seguimos o fluxo normalmente.
       const { data: existentes } = await supabase
         .from("documentos_anexos")
-        .select("id, evento_id, tipo, cnpj_extraido, valor_extraido, data_extraida, numero_extraido, metadata")
+        .select("id")
         .eq("arquivo_hash", hash)
         .eq("organization_id", activeOrgId)
         .limit(1);
-      const gemeo = existentes && existentes.length ? existentes[0] : null;
-      if (gemeo && gemeo.evento_id) {
-        atualiza(it.id, {
-          status: "vinculado",
-          hash,
-          mensagem: "Arquivo já cadastrado e vinculado",
-          docId: gemeo.id,
-          eventoId: gemeo.evento_id,
-          dados: {
-            tipo: gemeo.tipo ?? undefined,
-            cnpj: gemeo.cnpj_extraido,
-            valor: gemeo.valor_extraido != null ? Number(gemeo.valor_extraido) : null,
-            data: gemeo.data_extraida,
-            numero: gemeo.numero_extraido,
-          },
-        });
-        return;
+      const ehDuplicata = !!(existentes && existentes.length);
+
+      atualiza(it.id, { mensagem: "extraindo conteúdo" });
+      let texto = "";
+      const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
+      const ehImagem = arquivo.type.startsWith("image/");
+      if (ehPdf) {
+        try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
       }
 
+      atualiza(it.id, { mensagem: "processando documento" });
       let dados: Item["dados"] = {};
-      if (gemeo) {
-        // Reaproveita extração anterior — pula chamada de IA
-        atualiza(it.id, { mensagem: "reaproveitando extração anterior" });
-        dados = {
-          tipo: gemeo.tipo ?? undefined,
-          cnpj: gemeo.cnpj_extraido ?? undefined,
-          valor: gemeo.valor_extraido != null ? Number(gemeo.valor_extraido) : undefined,
-          data: gemeo.data_extraida ?? undefined,
-          numero: gemeo.numero_extraido ?? undefined,
-          descricao:
-            (gemeo.metadata && typeof gemeo.metadata === "object" && "descricao" in gemeo.metadata
-              ? ((gemeo.metadata as Record<string, unknown>).descricao as string | null)
-              : null) ?? undefined,
+      const temTextoUtil = texto.trim().length > 20;
+      if (temTextoUtil || ehImagem) {
+        const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
+          nomeArquivo: arquivo.name,
         };
-      } else {
-        atualiza(it.id, { mensagem: "extraindo conteúdo" });
-        let texto = "";
-        const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
-        const ehImagem = arquivo.type.startsWith("image/");
-        if (ehPdf) {
-          try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
+        if (temTextoUtil) payload.texto = texto;
+        if (ehImagem && !temTextoUtil) {
+          payload.imagemBase64 = await fileToBase64(arquivo);
+          payload.mimeType = arquivo.type || "image/jpeg";
         }
-
-        atualiza(it.id, { mensagem: "processando documento" });
-        const temTextoUtil = texto.trim().length > 20;
-        if (temTextoUtil || ehImagem) {
-          const payload: { texto?: string; imagemBase64?: string; mimeType?: string; nomeArquivo: string } = {
-            nomeArquivo: arquivo.name,
-          };
-          if (temTextoUtil) payload.texto = texto;
-          if (ehImagem && !temTextoUtil) {
-            payload.imagemBase64 = await fileToBase64(arquivo);
-            payload.mimeType = arquivo.type || "image/jpeg";
-          }
-          const r = (await extrair({ data: payload })) as
-            | { ok: true; dados: Item["dados"] }
-            | { ok: false; erro: string };
-          if (r.ok) {
-            dados = r.dados;
-          } else {
-            dados = { descricao: arquivo.name, tipo: "outro" };
-          }
+        const r = (await extrair({ data: payload })) as
+          | { ok: true; dados: Item["dados"] }
+          | { ok: false; erro: string };
+        if (r.ok) {
+          dados = r.dados;
         } else {
           dados = { descricao: arquivo.name, tipo: "outro" };
         }
+      } else {
+        dados = { descricao: arquivo.name, tipo: "outro" };
       }
+
 
 
 
@@ -307,11 +275,11 @@ function CapturaPage() {
       let eventoId = tentarVincular(dados);
       let eventoCriado = false;
 
-      // Se não casou com nenhum evento existente e a extração tem valor mínimo,
-      // criamos um novo evento financeiro automaticamente.
+      // Sempre cria um evento financeiro novo se não casou com nenhum existente,
+      // mesmo sem valor — vai para o painel para revisão manual.
       const valorNum = dados?.valor != null ? Number(dados.valor) : null;
-      const temDadosMinimos = valorNum != null && Number.isFinite(valorNum) && valorNum > 0;
-      if (!eventoId && temDadosMinimos) {
+      const valorValido = valorNum != null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null;
+      if (!eventoId) {
         const fornEncontrado = dados?.cnpj
           ? fornecedores.find(
               (f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""),
@@ -321,8 +289,9 @@ function CapturaPage() {
           ? dados.data.slice(0, 7)
           : mes;
         const categoria = inferirCategoria(dados);
-        const descricao = (dados?.descricao && dados.descricao.trim())
+        const descricaoBase = (dados?.descricao && dados.descricao.trim())
           || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
+        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}` : descricaoBase;
         const evIns = await supabase
           .from("eventos_financeiros")
           .insert({
@@ -331,18 +300,23 @@ function CapturaPage() {
             categoria,
             descricao,
             fornecedor_id: fornEncontrado?.id ?? null,
-            valor_previsto: valorNum,
-            valor_efetivo: valorNum,
+            valor_previsto: valorValido,
+            valor_efetivo: valorValido,
             data_vencimento: dados?.data ?? null,
             data_pagamento: dados?.data ?? null,
             origem: "captura",
-            status_documental: "completo",
+            status_documental: ehDuplicata ? "revisar" : (valorValido ? "completo" : "revisar"),
             metadata: {
               tipo: dados?.tipo ?? null,
               cnpj_extraido: dados?.cnpj ?? null,
               numero_extraido: dados?.numero ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
+              duplicata: ehDuplicata,
+              precisa_revisao: ehDuplicata || !valorValido,
+              motivo_revisao: ehDuplicata
+                ? "Arquivo duplicado — revisar manualmente"
+                : (!valorValido ? "Valor não extraído" : null),
             },
           })
           .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
@@ -353,7 +327,6 @@ function CapturaPage() {
         }
         eventoId = evIns.data.id;
         eventoCriado = true;
-        // Atualiza lista local para próximos itens da fila reaproveitarem o evento.
         setEventos((prev) => [
           ...prev,
           {
@@ -385,10 +358,12 @@ function CapturaPage() {
             descricao: dados?.descricao ?? null,
             storage_path: path,
             bucket: "documentos",
+            duplicata: ehDuplicata,
           },
         })
         .select("id")
         .single();
+
       if (insertRes.error) {
         console.error("[captura] insert documentos_anexos error", insertRes.error, { activeOrgId });
         throw insertRes.error;
@@ -402,17 +377,18 @@ function CapturaPage() {
       }
 
       atualiza(it.id, {
-        status: eventoId ? "vinculado" : "orfao",
+        status: ehDuplicata ? "duplicata" : (eventoId ? "vinculado" : "orfao"),
         hash,
         dados,
         docId: insertRes.data.id,
         eventoId,
-        mensagem: eventoCriado
-          ? "Lançado automaticamente"
-          : eventoId
-            ? "Vinculado a evento existente"
-            : "Sem valor extraído — revisar manualmente",
+        mensagem: ehDuplicata
+          ? "Duplicata lançada no painel para revisão manual"
+          : eventoCriado
+            ? "Lançado automaticamente no painel"
+            : "Vinculado a evento existente",
       });
+
     } catch (e) {
       console.error("[captura] falha ao processar", e);
       atualiza(it.id, {
