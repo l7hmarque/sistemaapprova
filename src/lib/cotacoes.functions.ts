@@ -374,6 +374,7 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
     await sheetsValuesBatchUpdate(copy.id, updates);
 
     await supabase.from("orcamentos_salvos").insert({
+      organization_id: data.organization_id,
       tipo: "mapa_comparativo",
       objeto: cot.objeto,
       termo: cot.termo,
@@ -393,7 +394,8 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
         mapa_drive_file_id: copy.id,
         mapa_drive_file_url: copy.webViewLink,
       })
-      .eq("id", cot.id);
+      .eq("id", cot.id)
+      .eq("organization_id", data.organization_id);
 
     return { fileId: copy.id, url: copy.webViewLink };
   });
