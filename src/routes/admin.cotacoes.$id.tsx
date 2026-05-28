@@ -19,6 +19,7 @@ import {
 } from "@/lib/cotacoes.functions";
 import { listarFornecedores } from "@/lib/fornecedores.functions";
 import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/admin/cotacoes/$id")({
   head: () => ({ meta: [{ title: "Cotação — Approva" }] }),
@@ -29,6 +30,7 @@ type Item = { descricao: string; qtd: number; unidade: string };
 
 function CotacaoDetalhePage() {
   const { id } = Route.useParams();
+  const { activeOrgId } = useActiveOrg();
   const fetchOne = useServerFn(obterCotacao);
   const fetchForn = useServerFn(listarFornecedores);
   const gerarOrc = useServerFn(gerarOrcamentoParaCotacao);
@@ -41,12 +43,14 @@ function CotacaoDetalhePage() {
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cotacao", id],
-    queryFn: () => fetchOne({ data: { id } }),
+    queryKey: ["cotacao", id, activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchOne({ data: { id, organization_id: activeOrgId! } }),
   });
   const { data: fornecedores } = useQuery({
-    queryKey: ["fornecedores"],
-    queryFn: () => fetchForn(),
+    queryKey: ["fornecedores", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchForn({ data: { organization_id: activeOrgId! } }),
   });
 
   const [addForn, setAddForn] = useState<{ open: boolean; fornecedor_id: string | null; precos: number[] }>({
@@ -61,10 +65,12 @@ function CotacaoDetalhePage() {
 
   const mutGerar = useMutation({
     mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
       const f = (fornecedores ?? []).find((x: any) => x.id === addForn.fornecedor_id);
       if (!f) throw new Error("Selecione um fornecedor");
       return gerarOrc({
         data: {
+          organization_id: activeOrgId,
           cotacao_id: id,
           fornecedor: {
             razao: f.razao_social,
@@ -87,7 +93,10 @@ function CotacaoDetalhePage() {
   });
 
   const mutDel = useMutation({
-    mutationFn: (orcId: string) => removerOrc({ data: { id: orcId } }),
+    mutationFn: (orcId: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return removerOrc({ data: { id: orcId, organization_id: activeOrgId } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cotacao", id] });
       toast.success("Orçamento removido");
@@ -96,7 +105,10 @@ function CotacaoDetalhePage() {
   });
 
   const mutMapa = useMutation({
-    mutationFn: () => gerarMapa({ data: { cotacao_id: id, orcamento_ids: mapaSel.ids as [string, string, string] } }),
+    mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return gerarMapa({ data: { organization_id: activeOrgId, cotacao_id: id, orcamento_ids: mapaSel.ids as [string, string, string] } });
+    },
     onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["cotacao", id] });
       toast.success("Mapa comparativo gerado");
@@ -107,9 +119,11 @@ function CotacaoDetalhePage() {
   });
 
   const mutSavePreset = useMutation({
-    mutationFn: () =>
-      savePreset({
+    mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return savePreset({
         data: {
+          organization_id: activeOrgId,
           nome: presetOpen.nome,
           objeto: cot?.objeto ?? null,
           termo: cot?.termo ?? null,
@@ -119,7 +133,8 @@ function CotacaoDetalhePage() {
             return { razao: f?.razao ?? "", cnpj: f?.cnpj ?? "" };
           }).filter((f) => f.cnpj),
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Modelo salvo");
       setPresetOpen({ open: false, nome: "" });
