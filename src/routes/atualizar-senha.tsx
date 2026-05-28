@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,27 @@ function AtualizarSenhaPage() {
   const [senha, setSenha] = useState("");
   const [confirma, setConfirma] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autorizado, setAutorizado] = useState(false);
+  const [verificando, setVerificando] = useState(true);
+
+  // Só permite redefinir senha se a página foi aberta via link de recovery.
+  // O Supabase coloca type=recovery no hash da URL e dispara o evento PASSWORD_RECOVERY.
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const recoveryNoHash = hash.includes("type=recovery");
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setAutorizado(true);
+        setVerificando(false);
+      }
+    });
+    // Fallback: se já houver sessão de recovery (link aberto há pouco)
+    supabase.auth.getSession().then(({ data }) => {
+      if (recoveryNoHash || data.session) setAutorizado(true);
+      setVerificando(false);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +63,14 @@ function AtualizarSenhaPage() {
             </div>
           </div>
 
+          {verificando ? (
+            <div className="text-sm text-muted-foreground">Verificando link…</div>
+          ) : !autorizado ? (
+            <div className="text-sm text-muted-foreground">
+              Link inválido ou expirado. Solicite um novo em
+              <a href="/esqueci-senha" className="ml-1 underline">esqueci-senha</a>.
+            </div>
+          ) : (
           <form onSubmit={submit} className="space-y-3">
             <div>
               <Label className="text-xs">Nova senha</Label>
@@ -70,6 +99,7 @@ function AtualizarSenhaPage() {
               Salvar senha
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>
