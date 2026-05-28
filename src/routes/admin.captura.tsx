@@ -306,11 +306,12 @@ function CapturaPage() {
         mensagem: eventoId ? "Vinculado automaticamente" : "Sem evento correspondente",
       });
     } catch (e) {
-      console.error(e);
+      console.error("[captura] falha ao processar", e);
       atualiza(it.id, {
         status: "erro",
-        mensagem: e instanceof Error ? e.message : "Falha",
+        mensagem: msgErro(e),
       });
+
     }
   }
 
