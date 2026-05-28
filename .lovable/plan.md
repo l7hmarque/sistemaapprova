@@ -1,116 +1,102 @@
-## Objetivo
+# Plano P0 — Pronto pra Lançar
 
-Restaurar o fluxo completo "captura → painel → Despesa.txt (SIT)" que existia no projeto SIT Sync, agora integrado ao Supabase e ao multi-org do projeto atual. Hoje a IA extrai apenas dados genéricos e o painel não tem botão de exportar — o lançamento no SIT está quebrado.
+Escopo fechado: itens 1–18 do diagnóstico, sem Stripe, com Resend, removendo dados hardcoded. Executo em 5 fases, cada fase é um commit testável e reversível.
 
-## 1. Migration — colunas SIT em `eventos_financeiros` e Termo por organização
+---
 
-Adicionar em `public.eventos_financeiros` (todas nullable, para não quebrar dados existentes):
+## Fase 1 — Geração de Despesa.txt válida no TCE-PR (itens 1–6)
 
-- `id_interno text` (≤30 chars, controle/conferência)
-- `data_emissao date` (campo 12 do SIT)
-- `tp_documento_despesa smallint` (campo 9 — Apêndice A item 16)
-- `tp_doc_fav text` (`CPF` | `CNPJ` | `EXT`)
-- `nr_doc_fav text` (campo 7)
-- `nm_favorecido text` (campo 8, ≤250)
-- `nr_documento text` (campo 10, ≤10)
-- `cd_modalidade_compra smallint` (campo 17)
-- `tp_documento_pagamento smallint` (campo 20)
-- `nr_documento_pagamento text` (campo 21, ≤15)
-- `tp_despesa integer` (campo 5 — código REO/Apêndice A item 12)
+**Objetivo:** TXT que o SIT aceita sem rejeição.
 
-Persistir o Termo por organização em `public.configuracoes` na chave `sit_termo` com o JSON:
+- **1.1** Em `src/lib/sit/formatLinha.ts`: cada linha termina com `|`. Adicionar teste unitário comparando com layout oficial campo a campo. EDIT: as linhas das despesas nao terminam com `|` **, terminam sem nada fechando**
+- **1.2** Confirmar separador de data (`/` ou `-`) lendo o manual SIT/TCE-PR vigente; ajustar `formatarData()` conforme; cobrir com teste.
+- **1.3** Validar dígito de CNPJ/CPF em `nrCNPJConcedente`, `nr_doc_fav`, `nr_documento_pagamento`. Helper `validarCnpj()` / `validarCpf()` em `src/lib/sit/validacao.ts`. Alerta no export quando inválido e listar pendência por linha.
+- **1.4** `dtDebito` só preenchido quando `tp_documento_pagamento` = débito em conta; nas demais formas vai vazio.
+- **1.5** `gerarIdInterno` (em `inferCaptura.ts` e na fila de captura) deve ser único por **lote** — incluir índice + hash do arquivo. Adicionar UNIQUE parcial em `eventos_financeiros(organization_id, id_interno)` via migration.
+- **1.6** UI do painel: botão "Validar antes de exportar" que mostra a lista de pendências por evento (CNPJ inválido, campo obrigatório vazio, data fora do mês, etc.) antes de baixar o TXT.
 
-```json
-{
-  "nrCNPJConcedente": "00000000000000",
-  "tpTransferencia": 1,
-  "nrInternoConcedente": "string",
-  "anoTransferencia": 2025
-}
+**Critério de aceite:** `formatLinha.test.ts` passa, export de uma despesa real é aceito em validador SIT offline.
+
+---
+
+## Fase 2 — Segurança multi-tenant e cache (itens 7–10)
+
+**Objetivo:** Tapar vazamentos cross-org.
+
+- **2.1** Reescrever `src/lib/orcamentos.functions.ts` para usar `context.supabase` (vindo de `requireSupabaseAuth`) em todas as queries. Remover o import do client anon. Inserts em `orcamentos_salvos` e `objetos_cotacao` recebem `organization_id` explícito a partir do contexto.
+- **2.2** Defesa em camadas: todas as queries no frontend (`admin.painel.tsx`, `admin.orcamentos.tsx`, `admin.fornecedores.tsx`, etc.) ganham `.eq("organization_id", activeOrgId)` mesmo com RLS no banco.
+- **2.3** Em `src/hooks/use-active-org.tsx`, no `setActiveOrgId` chamar `queryClient.invalidateQueries()` + `queryClient.removeQueries()`. Limpar também `localStorage` de rascunhos (`synsit:rascunho-auto`, fila de captura).
+- **2.4** Adicionar `activeOrgId` ao queryKey de toda query que toca tabela com `organization_id` — convenção: `["cotacoes", orgId]`, `["fornecedores", orgId]`, `["eventos", orgId, mes]`.
+- **2.5** Remover `activeOrg` de `useCurrentUser()`; toda chamada passa a usar `useActiveOrg()`. Fonte única.
+
+**Critério de aceite:** trocar de org no switcher faz cards do painel zerarem e recarregarem; segunda org não vê dados da primeira nem por 1 frame.
+
+---
+
+## Fase 3 — Onboarding, auth e e-mails Resend (itens 11–14, 17)
+
+**Objetivo:** Cliente novo consegue se cadastrar sozinho e operar.
+
+- **3.1** Conectar Resend via connector (pedirei aprovação do usuário com `standard_connectors--connect`). Templates em `src/lib/email/templates/` (boas-vindas, convite, reset, aprovação).
+- **3.2** Server fn `enviarEmail()` em `src/lib/email.functions.ts` usando gateway Resend descrito na knowledge.
+- **3.3** Onboarding pós-signup: trigger SQL `on_auth_user_created` que cria `organizations` (tipo=osc, trial 30d), insere `organization_members` como `owner`, e roda `enviarEmail("boas-vindas")`. Ou — alternativa mais segura — fazer isso numa server fn `finalizarOnboarding()` chamada no primeiro login quando o usuário ainda não tem membership; vou usar **trigger SQL** por ser idempotente e sem race.
+- **3.4** Criar rota `/esqueci-senha` chamando `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin + "/atualizar-senha" })`.
+- **3.5** `/atualizar-senha` valida evento `PASSWORD_RECOVERY` via `onAuthStateChange`; sem isso, redireciona pra `/login`. Página vira pública.
+- **3.6** Convite de membro: tabela `convites_membro (id, organization_id, email, role, token, expira_em, aceito_em)` + server fn `convidarMembro()` que envia e-mail. Rota pública `/aceitar-convite/:token` que pede signup/login e insere `organization_members`.
+- **3.7** `removerConvite` (e `removerConviteMembro`): adicionar verificação `eq("organization_id", current_user_org())` antes do delete.
+
+**Critério de aceite:** fluxo signup → recebe e-mail → loga → vê painel da própria org com trial de 30 dias visível.
+
+---
+
+## Fase 4 — Portal público do fornecedor (item 15)
+
+**Objetivo:** Link `/cotacao/:token` funcional ponta a ponta.
+
+- **4.1** Criar server route `src/routes/api/public/cotacao.$token.ts` com handlers GET (carrega cotação + itens) e POST (salva resposta do fornecedor). Sem auth; valida `token` contra `convites_cotacao`, checa `expira_em` e `status`.
+- **4.2** Usar `supabaseAdmin` no handler, com WHERE estrito por token. Nunca retornar campos sensíveis da org.
+- **4.3** Atualizar `src/routes/cotacao.$token.tsx` para consumir essas rotas (hoje aponta pra endpoint inexistente).
+- **4.4** Rate-limit por IP (5 req/min) via tabela `cotacao_rate_limit` igual ao padrão de `leads_rate_limit`.
+
+**Critério de aceite:** abrir o link em aba anônima carrega o formulário, submeter grava resposta, status do convite vai pra `respondido`.
+
+---
+
+## Fase 5 — Limpeza e bloqueios operacionais (itens 16, 18)
+
+- **5.1** Remover `CATEGORIA_GASTO_BASELINE` (e qualquer dado real) de `src/lib/sit/catalogos.ts`. Mover pra seed da org demo via migration (`INSERT ... WHERE nome = 'Demonstração'`) ou simplesmente apagar se não houver org demo.
+- **5.2** Unificar `favorecidosPadrao.ts` e `inferCaptura.ts` — uma única tabela `favorecidos_padrao` no banco, scopada por org.
+- **5.3** Guard de trial/suspenso: middleware `requireActiveOrg` que bloqueia rotas `/admin/*` quando `organizations.status = 'suspenso'` ou `trial_ate < hoje`. Mostra página "Trial expirado — fale com suporte" (cobrança manual nesta rodada).
+- **5.4** Logout limpa `synsit_interno`, `approva.viewAs.*`, `activeOrgId`, rascunhos.
+
+**Critério de aceite:** repo grep por CNPJs reais retorna zero; org com `trial_ate` no passado não consegue abrir `/admin/painel`.
+
+---
+
+## Migrations (resumo)
+
+```text
+1. UNIQUE INDEX eventos_financeiros (organization_id, id_interno) WHERE id_interno IS NOT NULL
+2. CREATE TABLE convites_membro (...) + RLS + GRANT
+3. CREATE TABLE cotacao_rate_limit (...) + policy deny-all (acessada via admin)
+4. CREATE TABLE favorecidos_padrao (organization_id, cnpj, nome, tp_doc_fav, tp_documento_despesa, ...) + RLS
+5. TRIGGER on_auth_user_created → cria org + membership
+6. Remover/zerar seeds com dados reais
 ```
 
-(usa a tabela `configuracoes` já existente — RLS por organização já está aplicada.)
+## Itens fora desta rodada (anotados pra próxima)
 
-## 2. Atualizar prompt e schema da IA (`src/lib/captura.functions.ts`)
+- Stripe + cobrança automática
+- Dedup de docs na captura, fila de captura persistente em servidor
+- Snapshot único (consolidar painel.tsx + prestacao.tsx)
+- Agenda (hoje placeholder)
+- Tickets de suporte com notificação
+- UI de gestão de roles
+- Disparo real dos alertas configurados
+- Itens P1/P2 (19–43)
 
-Estender `DadosExtraidos` e o SYSTEM prompt para também sugerir a classificação SIT:
+## Ordem de execução
 
-```json
-{
-  "tipo": "...",
-  "cnpj": "...", "razao_social": "...",
-  "valor": 0, "numero": "...",
-  "data_emissao": "AAAA-MM-DD|null",
-  "data_vencimento": "AAAA-MM-DD|null",
-  "data_pagamento": "AAAA-MM-DD|null",
-  "descricao": "≤200 chars",
+Fase 1 → 2 → 3 (com aprovação do Resend connector entre 2 e 3) → 4 → 5. Cada fase é uma sequência de tool calls; paro após cada fase pra você validar antes de seguir, ou toco direto até o fim se preferir.
 
-  "tp_doc_fav": "CNPJ|CPF|EXT|null",
-  "tp_documento_despesa": "código Apêndice A item 16 ou null",
-  "tp_documento_pagamento": "código Apêndice A item 18 ou null",
-  "categoria_sit": "código REO (tpDespesa) sugerido ou null",
-  "cd_modalidade_compra": "código ou null"
-}
-```
-
-Incluir no prompt a tabela resumida dos códigos SIT mais usados (NF=1, Boleto=8, DARF=9, GPS=10, GFIP/GRRF=11/12, Recibo=2, Holerite=4, Fatura=5) e dos tipos de pagamento (Cheque=1, TED/DOC=2, Transferência=3, PIX=4, Débito automático=5, Dinheiro=6).
-
-## 3. Mapeamento na captura (`src/routes/admin.captura.tsx`)
-
-- Preencher os novos campos `tp_documento_despesa`, `tp_doc_fav`, `nr_doc_fav`, `nm_favorecido`, `nr_documento`, `tp_documento_pagamento`, `data_emissao`, `tp_despesa` direto na coluna do evento (não só no `metadata`).
-- Aplicar overrides automáticos de favorecido padrão antes do insert (DARF → CNPJ Min. Fazenda; GPS → FRGPS; GFIP/GRRF/GFD → CAIXA; Sanepar/Copel quando reconhecidos). Reusar o `aplicarFavorecidoPadrao` de `src/lib/extract/favorecidosPadrao.ts`.
-- Substituir `inferirCategoria` (que devolve label) por um mapeamento para código REO; quando a IA não souber, deixar `tp_despesa` null e marcar `status_documental = 'pendente'`.
-- Gerar `id_interno` curto (ex.: `mes_referencia + sequencial`) ≤30 chars.
-
-## 4. Painel — edição dos campos SIT (`src/routes/admin.painel.tsx`)
-
-No diálogo de edição do evento, adicionar inputs nativos (não em metadata) para:
-
-- Nº documento, data emissão, data vencimento, data pagamento (já existem)
-- Tipo doc favorecido (select CPF/CNPJ/EXT)
-- Nº doc favorecido + Nome favorecido
-- Tipo documento despesa (select com Apêndice A item 16)
-- Modalidade de compra (select Apêndice A item 17)
-- Tipo documento pagamento (select Apêndice A item 18) + Nº doc pagamento
-- Tp despesa / código REO (select alimentado pelos catálogos em `src/lib/sit/catalogos.ts`)
-- Descrição (já existe, manter `maxLength={200}`)
-- `id_interno` (opcional, ≤30 chars)
-
-No card, exibir badge "Pronto p/ SIT" quando todos os campos obrigatórios do SIT estiverem preenchidos; senão "Faltam: …".
-
-## 5. Configurações — tela do Termo (`src/routes/admin.configuracoes.organizacao.tsx`)
-
-Adicionar um bloco "Dados do Termo (SIT)" com os 4 campos do Termo, salvando em `configuracoes.sit_termo` da organização ativa. Validar CNPJ (14 dígitos) e ano (4 dígitos).
-
-Aplicar os dados pro CAIA Medianeira que estavam no projeto anterior citado.
-
-## 6. Exportar Despesa.txt no painel
-
-Adicionar botão **"Exportar Despesa.txt"** no header do `admin.painel.tsx`, filtrado pelo `mes_referencia` selecionado. Lógica:
-
-1. Buscar `configuracoes.sit_termo` da org; se ausente → toast "Configure o Termo em Configurações > Organização" e abortar.
-2. Buscar eventos do mês com `data_pagamento` preenchido e `tp_despesa` não-nulo. Eventos incompletos entram em um relatório de pendências exibido antes do download (lista do que falta por evento).
-3. Para cada evento elegível, montar `DespesaInput` e gerar linha via `formatLinhaSIT(termo, despesa)` (reusar `src/lib/sit/formatLinha.ts`).
-4. Concatenar com `\r\n`, codificar com `encodeWin1252` (já existe em `src/lib/sit/ansiEncode.ts`) e disparar download `Despesa-{mes}.txt`.
-
-Nenhuma chamada de servidor é necessária — tudo no cliente, já que `formatLinhaSIT`/`encodeWin1252` são puros e os eventos já vêm via Supabase.
-
-## 7. Limpeza
-
-- Não remover o exportador legado em `src/routes/ferramenta.tsx` (continua funcionando com localStorage para usuários que ainda usam).
-- `documentos_anexos` permanece como hoje (anexos por evento, sem mudança de schema).
-
-## Arquivos afetados
-
-- **migration**: novas colunas em `eventos_financeiros` (apenas `ALTER TABLE … ADD COLUMN`, sem mudar policies).
-- `src/lib/captura.functions.ts` — schema/prompt enriquecidos com campos SIT.
-- `src/routes/admin.captura.tsx` — mapeamento dos novos campos + overrides de favorecido padrão + id_interno.
-- `src/routes/admin.painel.tsx` — diálogo de edição completo + botão "Exportar Despesa.txt" + validação de pendências.
-- `src/routes/admin.configuracoes.organizacao.tsx` — bloco "Dados do Termo (SIT)".
-- (sem mudanças em `src/lib/sit/*` — catálogos, `formatLinhaSIT` e `encodeWin1252` já estão corretos e idênticos ao SIT Sync.)
-
-## Observações
-
-- Como `tp_despesa` agora é coluna, dá pra filtrar/agrupar por código REO no painel no futuro (não faz parte deste plano).
-- O TXT segue 24 campos pipe-separated terminando com `|`, datas DD-MM-AAAA, valor `0.00`, ANSI (Win-1252) — exatamente como no SIT Sync.
-- A migration só adiciona colunas nullable — dados existentes continuam válidos; o usuário completa via diálogo do painel ou re-extração.
+**Pergunta final antes de implementar:** prefere que eu execute **fase por fase com checkpoint** ou **tudo de uma vez** até a Fase 5?
