@@ -249,24 +249,31 @@ function CapturaPage() {
 
 
       atualiza(it.id, { mensagem: "enviando arquivo" });
-      if (!orgId) throw new Error("Organização do usuário não carregada — recarregue a página e tente novamente");
+      if (!activeOrgId) throw new Error("Selecione uma organização ativa antes de processar");
       const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
-      const path = `${orgId}/${hash.slice(0, 16)}-${safeName}`;
+      const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
       const up = await supabase.storage.from("documentos").upload(path, arquivo, {
         upsert: true,
         contentType: arquivo.type || undefined,
       });
-      if (up.error) throw up.error;
-      const { data: pub } = supabase.storage.from("documentos").getPublicUrl(path);
-
+      if (up.error) {
+        console.error("[captura] storage upload error", up.error, { path, activeOrgId });
+        throw up.error;
+      }
+      const { data: signed, error: signedErr } = await supabase
+        .storage
+        .from("documentos")
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      if (signedErr) console.warn("[captura] signed url falhou", signedErr);
 
       const eventoId = tentarVincular(dados);
 
       const insertRes = await supabase
         .from("documentos_anexos")
         .insert({
+          organization_id: activeOrgId,
           tipo: dados?.tipo ?? "outro",
-          arquivo_url: pub.publicUrl,
+          arquivo_url: signed?.signedUrl ?? null,
           arquivo_hash: hash,
           cnpj_extraido: dados?.cnpj ?? null,
           valor_extraido: dados?.valor ?? null,
@@ -277,11 +284,17 @@ function CapturaPage() {
           metadata: {
             nome_original: it.file.name,
             descricao: dados?.descricao ?? null,
+            storage_path: path,
+            bucket: "documentos",
           },
         })
         .select("id")
         .single();
-      if (insertRes.error) throw insertRes.error;
+      if (insertRes.error) {
+        console.error("[captura] insert documentos_anexos error", insertRes.error, { activeOrgId });
+        throw insertRes.error;
+      }
+
 
 
 
