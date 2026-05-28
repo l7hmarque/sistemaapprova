@@ -386,12 +386,16 @@ function CapturaPage() {
         }
 
         // Sempre lança no mês selecionado na captura para aparecer no painel atual.
-        // A data extraída fica preservada em data_vencimento/data_pagamento.
+        // As datas extraídas ficam preservadas em colunas/metadata.
         const mesRef = mes;
         const categoria = inferirCategoria(dados);
-        const descricaoBase = (dados?.descricao && dados.descricao.trim())
-          || (dados?.tipo ? `${dados.tipo} ${dados?.numero ?? ""}`.trim() : it.file.name);
-        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}` : descricaoBase;
+        const descricaoRaw = (dados?.descricao && dados.descricao.trim())
+          || (dados?.tipo ? `${dados.tipo}` : it.file.name);
+        const descricaoBase = descricaoRaw.slice(0, 200);
+        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
+        const dataVenc = dados?.data_vencimento ?? dados?.data_emissao ?? null;
+        const dataPag = dados?.data_pagamento ?? null;
+        const temPagamento = !!dataPag;
         const evIns = await supabase
           .from("eventos_financeiros")
           .insert({
@@ -401,16 +405,20 @@ function CapturaPage() {
             descricao,
             fornecedor_id: fornEncontrado?.id ?? null,
             valor_previsto: valorValido,
-            valor_efetivo: valorValido,
-            data_vencimento: dados?.data ?? null,
-            data_pagamento: dados?.data ?? null,
+            valor_efetivo: temPagamento ? valorValido : null,
+            data_vencimento: dataVenc,
+            data_pagamento: dataPag,
             origem: "captura",
-            status_documental: ehDuplicata ? "revisar" : (valorValido ? "completo" : "revisar"),
+            status_documental: ehDuplicata
+              ? "revisar"
+              : (valorValido && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados?.tipo ?? null,
               cnpj_extraido: dados?.cnpj ?? null,
               razao_social_extraida: dados?.razao_social ?? null,
               numero_extraido: dados?.numero ?? null,
+              data_emissao: dados?.data_emissao ?? null,
+              data_pagamento_extraida: dados?.data_pagamento ?? null,
               nome_arquivo: it.file.name,
               criado_via: "captura",
               duplicata: ehDuplicata,
