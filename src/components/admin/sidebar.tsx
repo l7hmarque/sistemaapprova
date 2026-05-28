@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Crown,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { signOutLimpo } from "@/lib/auth/signOutLimpo";
 import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -45,12 +46,13 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { isSuperAdmin } = useCurrentUser();
   const { role: viewAsRole } = useViewAs();
   const nav = useNavigate();
+  const queryClient = useQueryClient();
 
   // super_admin com view-as != real esconde Analytics como qualquer usuário
   const showAnalytics = isSuperAdmin && viewAsRole === "real";
 
   const sair = async () => {
-    await supabase.auth.signOut();
+    await signOutLimpo(queryClient);
     toast.success("Sessão encerrada");
     nav({ to: "/login", replace: true });
   };
