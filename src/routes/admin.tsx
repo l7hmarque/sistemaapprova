@@ -99,7 +99,9 @@ function AdminLayout() {
           )}
         </header>
         <div className="flex-1 min-w-0">
-          <Outlet />
+          <PlanoGuard>
+            <Outlet />
+          </PlanoGuard>
         </div>
         <AdminTour />
         <Toaster richColors position="top-right" />
