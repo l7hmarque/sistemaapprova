@@ -330,6 +330,9 @@ function PainelPage() {
             </Select>
           </div>
           <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
+          <Button onClick={() => setValidarSITAberto(true)} variant="outline">
+            <AlertCircle className="mr-1 h-4 w-4" /> Validar antes de exportar
+          </Button>
           <Button onClick={exportarSIT} variant="outline">
             <FileDown className="mr-1 h-4 w-4" /> Exportar Despesa.txt
           </Button>
