@@ -140,7 +140,7 @@ export async function reforcarComDeterministico(
     }
 
     // Fase 6: favorecido padrão (DARF/GPS/GFIP/Sanepar/Copel).
-    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida);
+    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida, catalogoFavorecidos);
     if (ajuste.aplicado) {
       const evidenciaPrev = enriquecida.evidencia ? `${enriquecida.evidencia} · ` : "";
       return {
