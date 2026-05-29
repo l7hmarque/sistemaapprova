@@ -86,6 +86,7 @@ function PainelPage() {
   const [dataEmissaoStr, setDataEmissaoStr] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
+  const [validarSITAberto, setValidarSITAberto] = useState(false);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
 
   function parseNum(s: string): number | null {
