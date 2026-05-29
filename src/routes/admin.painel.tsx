@@ -719,6 +719,63 @@ function PainelPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={validarSITAberto} onOpenChange={setValidarSITAberto}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Pré-validação SIT — {mes}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const linhas = filtrados.map((e) => ({ e, pend: pendenciasSIT(e) }));
+            const prontos = linhas.filter((l) => l.pend.length === 0).length;
+            const comPendencia = linhas.filter((l) => l.pend.length > 0);
+            return (
+              <div className="space-y-3">
+                <div className="text-sm">
+                  <strong>{prontos}</strong> de <strong>{linhas.length}</strong> eventos prontos para exportar.{" "}
+                  {comPendencia.length > 0 && (
+                    <span className="text-amber-700 dark:text-amber-400">
+                      {comPendencia.length} com pendências (serão pulados no export).
+                    </span>
+                  )}
+                </div>
+                {comPendencia.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Tudo certo. Pode exportar sem perdas.
+                  </p>
+                ) : (
+                  <div className="max-h-[50vh] overflow-y-auto border rounded-md divide-y">
+                    {comPendencia.map(({ e, pend }) => {
+                      const forn = fornecedores.find((f) => f.id === e.fornecedor_id);
+                      return (
+                        <div key={e.id} className="p-3 text-sm">
+                          <div className="flex justify-between gap-3">
+                            <span className="font-medium truncate">
+                              {forn?.razao_social ?? e.nm_favorecido ?? "—"}
+                            </span>
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              R$ {(e.valor_efetivo ?? e.valor_previsto ?? 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <ul className="mt-1 ml-4 list-disc text-xs text-amber-700 dark:text-amber-400">
+                            {pend.map((p, i) => <li key={i}>{p}</li>)}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setValidarSITAberto(false)}>Fechar</Button>
+            <Button onClick={() => { setValidarSITAberto(false); void exportarSIT(); }}>
+              <FileDown className="mr-1 h-4 w-4" /> Exportar mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
