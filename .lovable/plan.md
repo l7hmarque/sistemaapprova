@@ -1,41 +1,48 @@
-# Bloco 6 — Pendências SIT visíveis no painel
+## Status dos blocos P0
 
-Apenas UI/cliente. Sem migrations, sem alterar captura, sem bloquear fechamento.
+Já entregues nesta rodada:
+1. ✅ SIT: `formatLinha` corrigido + `dtDebito` condicional
+2. ✅ Multi-tenant Fase 1: `orcamentos.functions` + cache reset ao trocar org
+3. ✅ Onboarding: trigger signup, índice único `id_interno`, convites de membro
+4. ✅ E-mails transacionais (Resend) + UI de convites + `/convite/$token`
+5. ✅ Filtros de org em `admin.painel` e `admin.prestacao`
+6. ✅ Validação CNPJ/CPF + `fornecedores` com `organization_id`
+7. ✅ Pendências SIT visíveis no painel (ícone + tooltip)
+8. ✅ Cleanup do `useCurrentUser` (única fonte = `useActiveOrg`)
+9. ✅ Logout limpo (`signOutLimpo`)
+10. ✅ Org scoping em `admin.index` e `admin.modelos`
+11. ✅ Org scoping nas server fns de `objetos`, `cotacoes`, `comprovantes`, `aprovacoes`
 
-## 1. Helper de pendências reutilizável
+## Faltam 3 blocos para fechar o P0
 
-Hoje `pendenciasSIT` vive em `src/lib/sit/inferCaptura.ts` e roda só na geração do TXT. Vamos expô-lo também para o painel.
+### Bloco 12 — Guard de plano (trial expirado / suspenso)
+Hoje `activeOrg.status` e `trial_ate` existem mas ninguém bloqueia. Adicionar:
+- `src/components/admin/PlanoGuard.tsx`: se `status === "suspenso"` ou `status === "cancelado"`, ou `status === "trial"` com `trial_ate < hoje`, mostra tela bloqueante com CTA "Falar com suporte" / "Renovar". Owner ainda vê `Configurações`.
+- Plugar em `src/routes/admin.tsx` (envolve o `<Outlet />`).
+- Sem migration.
 
-- Já existe e funciona — só importar.
-- Recebe: `{ tp_despesa, tp_documento_despesa, tp_doc_fav, nr_doc_fav, nm_favorecido, tp_documento_pagamento, data_pagamento, valor_efetivo }`.
-- Retorna: `string[]` de campos faltantes (ex: `["tp despesa (REO)", "doc favorecido inválido: dígito verificador"]`).
+### Bloco 13 — Unificar `favorecidos_padrao`
+Hoje DARF/GPS/Sanepar/Copel vivem hardcoded em `src/lib/extract/favorecidosPadrao.ts`. Migrar para tabela:
+- Migration: `favorecidos_padrao (id, cnpj, nome, categoria, ativo, criado_em)` — global, sem `organization_id` (é catálogo público).
+- `GRANT SELECT ... TO authenticated`, RLS read-only.
+- Seed com os atuais hardcoded.
+- `aplicarFavorecidoPadrao` passa a consultar o catálogo (cache no client).
+- Tela owner-only `/owner/favorecidos` para CRUD (opcional, nice-to-have).
 
-## 2. Painel — `src/routes/admin.painel.tsx`
+### Bloco 14 — Pré-validação SIT antes de exportar
+- Botão "Validar antes de exportar" no header de `admin.painel`.
+- Modal com tabela: evento × pendências (reusa `pendenciasSIT`).
+- Permite exportar mesmo com pendências (o usuário escolhe pular os incompletos, já é o comportamento atual), mas dá visibilidade prévia.
+- Sem migration, só UI.
 
-Na linha de cada evento, ao lado do `Badge` de `status_documental`:
+## Itens fora do P0 (não fazer agora)
+- Stripe / cobrança automática (usuário pediu cobrança manual)
+- Persistent capture queue, snapshot avançado, agenda, suporte, alertas reais
+- Real-time invitations, role management UI completa
 
-- Calcular `pend = pendenciasSIT(e)` (memoizado por linha).
-- Se `pend.length === 0` → nada extra (silêncio = ok).
-- Se `pend.length > 0` → ícone `AlertCircle` (amber-500, h-3.5) dentro de um `Tooltip` do shadcn com a lista:
-  ```
-  Pendências SIT:
-  • tp despesa (REO)
-  • doc favorecido inválido
-  • tp doc pagamento
-  ```
-- Contador no header da seção: `X de N prontos para SIT` (apenas informativo, ao lado de "Incompletos: …" que já existe).
+## Sugestão de ordem
+Bloco 12 (guard) → Bloco 14 (pré-validação SIT) → Bloco 13 (favorecidos no banco).
 
-## 3. Coerência com captura
+12 e 14 são puramente cliente, baixo risco. 13 envolve migration + seed, melhor por último.
 
-Nada muda no `admin.captura.tsx`: o PDF único continua marcando `status_documental = "completo"`. O ícone de pendência SIT é independente do status documental — um evento pode estar "completo" (PDF anexado) e ainda ter pendências SIT (ex: `tp_despesa` não classificado), e o usuário vê isso explicitamente.
-
-## 4. Fechamento
-
-Sem alteração. O dialog de gerar prestação continua só avisando.
-
-## Arquivos
-
-- `src/lib/sit/inferCaptura.ts` — garantir `export` nomeado de `pendenciasSIT` (já existe).
-- `src/routes/admin.painel.tsx` — importar `pendenciasSIT`, adicionar ícone+tooltip na lista de eventos, contador "prontos para SIT" no header.
-
-Sem migration, sem novas dependências (Tooltip e lucide-react já em uso).
+Confirma essa ordem? Posso começar pelo Bloco 12 assim que aprovar.
