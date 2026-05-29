@@ -14,7 +14,7 @@ import { extrairTextoPorPagina, normalizarTexto } from "./pdfText";
 import { parseNFeAll, type NFeParsed } from "./parsers/nfe";
 import { parseBoletoAll, type BoletoParsed } from "./parsers/boleto";
 import { parseGuiaAll, type GuiaParsed } from "./parsers/guia";
-import { aplicarFavorecidoPadrao } from "./favorecidosPadrao";
+import { aplicarFavorecidoPadrao, carregarFavorecidos } from "./favorecidosPadrao";
 
 export type OrigemCampo =
   | "nfe-chave"
@@ -85,6 +85,8 @@ export async function reforcarComDeterministico(
   const boletoUsado: Used = new Set();
   const guiaUsado: Used = new Set();
 
+  const catalogoFavorecidos = await carregarFavorecidos();
+
   const despesas: DespesaEnriquecida[] = resultadoIA.despesas.map((d) => {
     let enriquecida: DespesaEnriquecida = { ...d, origem: "ia" };
 
@@ -138,7 +140,7 @@ export async function reforcarComDeterministico(
     }
 
     // Fase 6: favorecido padrão (DARF/GPS/GFIP/Sanepar/Copel).
-    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida);
+    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida, catalogoFavorecidos);
     if (ajuste.aplicado) {
       const evidenciaPrev = enriquecida.evidencia ? `${enriquecida.evidencia} · ` : "";
       return {

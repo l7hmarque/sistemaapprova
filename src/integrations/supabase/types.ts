@@ -618,6 +618,42 @@ export type Database = {
           },
         ]
       }
+      favorecidos_padrao: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          categoria: string
+          cnpj: string
+          criado_em: string
+          id: string
+          match_regex: string | null
+          match_subtipo: number | null
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria: string
+          cnpj: string
+          criado_em?: string
+          id?: string
+          match_regex?: string | null
+          match_subtipo?: number | null
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          categoria?: string
+          cnpj?: string
+          criado_em?: string
+          id?: string
+          match_regex?: string | null
+          match_subtipo?: number | null
+          nome?: string
+        }
+        Relationships: []
+      }
       fornecedores: {
         Row: {
           cnpj: string

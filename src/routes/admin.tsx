@@ -9,6 +9,7 @@ import { ViewAsProvider, useViewAs } from "@/hooks/use-view-as";
 import { ActiveOrgProvider, useActiveOrg } from "@/hooks/use-active-org";
 import { OrgSwitcher } from "@/components/admin/OrgSwitcher";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { PlanoGuard } from "@/components/admin/PlanoGuard";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayoutWrapper,
@@ -98,7 +99,9 @@ function AdminLayout() {
           )}
         </header>
         <div className="flex-1 min-w-0">
-          <Outlet />
+          <PlanoGuard>
+            <Outlet />
+          </PlanoGuard>
         </div>
         <AdminTour />
         <Toaster richColors position="top-right" />
