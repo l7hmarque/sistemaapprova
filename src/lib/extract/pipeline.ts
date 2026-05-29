@@ -85,6 +85,8 @@ export async function reforcarComDeterministico(
   const boletoUsado: Used = new Set();
   const guiaUsado: Used = new Set();
 
+  const catalogoFavorecidos = await carregarFavorecidos();
+
   const despesas: DespesaEnriquecida[] = resultadoIA.despesas.map((d) => {
     let enriquecida: DespesaEnriquecida = { ...d, origem: "ia" };
 
