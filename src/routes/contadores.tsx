@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
-import escritorioShot from "@/assets/screens/escritorio.png";
+import escritorioShot from "@/assets/screens/escritorio.webp";
 
 export const Route = createFileRoute("/contadores")({
   head: () => ({

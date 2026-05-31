@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
-import painelShot from "@/assets/screens/painel.png";
-import aprovacoesShot from "@/assets/screens/aprovacoes.png";
+import painelShot from "@/assets/screens/painel.webp";
+import aprovacoesShot from "@/assets/screens/aprovacoes.webp";
 
 export const Route = createFileRoute("/gestores")({
   head: () => ({
