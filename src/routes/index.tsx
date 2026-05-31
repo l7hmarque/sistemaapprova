@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { PlanCards } from "@/components/marketing/PlanCards";
 import { FaqAccordion } from "@/components/marketing/FaqAccordion";
-import previewCaptura from "@/assets/screens/captura.png";
-import previewPrestacao from "@/assets/screens/prestacao.png";
-import previewPainel from "@/assets/screens/painel.png";
+import previewCaptura from "@/assets/screens/captura.webp";
+import previewPrestacao from "@/assets/screens/prestacao.webp";
+import previewPainel from "@/assets/screens/painel.webp";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,7 +19,10 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "https://synsit.lovable.app" + previewPrestacao },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
+    links: [
+      { rel: "canonical", href: "https://sistemaapprova.lovable.app/" },
+      { rel: "preload", as: "image", href: previewPrestacao, fetchPriority: "high" } as any,
+    ],
     scripts: [
       {
         type: "application/ld+json",
