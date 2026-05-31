@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
     ],
     links: [
       { rel: "canonical", href: "https://sistemaapprova.lovable.app/" },
-      { rel: "preload", as: "image", href: previewPrestacao, fetchpriority: "high" },
+      { rel: "preload", as: "image", href: previewPrestacao, fetchPriority: "high" } as any,
     ],
     scripts: [
       {
