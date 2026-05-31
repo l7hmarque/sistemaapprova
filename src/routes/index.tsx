@@ -19,7 +19,10 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "https://synsit.lovable.app" + previewPrestacao },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/" }],
+    links: [
+      { rel: "canonical", href: "https://sistemaapprova.lovable.app/" },
+      { rel: "preload", as: "image", href: previewPrestacao, fetchpriority: "high" },
+    ],
     scripts: [
       {
         type: "application/ld+json",
