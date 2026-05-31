@@ -71,24 +71,30 @@ function isInternalTraffic(): boolean {
   return false;
 }
 
-async function send(evento: string, rota: string, payload: Record<string, unknown> = {}) {
+function send(evento: string, rota: string, payload: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   if (rota.startsWith("/admin") || rota.startsWith("/login") || rota.startsWith("/owner")) return;
   if (isInternalTraffic()) return;
-  try {
-    await registrarEvento({
-      data: {
-        session_id: getOrCreateSid(),
-        rota,
-        evento: evento as "page_view",
-        payload,
-        referrer: document.referrer || null,
-        ...getUtm(),
-      },
-    });
-  } catch {
-    /* swallow — analytics nunca quebra UX */
-  }
+  const dispatch = () => {
+    try {
+      void registrarEvento({
+        data: {
+          session_id: getOrCreateSid(),
+          rota,
+          evento: evento as "page_view",
+          payload,
+          referrer: document.referrer || null,
+          ...getUtm(),
+        },
+      });
+    } catch {
+      /* swallow — analytics nunca quebra UX */
+    }
+  };
+  // Defer to idle to never compete with FCP/LCP
+  const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout: number }) => number);
+  if (ric) ric(dispatch, { timeout: 3000 });
+  else setTimeout(dispatch, 1500);
 }
 
 
