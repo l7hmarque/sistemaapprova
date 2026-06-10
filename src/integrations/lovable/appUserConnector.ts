@@ -16,6 +16,7 @@ export interface AppUserOAuthAuthorizeParams {
   connectorId: string;
   appUserId: string;
   connectorClientId: string;
+  connectorClientSecret?: string;
   returnUrl: string;
   credentialsConfiguration?: Record<string, unknown>;
   responseMode?: "redirect" | "web_message";
@@ -40,6 +41,7 @@ export async function authorizeAppUserOAuth(
       connector_id: params.connectorId,
       app_user_id: params.appUserId,
       connector_client_id: params.connectorClientId,
+      connector_client_secret: params.connectorClientSecret,
       return_url: params.returnUrl,
       credentials_configuration: params.credentialsConfiguration,
       response_mode: params.responseMode,
