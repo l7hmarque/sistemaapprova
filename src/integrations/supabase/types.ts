@@ -701,6 +701,44 @@ export type Database = {
           },
         ]
       }
+      google_connections: {
+        Row: {
+          atualizado_em: string
+          connected_by: string | null
+          connection_api_key: string
+          criado_em: string
+          google_email: string | null
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          connected_by?: string | null
+          connection_api_key: string
+          criado_em?: string
+          google_email?: string | null
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          connected_by?: string | null
+          connection_api_key?: string
+          criado_em?: string
+          google_email?: string | null
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           cargo: string
