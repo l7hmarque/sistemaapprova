@@ -7,7 +7,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
 import { FileText, Users, Package, CalendarClock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 
