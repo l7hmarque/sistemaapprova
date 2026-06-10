@@ -6,9 +6,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
-import { FileText, Users, Package, CalendarClock, HelpCircle } from "lucide-react";
+import { FileText, Users, Package, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startAdminTour } from "@/components/tour/AdminTour";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 
