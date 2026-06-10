@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/sidebar";
-import { AdminTour } from "@/components/tour/AdminTour";
+
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
@@ -103,7 +103,7 @@ function AdminLayout() {
             <Outlet />
           </PlanoGuard>
         </div>
-        <AdminTour />
+        
         <Toaster richColors position="top-right" />
       </main>
     </div>
