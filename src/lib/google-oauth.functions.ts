@@ -26,6 +26,16 @@ function requireClientId(): string {
   return id;
 }
 
+function requireClientSecret(): string {
+  const s = process.env.GOOGLE_APP_USER_CONNECTOR_CLIENT_SECRET;
+  if (!s) {
+    throw new Error(
+      "GOOGLE_APP_USER_CONNECTOR_CLIENT_SECRET não configurado. Cadastre em Configurações → Secrets.",
+    );
+  }
+  return s;
+}
+
 async function currentOrgId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase
     .from("organization_members")
@@ -57,6 +67,7 @@ export const startGoogleDriveOAuth = createServerFn({ method: "POST" })
       connectorId: "google",
       appUserId: userId,
       connectorClientId: requireClientId(),
+      connectorClientSecret: requireClientSecret(),
       returnUrl: data.returnUrl,
       responseMode: "web_message",
       webMessageTargetOrigin: data.targetOrigin,
