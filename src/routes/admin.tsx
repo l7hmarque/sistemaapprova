@@ -103,7 +103,7 @@ function AdminLayout() {
             <Outlet />
           </PlanoGuard>
         </div>
-        <AdminTour />
+        
         <Toaster richColors position="top-right" />
       </main>
     </div>
