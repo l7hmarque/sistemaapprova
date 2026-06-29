@@ -5,7 +5,6 @@ import { supabaseAdmin as supabase } from "@/integrations/supabase/client.server
 import {
   ABA_MAPA,
   driveCopyFile,
-  ensureFolderPath,
   expandirLinhasItens,
   getFirstSheetId,
   MAPA_MODEL,
@@ -13,6 +12,7 @@ import {
   sheetsValuesBatchUpdate,
   TEMPLATE_MAPA_ID,
 } from "./orcamentos.server";
+import { ensureMesFolder } from "./drive-org.server";
 import { criarSheetOrcamentoCotacao, ENTIDADE_DEFAULT } from "./cotacoes.server";
 
 /* ============================ SCHEMAS ============================ */
@@ -49,21 +49,16 @@ const OrgOnly = z.object({ organization_id: z.string().uuid() });
 // ENTIDADE_DEFAULT importado de ./cotacoes.server
 
 
-function pastaDestino(mesRef: string | undefined): string[] {
-  const mes = mesRef && /^\d{4}-\d{2}$/.test(mesRef) ? mesRef : new Date().toISOString().slice(0, 7);
-  return ["Orcamentos SIT", mes];
-}
-
 function sanitizarNome(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
-async function safeFolder(parts: string[]): Promise<string[] | undefined> {
+async function pastaCotacoesMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
   try {
-    const id = await ensureFolderPath(parts);
+    const id = await ensureMesFolder(orgId, "Cotações", mesRef ?? null);
     return id ? [id] : undefined;
   } catch (e) {
-    console.warn("ensureFolderPath falhou:", e);
+    console.warn("ensureMesFolder Cotações falhou:", e);
     return undefined;
   }
 }

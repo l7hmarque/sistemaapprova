@@ -62,6 +62,7 @@ async function safeOrgFolder(orgId: string | undefined, mesRef: string | null | 
 }
 
 export async function criarSheetOrcamentoCotacao(args: {
+  orgId: string;
   cotacao: CotacaoSnapshot;
   fornecedor: FornecedorSnapshot;
   precosUnitarios: number[];
@@ -69,7 +70,7 @@ export async function criarSheetOrcamentoCotacao(args: {
   validadeDias: number;
   modelo?: ModeloAtivo | null;
 }): Promise<{ fileId: string; url: string; nome: string; snapshot: any }> {
-  const { cotacao: cot, fornecedor, precosUnitarios, data, validadeDias, modelo } = args;
+  const { orgId, cotacao: cot, fornecedor, precosUnitarios, data, validadeDias, modelo } = args;
 
   const itens = cot.itens ?? [];
   if (itens.length !== precosUnitarios.length) {
@@ -80,7 +81,7 @@ export async function criarSheetOrcamentoCotacao(args: {
   const aba = modelo?.aba || ABA_ORC;
   const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
 
-  const parents = await safeFolder(pastaDestino(cot.mes_referencia));
+  const parents = await safeOrgFolder(orgId, cot.mes_referencia);
   const nome = sanitizarNome(
     `Orcamento - ${cot.objeto} - ${fornecedor.razao} - ${data || new Date().toLocaleDateString("pt-BR")}`,
   );
