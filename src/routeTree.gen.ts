@@ -54,6 +54,7 @@ import { Route as AdminCotacoesIdRouteImport } from './routes/admin.cotacoes.$id
 import { Route as AdminConfiguracoesOrganizacaoRouteImport } from './routes/admin.configuracoes.organizacao'
 import { Route as AdminConfiguracoesEquipeRouteImport } from './routes/admin.configuracoes.equipe'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
+import { Route as ApiFilesIdPreviewRouteImport } from './routes/api/files.$id.preview'
 import { Route as ApiPublicCotacaoTokenPdfRouteImport } from './routes/api/public/cotacao.$token.pdf'
 
 const TermosRoute = TermosRouteImport.update({
@@ -283,6 +284,11 @@ const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
   path: '/api/public/cotacao/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFilesIdPreviewRoute = ApiFilesIdPreviewRouteImport.update({
+  id: '/api/files/$id/preview',
+  path: '/api/files/$id/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCotacaoTokenPdfRoute =
   ApiPublicCotacaoTokenPdfRouteImport.update({
     id: '/pdf',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
+  '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
+  '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/admin/modelos/ajuda': typeof AdminModelosAjudaRoute
   '/owner/clientes/$id': typeof OwnerClientesIdRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
+  '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -479,6 +488,7 @@ export interface FileRouteTypes {
     | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes/'
+    | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesByTo: FileRoutesByTo
@@ -524,6 +534,7 @@ export interface FileRouteTypes {
     | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes'
+    | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   id:
@@ -572,6 +583,7 @@ export interface FileRouteTypes {
     | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
     | '/admin/configuracoes/'
+    | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesById: FileRoutesById
@@ -598,6 +610,7 @@ export interface RootRouteChildren {
   CotacaoTokenRoute: typeof CotacaoTokenRoute
   ShowcaseScreenRoute: typeof ShowcaseScreenRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
 }
 
@@ -918,6 +931,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCotacaoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/files/$id/preview': {
+      id: '/api/files/$id/preview'
+      path: '/api/files/$id/preview'
+      fullPath: '/api/files/$id/preview'
+      preLoaderRoute: typeof ApiFilesIdPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cotacao/$token/pdf': {
       id: '/api/public/cotacao/$token/pdf'
       path: '/pdf'
@@ -1054,6 +1074,7 @@ const rootRouteChildren: RootRouteChildren = {
   CotacaoTokenRoute: CotacaoTokenRoute,
   ShowcaseScreenRoute: ShowcaseScreenRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
