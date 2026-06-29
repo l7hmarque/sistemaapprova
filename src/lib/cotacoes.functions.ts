@@ -197,6 +197,7 @@ export const gerarOrcamentoParaCotacao = createServerFn({ method: "POST" })
     const modelo = await carregarModeloAtivo("orcamento");
 
     const { fileId, url, nome, snapshot } = await criarSheetOrcamentoCotacao({
+      orgId: data.organization_id,
       cotacao: {
         id: cot.id,
         objeto: cot.objeto,
