@@ -310,7 +310,7 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
     const aba = modelo?.aba || ABA_MAPA;
     const M = { ...MAPA_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(cot.mes_referencia ?? undefined));
+    const parents = await pastaCotacoesMes(data.organization_id, cot.mes_referencia ?? undefined);
     const nome = sanitizarNome(
       `MapaComparativo - ${cot.objeto} - ${new Date().toLocaleDateString("pt-BR")}`,
     );

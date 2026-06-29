@@ -6,7 +6,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { driveCopyFile, ensureFolderPath } from "./orcamentos.server";
+import { driveCopyFile } from "./orcamentos.server";
+import { ensureMesFolder } from "./drive-org.server";
 
 const GDOCS = "https://connector-gateway.lovable.dev/google_docs/v1";
 
