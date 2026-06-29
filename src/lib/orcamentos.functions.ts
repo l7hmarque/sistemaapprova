@@ -5,7 +5,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ABA_MAPA,
   ABA_ORC,
-  ensureFolderPath,
   expandirLinhasItens,
   getFirstSheetId,
   MAPA_MODEL,
@@ -16,6 +15,7 @@ import {
   TEMPLATE_MAPA_ID,
   TEMPLATE_ORCAMENTO_ID,
 } from "./orcamentos.server";
+import { ensureMesFolder } from "./drive-org.server";
 
 /* ============================ SCHEMAS ============================ */
 
@@ -78,15 +78,28 @@ const DadosMapaSchema = z.object({
 
 /* ============================ HELPERS ============================ */
 
-function pastaDestino(mesRef: string | undefined): string[] {
-  const mes = (mesRef && /^\d{4}-\d{2}$/.test(mesRef))
-    ? mesRef
-    : new Date().toISOString().slice(0, 7);
-  return ["Orcamentos SIT", mes];
-}
-
 function sanitizarNome(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+async function pastaOrcamentoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+  try {
+    const id = await ensureMesFolder(orgId, "Orçamentos", mesRef ?? null);
+    return id ? [id] : undefined;
+  } catch (e) {
+    console.warn("ensureMesFolder Orçamentos falhou:", e);
+    return undefined;
+  }
+}
+
+async function pastaCotacaoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+  try {
+    const id = await ensureMesFolder(orgId, "Cotações", mesRef ?? null);
+    return id ? [id] : undefined;
+  } catch (e) {
+    console.warn("ensureMesFolder Cotações falhou:", e);
+    return undefined;
+  }
 }
 
 /* ============================ GERAR ORÇAMENTO ============================ */
