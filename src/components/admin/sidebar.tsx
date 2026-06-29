@@ -14,6 +14,7 @@ import {
   BarChart3,
   ShieldCheck,
   Crown,
+  FolderTree,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { signOutLimpo } from "@/lib/auth/signOutLimpo";
@@ -35,6 +36,7 @@ const ITEMS: Item[] = [
   { to: "/admin/objetos", label: "Objetos", icon: Package, tour: "nav-objetos", module: "objetos" },
   { to: "/admin/modelos", label: "Modelos", icon: FileCog, tour: "nav-modelos", module: "modelos" },
   { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao", module: "prestacao" },
+  { to: "/admin/arquivos", label: "Arquivos", icon: FolderTree, tour: "nav-arquivos", module: "arquivos" },
   { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes", module: "aprovacoes" },
   { to: "/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes", module: "configuracoes" },
