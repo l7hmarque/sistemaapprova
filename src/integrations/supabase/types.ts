@@ -701,44 +701,6 @@ export type Database = {
           },
         ]
       }
-      google_connections: {
-        Row: {
-          atualizado_em: string
-          connected_by: string | null
-          connection_api_key: string
-          criado_em: string
-          google_email: string | null
-          id: string
-          organization_id: string
-        }
-        Insert: {
-          atualizado_em?: string
-          connected_by?: string | null
-          connection_api_key: string
-          criado_em?: string
-          google_email?: string | null
-          id?: string
-          organization_id: string
-        }
-        Update: {
-          atualizado_em?: string
-          connected_by?: string | null
-          connection_api_key?: string
-          criado_em?: string
-          google_email?: string | null
-          id?: string
-          organization_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_connections_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: true
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leads: {
         Row: {
           cargo: string
@@ -1029,6 +991,38 @@ export type Database = {
             foreignKeyName: "orcamentos_salvos_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_drive_folders: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          organization_id: string
+          root_folder_id: string
+          subfolders: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          organization_id: string
+          root_folder_id: string
+          subfolders?: Json
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          organization_id?: string
+          root_folder_id?: string
+          subfolders?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_drive_folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
