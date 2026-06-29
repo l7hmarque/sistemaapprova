@@ -85,13 +85,17 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
     if (error) throw new Error("Erro ao buscar documentos: " + error.message);
     if (!docs || docs.length === 0) throw new Error(`Nenhum documento cadastrado para ${data.mesReferencia}.`);
 
-    // 3) copiar template
-    const parents = await ensureFolderPath(["Prestacao de Contas", data.mesReferencia]).catch(() => undefined);
+    // 3) copiar template para a pasta da org/Prestações/{mes}
+    const { data: orgIdRaw } = await supabase.rpc("current_user_org");
+    const orgId = orgIdRaw as string | null;
+    const parents = orgId
+      ? await ensureMesFolder(orgId, "Prestações", data.mesReferencia).then((id) => [id]).catch(() => undefined)
+      : undefined;
     const nome = `Prestacao de Contas — ${data.mesReferencia}${data.titulo ? ` — ${data.titulo}` : ""}`;
     const copy = await driveCopyFile({
       templateId,
       name: nome,
-      parents: parents ? [parents] : undefined,
+      parents,
     });
 
     // 4) montar texto da lista de documentos e anexar ao fim do template
