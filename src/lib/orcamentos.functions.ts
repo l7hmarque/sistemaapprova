@@ -128,7 +128,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
     const aba = modelo?.aba || ABA_ORC;
     const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(data.mesReferencia));
+    const parents = await pastaOrcamentoMes(orgId, data.mesReferencia);
     const nome = sanitizarNome(
       `Orcamento - ${data.objeto} - ${data.fornecedor.razao} - ${data.data || new Date().toLocaleDateString("pt-BR")}`,
     );
@@ -206,7 +206,7 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     const aba = modelo?.aba || ABA_MAPA;
     const M = { ...MAPA_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(data.mesReferencia));
+    const parents = await pastaCotacaoMes(orgId, data.mesReferencia);
     const nome = sanitizarNome(
       `MapaComparativo - ${data.objeto} - ${new Date().toLocaleDateString("pt-BR")}`,
     );
@@ -278,15 +278,6 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     return { fileId: copy.id, url: copy.webViewLink, nome: copy.name };
   });
 
-async function safeFolder(parts: string[]): Promise<string[] | undefined> {
-  try {
-    const id = await ensureFolderPath(parts);
-    return id ? [id] : undefined;
-  } catch (e) {
-    console.warn("ensureFolderPath falhou, usando raiz do Drive:", e);
-    return undefined;
-  }
-}
 
 async function resolverOrgId(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase.rpc("current_user_org");
