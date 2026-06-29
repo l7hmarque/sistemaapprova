@@ -5,7 +5,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ABA_MAPA,
   ABA_ORC,
-  ensureFolderPath,
   expandirLinhasItens,
   getFirstSheetId,
   MAPA_MODEL,
@@ -16,6 +15,7 @@ import {
   TEMPLATE_MAPA_ID,
   TEMPLATE_ORCAMENTO_ID,
 } from "./orcamentos.server";
+import { ensureMesFolder } from "./drive-org.server";
 
 /* ============================ SCHEMAS ============================ */
 
@@ -78,15 +78,28 @@ const DadosMapaSchema = z.object({
 
 /* ============================ HELPERS ============================ */
 
-function pastaDestino(mesRef: string | undefined): string[] {
-  const mes = (mesRef && /^\d{4}-\d{2}$/.test(mesRef))
-    ? mesRef
-    : new Date().toISOString().slice(0, 7);
-  return ["Orcamentos SIT", mes];
-}
-
 function sanitizarNome(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+async function pastaOrcamentoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+  try {
+    const id = await ensureMesFolder(orgId, "Orçamentos", mesRef ?? null);
+    return id ? [id] : undefined;
+  } catch (e) {
+    console.warn("ensureMesFolder Orçamentos falhou:", e);
+    return undefined;
+  }
+}
+
+async function pastaCotacaoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+  try {
+    const id = await ensureMesFolder(orgId, "Cotações", mesRef ?? null);
+    return id ? [id] : undefined;
+  } catch (e) {
+    console.warn("ensureMesFolder Cotações falhou:", e);
+    return undefined;
+  }
 }
 
 /* ============================ GERAR ORÇAMENTO ============================ */
@@ -115,7 +128,7 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
     const aba = modelo?.aba || ABA_ORC;
     const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(data.mesReferencia));
+    const parents = await pastaOrcamentoMes(orgId, data.mesReferencia);
     const nome = sanitizarNome(
       `Orcamento - ${data.objeto} - ${data.fornecedor.razao} - ${data.data || new Date().toLocaleDateString("pt-BR")}`,
     );
@@ -193,7 +206,7 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     const aba = modelo?.aba || ABA_MAPA;
     const M = { ...MAPA_MODEL, ...(modelo?.params ?? {}) };
 
-    const parents = await safeFolder(pastaDestino(data.mesReferencia));
+    const parents = await pastaCotacaoMes(orgId, data.mesReferencia);
     const nome = sanitizarNome(
       `MapaComparativo - ${data.objeto} - ${new Date().toLocaleDateString("pt-BR")}`,
     );
@@ -265,15 +278,6 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     return { fileId: copy.id, url: copy.webViewLink, nome: copy.name };
   });
 
-async function safeFolder(parts: string[]): Promise<string[] | undefined> {
-  try {
-    const id = await ensureFolderPath(parts);
-    return id ? [id] : undefined;
-  } catch (e) {
-    console.warn("ensureFolderPath falhou, usando raiz do Drive:", e);
-    return undefined;
-  }
-}
 
 async function resolverOrgId(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase.rpc("current_user_org");

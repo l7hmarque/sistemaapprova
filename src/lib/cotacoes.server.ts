@@ -11,12 +11,12 @@ import {
   ORC_MODEL,
   TEMPLATE_ORCAMENTO_ID,
   driveCopyFile,
-  ensureFolderPath,
   expandirLinhasItens,
   getFirstSheetId,
   renameSheet,
   sheetsValuesBatchUpdate,
 } from "./orcamentos.server";
+import { ensureMesFolder } from "./drive-org.server";
 
 export const ENTIDADE_DEFAULT = {
   razao: "Sociedade Civil Nossa Senhora Aparecida",
@@ -46,28 +46,23 @@ export interface ModeloAtivo {
   params: Record<string, unknown>;
 }
 
-function pastaDestino(mesRef: string | null | undefined): string[] {
-  const mes = mesRef && /^\d{4}-\d{2}$/.test(mesRef)
-    ? mesRef
-    : new Date().toISOString().slice(0, 7);
-  return ["Orcamentos SIT", mes];
-}
-
 function sanitizarNome(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
-async function safeFolder(parts: string[]): Promise<string[] | undefined> {
+async function safeOrgFolder(orgId: string | undefined, mesRef: string | null | undefined): Promise<string[] | undefined> {
+  if (!orgId) return undefined;
   try {
-    const id = await ensureFolderPath(parts);
+    const id = await ensureMesFolder(orgId, "Orçamentos", mesRef ?? null);
     return id ? [id] : undefined;
   } catch (e) {
-    console.warn("ensureFolderPath falhou:", e);
+    console.warn("ensureMesFolder (Orçamentos) falhou:", e);
     return undefined;
   }
 }
 
 export async function criarSheetOrcamentoCotacao(args: {
+  orgId: string;
   cotacao: CotacaoSnapshot;
   fornecedor: FornecedorSnapshot;
   precosUnitarios: number[];
@@ -75,7 +70,7 @@ export async function criarSheetOrcamentoCotacao(args: {
   validadeDias: number;
   modelo?: ModeloAtivo | null;
 }): Promise<{ fileId: string; url: string; nome: string; snapshot: any }> {
-  const { cotacao: cot, fornecedor, precosUnitarios, data, validadeDias, modelo } = args;
+  const { orgId, cotacao: cot, fornecedor, precosUnitarios, data, validadeDias, modelo } = args;
 
   const itens = cot.itens ?? [];
   if (itens.length !== precosUnitarios.length) {
@@ -86,7 +81,7 @@ export async function criarSheetOrcamentoCotacao(args: {
   const aba = modelo?.aba || ABA_ORC;
   const M = { ...ORC_MODEL, ...(modelo?.params ?? {}) };
 
-  const parents = await safeFolder(pastaDestino(cot.mes_referencia));
+  const parents = await safeOrgFolder(orgId, cot.mes_referencia);
   const nome = sanitizarNome(
     `Orcamento - ${cot.objeto} - ${fornecedor.razao} - ${data || new Date().toLocaleDateString("pt-BR")}`,
   );

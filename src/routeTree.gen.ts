@@ -44,6 +44,7 @@ import { Route as AdminModelosRouteImport } from './routes/admin.modelos'
 import { Route as AdminFornecedoresRouteImport } from './routes/admin.fornecedores'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCapturaRouteImport } from './routes/admin.captura'
+import { Route as AdminArquivosRouteImport } from './routes/admin.arquivos'
 import { Route as AdminAprovacoesRouteImport } from './routes/admin.aprovacoes'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAgendaRouteImport } from './routes/admin.agenda'
@@ -232,6 +233,11 @@ const AdminCapturaRoute = AdminCapturaRouteImport.update({
   path: '/captura',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminArquivosRoute = AdminArquivosRouteImport.update({
+  id: '/arquivos',
+  path: '/arquivos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAprovacoesRoute = AdminAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
+  '/admin/arquivos': typeof AdminArquivosRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
+  '/admin/arquivos': typeof AdminArquivosRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/fornecedores': typeof AdminFornecedoresRoute
   '/admin/modelos': typeof AdminModelosRouteWithChildren
@@ -411,6 +419,7 @@ export interface FileRoutesById {
   '/admin/agenda': typeof AdminAgendaRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/aprovacoes': typeof AdminAprovacoesRoute
+  '/admin/arquivos': typeof AdminArquivosRoute
   '/admin/captura': typeof AdminCapturaRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/fornecedores': typeof AdminFornecedoresRoute
@@ -462,6 +471,7 @@ export interface FileRouteTypes {
     | '/admin/agenda'
     | '/admin/analytics'
     | '/admin/aprovacoes'
+    | '/admin/arquivos'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/admin/agenda'
     | '/admin/analytics'
     | '/admin/aprovacoes'
+    | '/admin/arquivos'
     | '/admin/captura'
     | '/admin/fornecedores'
     | '/admin/modelos'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/admin/agenda'
     | '/admin/analytics'
     | '/admin/aprovacoes'
+    | '/admin/arquivos'
     | '/admin/captura'
     | '/admin/configuracoes'
     | '/admin/fornecedores'
@@ -861,6 +873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCapturaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/arquivos': {
+      id: '/admin/arquivos'
+      path: '/arquivos'
+      fullPath: '/admin/arquivos'
+      preLoaderRoute: typeof AdminArquivosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/aprovacoes': {
       id: '/admin/aprovacoes'
       path: '/aprovacoes'
@@ -979,6 +998,7 @@ interface AdminRouteChildren {
   AdminAgendaRoute: typeof AdminAgendaRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAprovacoesRoute: typeof AdminAprovacoesRoute
+  AdminArquivosRoute: typeof AdminArquivosRoute
   AdminCapturaRoute: typeof AdminCapturaRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminFornecedoresRoute: typeof AdminFornecedoresRoute
@@ -996,6 +1016,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAgendaRoute: AdminAgendaRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAprovacoesRoute: AdminAprovacoesRoute,
+  AdminArquivosRoute: AdminArquivosRoute,
   AdminCapturaRoute: AdminCapturaRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminFornecedoresRoute: AdminFornecedoresRoute,

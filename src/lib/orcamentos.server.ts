@@ -60,37 +60,7 @@ export async function driveCopyFile(args: {
   return { id: data.id, name: data.name, webViewLink: data.webViewLink };
 }
 
-/** Garante a pasta "Orcamentos SIT/{AAAA-MM}" no Drive do dono da conexão. */
-export async function ensureFolderPath(parts: string[]): Promise<string | undefined> {
-  let parent: string | undefined = undefined;
-  for (const name of parts) {
-    const q = encodeURIComponent(
-      `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${name.replace(/'/g, "\\'")}'` +
-        (parent ? ` and '${parent}' in parents` : ""),
-    );
-    const res = await fetch(`${DRIVE}/files?q=${q}&fields=files(id,name)&pageSize=10`, {
-      headers: driveHeaders(),
-    });
-    const data = await jsonOrThrow(res, "drive.files.list");
-    const found = (data.files ?? [])[0];
-    if (found) {
-      parent = found.id;
-      continue;
-    }
-    const create = await fetch(`${DRIVE}/files?fields=id`, {
-      method: "POST",
-      headers: { ...driveHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        mimeType: "application/vnd.google-apps.folder",
-        parents: parent ? [parent] : undefined,
-      }),
-    });
-    const created = await jsonOrThrow(create, "drive.files.create(folder)");
-    parent = created.id;
-  }
-  return parent;
-}
+// Folder pathing now lives in drive-org.server.ts (multi-tenant per organization).
 
 /* ============================ SHEETS ============================ */
 

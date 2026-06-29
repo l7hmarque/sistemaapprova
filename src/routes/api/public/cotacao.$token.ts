@@ -128,6 +128,7 @@ export const Route = createFileRoute("/api/public/cotacao/$token")({
         let sheet: { fileId: string; url: string; nome: string; snapshot: any };
         try {
           sheet = await criarSheetOrcamentoCotacao({
+            orgId: (cot as any).organization_id,
             cotacao: {
               id: cot.id,
               objeto: cot.objeto,
