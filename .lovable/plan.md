@@ -1,101 +1,203 @@
-# Plano: Drive multi-tenant com conta master única
+# Diagnóstico Approva — estado atual e caminho até o lançamento
 
-## Contexto da sua escolha
+Este é um documento de análise (não há código a implementar até você aprovar os próximos passos). Ao final há um roteiro priorizado.
 
-- **Conta master**: Gmail comum (a que já está conectada como `google_drive` no connector do Leonardo). Não há "Shared Drive" — tudo fica no "Meu Drive" dessa conta.
-- **Acesso dos clientes**: 100% dentro do Approva. Cliente não loga no Google, não enxerga a pasta no Drive dele, não recebe e-mail de compartilhamento. O Approva é o front; o Drive é só storage.
-- **Multi-tenant hoje**: já está pronto. Existem as tabelas `organizations` + `organization_members` (+ `parent_organization_id` para escritório → clientes). Hoje só há 1 OSC cadastrada ("CAIA Medianeira"), mas o modelo já suporta N.
+## 1. O que o produto entrega hoje
 
-## Como o Approva fica multi-tenant no Drive
+**Objetivo central:** centralizar a vida financeira/documental de OSCs e escritórios contábeis que prestam contas no SIT-TCE/PR, automatizando captura de notas, organização no Drive e geração do `Despesa.txt`.
+
+**Módulos ativos no /admin:**
+
+- Dashboard (OSC e visão Escritório com múltiplas orgs)
+- Painel Financeiro (eventos, edição, validação SIT, export `.txt`)
+- Captura (IA lê PDF de NF/boleto/comprovante e cria evento)
+- Orçamentos, Fornecedores, Objetos, Modelos
+- Prestação (snapshot mensal) + Aprovações
+- Agenda, Arquivos (browser do Drive da organização)
+- Configurações (organização, equipe + convites, dados do termo SIT)
+- Setup wizard (cria estrutura de pastas no Drive master)
+- Área `/owner` para super_admin: clientes, financeiro, suporte, analytics
+
+**Marketing/público:** home, contadores, gestores, demonstração, ferramenta, blog, cotação pública por token, convite por token, recuperação de senha.
+
+**Backend:** 26 tabelas com RLS por `organization_id`, trigger `handle_new_user` cria org+owner no signup, `has_role`/`user_roles` para super_admin, Resend para e-mails, Drive master multi-tenant com proxy em `/api/files/$id/preview`.
+
+## 2. Atendimento aos objetivos
+
+
+| Objetivo declarado                                 | Status                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| Captura automática de NF/boleto + comprovante      | ✅ funcional, com inferência SIT                                        |
+| Geração do Despesa.txt válido para SIT             | ✅ com validação CNPJ/CPF e modal de pendências                         |
+| Multi-tenant isolado (OSC + escritório com filhas) | ✅ RLS + `user_orgs()` + OrgSwitcher                                    |
+| Drive organizado por org/mês sem OAuth por usuário | ✅ master account + subpastas idempotentes                              |
+| Onboarding self-service                            | ⚠️ funciona, mas wizard ainda enxuto e sem checklist pós-setup         |
+| Cobrança / planos                                  | ❌ apenas `plano`/`status`/`trial_ate` no banco; sem fluxo de pagamento |
+| E-mails transacionais (convite, recuperação)       | ✅ Resend conectado                                                     |
+| Portal do fornecedor                               | ⚠️ só cotação pública por token, sem "área do fornecedor"              |
+
+
+**Veredicto:** o núcleo (captura → painel → SIT → prestação) atende o objetivo. Periferia comercial (billing, comunicação com lead, suporte in-app) ainda é frágil.
+
+## 3. Fluxo mensal típico do usuário (OSC)
 
 ```text
-Drive da conta master (Leonardo)
-└── Approva/
-    ├── org-7dd6.../              ← CAIA Medianeira (id da organization)
-    │   ├── Orçamentos/
-    │   ├── Cotações/
-    │   ├── Prestações/
-    │   └── Documentos/
-    ├── org-abcd.../              ← próxima OSC
-    │   └── ...
-    └── _internal/                 ← templates compartilhados (já existem)
+Dia 1-25 do mês
+  1. Recebe NFs/boletos/comprovantes por email/whatsapp
+  2. /admin/captura  → upload do PDF (1 ou vários)
+        IA extrai fornecedor, valores, datas, doc, comprovante de pagto
+        Cria evento em eventos_financeiros com sugestão de categoria SIT
+        Arquivo vai pro Drive: Approva/<org>/Documentos/<AAAA-MM>/
+
+Dia 25-30
+  3. /admin/painel?mes=AAAA-MM
+        Revisa cards, edita campos faltantes (categoria REO, tp_doc, modalidade)
+        Botão "Validar antes de exportar" → modal de pendências
+        Botão "Exportar Despesa.txt" → arquivo Win-1252 pronto pro SIT
+  4. /admin/prestacao
+        "Fechar mês" gera snapshot e PDF na pasta Prestações/<AAAA-MM>
+  5. /admin/aprovacoes (se houver workflow interno)
 ```
 
-**Isolamento**: cada server function que cria/lista arquivos descobre a `organization_id` atual do usuário (via `current_user_org()` que já existe), resolve o `root_folder_id` daquela OSC e força `parents: [folderIdDaOrg]`. Cliente da OSC A nunca recebe um `fileId` da OSC B porque o backend só lista o que está dentro da pasta da OSC dele. RLS do Supabase já bloqueia ler `organization_id` de outro tenant.
+**Fluxo do Escritório contábil:** OrgSwitcher → entra na org-filha → executa o mesmo loop; dashboard `EscritorioDashboard` mostra agregado.
 
-## O que muda no código
+## 4. Riscos de erro humano / lógica
 
-### 1. Remover fluxo OAuth por usuário (caminho abandonado)
+### 4.1 Riscos altos (recomendo corrigir antes do lançamento)
 
-- Excluir `src/lib/google-oauth.functions.ts` (start/save/get/disconnect/setupDriveStructure).
-- Excluir `src/integrations/lovable/appUserConnector*.ts` se não tiver outro uso.
-- Excluir os secrets `GOOGLE_APP_USER_CONNECTOR_CLIENT_ID` e `..._SECRET`.
-- Migration: `drop table public.google_connections`.
-- Remover botão "Conectar Google Drive" da tela de configurações/wizard e qualquer rota que dependa dele.
+1. **Edição de valores numéricos no painel.** O painel usa strings locais (`valorPrevStr`, `valorEfetStr`) para evitar perder o ponto decimal — bom — mas não há máscara R$ nem validação de mês_referencia ao salvar. Usuário pode salvar `mes_referencia` mexido manualmente; existe `validar_evento_financeiro` no DB que protege, porém o erro só aparece como toast genérico.
+2. `**current_user_org()` retorna a org mais antiga.** Várias `*.functions.ts` (ex.: `arquivos.functions.ts`) usam `current_user_org()` em vez do `activeOrgId` enviado do front. Para um usuário com múltiplas orgs (escritório), o servidor pode escrever/ler na org errada, mesmo com o switcher na UI mostrando outra.
+3. `**id_interno` único por (org, id_interno)** já tem índice, mas o gerador adiciona sufixo aleatório — pode dificultar conciliação manual quando o contador tenta reemitir.
+4. **Captura via IA sem fallback determinístico visível.** Quando o gateway de IA falha, o evento entra como rascunho sem aviso claro. Não há fila de "captura com erro" no painel.
+5. **Sem trava em "Fechar mês".** Após gerar snapshot, eventos ainda são editáveis — pode descasar o `Despesa.txt` já entregue do que está no banco.
+6. **Cache do React Query x troca de org.** `useActiveOrg` faz `removeQueries`, mas alguns `useEffect` antigos (admin.index, admin.painel) leem `supabase` direto sem queryKey — após troca rápida pode mostrar dados da org anterior por um frame.
 
-### 2. Nova tabela `organization_drive_folders`
+### 4.2 Riscos médios
 
-```sql
-create table public.organization_drive_folders (
-  organization_id uuid primary key references public.organizations(id) on delete cascade,
-  root_folder_id text not null,
-  subfolders jsonb not null default '{}'::jsonb,  -- {"Orçamentos":"id","Cotações":"id",...}
-  criado_em timestamptz default now(),
-  atualizado_em timestamptz default now()
-);
--- + GRANTs, RLS (select para membros da org via has_role/user_orgs), trigger touch
-```
+7. Convite por e-mail: não há expiração visível no UI nem reenvio.
+8. `PlanoGuard` bloqueia trial expirado, mas não há tela de "renovar/pagar" — usuário fica preso.
+9. `useCurrentUser` faz 2 queries (memberships + roles) sem `staleTime`; refetch a cada foco.
+10. Captura armazena o `pdfText` em `metadata` — pode estourar tamanho de linha em PDFs grandes.
+11. `eventos_financeiros` não tem soft-delete; exclusão do painel é destrutiva e sem audit-log granular (a tabela `audit_log` existe mas não é populada pelas funções de captura/painel).
+12. Domínio de e-mail Resend: se não houver domínio verificado, convites podem cair em spam.
 
-### 3. Helper `ensureOrgFolders(orgId)` em `src/lib/drive-org.server.ts`
+### 4.3 Riscos baixos / cosméticos
 
-Idempotente. Se a row existir, devolve. Se não:
+- Sidebar ainda tem `tour:` props mortas após remoção do tour.
+- `CATEGORIAS` no painel não conversa com `CATEGORIAS_REO` do SIT (lista duplicada → divergência conceitual).
+- `admin.setup` não detecta se a estrutura já existe e re-roda silenciosamente (idempotente, mas sem feedback de "tudo certo").
+- Várias rotas marketing têm `head()` semelhante — OG-image só na raiz.
 
-- procura/cria `Approva/` no root da conta master;
-- procura/cria subpasta `{orgId}` dentro de `Approva/`;
-- cria as 4 subpastas padrão;
-- grava em `organization_drive_folders` e retorna os ids.
+## 5. Qualidade das queries
 
-Chamado on-demand pela primeira ação que precisar (gerar orçamento, subir documento, etc). Sem wizard.
+- **RLS:** todas as 26 tabelas têm policies; nenhuma tabela aberta a `anon` indevida (validado pelo padrão `user_orgs()`/`has_role`).
+- **N+1 potencial:** `EscritorioDashboard` lista filhas e faz uma query por filha (verificar — se >10 filhas vira lento). Migrar para `IN (...)` agregado.
+- **Falta índice provável:** `eventos_financeiros(organization_id, mes_referencia)` e `documentos_anexos(organization_id, criado_em DESC)` — checar `EXPLAIN`. Em dataset pequeno (2 eventos hoje) não dói, mas com 5k linhas/cliente vai.
+- **Funções definers OK:** `current_user_org`, `user_orgs`, `has_role` todas com `SET search_path = public` (boa prática).
+- **Mistura de leitura:** alguns módulos (painel/index) usam `supabase` no client, outros usam serverFn — inconsistente. Para listas pesadas (eventos com joins) compensa mover pro server com `requireSupabaseAuth`.
 
-### 4. Adaptar geradores existentes
+## 6. Caminho até o lançamento (polimento priorizado)
 
-- `src/lib/orcamentos.server.ts` e `src/lib/cotacoes.server.ts`: trocar `ensureFolderPath(["Orcamentos SIT", mesRef])` por `ensureOrgFolders(orgId).subfolders["Orçamentos"]` ou `["Cotações"]`. Mês vira subpasta filha dessa: `Orçamentos/{AAAA-MM}/`.
-- Toda chamada que hoje usa `parents: undefined` passa a usar a pasta da org. Garante isolamento mesmo se um bug listar do Drive — não há nada "solto" no root.
+### Sprint A — Confiabilidade do núcleo (1 semana)
 
-### 5. Visualização dos arquivos dentro do Approva
+A
 
-Novo módulo `/admin/arquivos` (e seções equivalentes em Orçamentos/Cotações/Prestações):
+1. Servir `activeOrgId` em todas as `*.functions.ts` (parar de usar `current_user_org()` quando o cliente sabe a org).
 
-- Server function `listarArquivosDaOrg({ subpasta?, mes? })` → chama `GET /drive/v3/files?q='{folderId}' in parents and trashed=false`.
-- Server route público autenticado `/api/files/$id/preview` que faz proxy do `GET /drive/v3/files/{id}?alt=media` (ou `export?mimeType=application/pdf` para Google Docs/Sheets) usando a connection key da conta master. Verifica primeiro que o `fileId` pertence a uma pasta da org do usuário antes de devolver bytes.
-- UI: lista com nome/tipo/data + preview embedado (iframe servindo o proxy, ou `<embed>` para PDF).
+A
 
-Cliente nunca recebe `webViewLink` direto do Drive → não há vazamento de URL pública.
+2. "Fechar mês" trava edição dos eventos do mês (campo `mes_fechado_em` em `eventos_financeiros` ou flag em `prestacoes_snapshot`).
 
-### 6. Aviso de quota
+A
 
-Banner em Configurações: "Storage: X de 15 GB usados". Server function chama `GET /drive/v3/about?fields=storageQuota`. Se passar de 12 GB, alerta. Documentar que upgrade para Workspace é recomendado quando passar de ~5 OSCs ativas.
+3. Popular `audit_log` em todo INSERT/UPDATE/DELETE de eventos e documentos (trigger genérico).
 
-## Riscos que você precisa saber
+A
 
-1. **Quota 15 GB é compartilhada com o Gmail/Fotos do Leonardo.** Recomendo dedicar uma conta Google nova só para o Approva (`approva.storage@gmail.com`) e reconectar o connector com ela. Faço a troca como primeira etapa se você concordar.
-2. **Conta master é ponto único de falha.** Se a senha for comprometida, todos os clientes vazam. Ativar 2FA obrigatório e nunca usar essa conta para mais nada.
-3. **Sem audit trail do Google por cliente.** O Drive vê tudo como "Leonardo modificou". O audit por cliente fica só no `audit_log` do Supabase — já existe a tabela, vamos passar a gravar nela toda ação de arquivo.
-4. **Limite de 750 GB/dia de upload** por conta (Google). Improvável atingir, mas existe.
-5. `**drive.file` scope vs `drive` scope**: o connector atual usa `drive.file` (só vê o que ele mesmo criou). Isso é bom para isolamento, mas se algum dia precisar enxergar arquivos pré-existentes no Drive, precisa reconectar com escopo `drive`.
+4. Estado de erro de captura: nova coluna `captura_status` ('ok' | 'erro' | 'parcial') + filtro no painel "Captura com erro".
 
-## Ordem de implementação
+A
 
-1. (Opcional, recomendado) Você cria conta Google nova dedicada → me avisa → reconecto o connector `google_drive` com ela.
-2. Migration: tabela `organization_drive_folders` + drop `google_connections`.
-3. Helper `drive-org.server.ts` + `ensureOrgFolders`.
-4. Refatorar `orcamentos.server.ts` / `cotacoes.server.ts` para usar pasta da org.
-5. Remover código OAuth por usuário e secrets.
-6. Módulo `/admin/arquivos` + server route de proxy.
-7. Banner de quota.
+5. Máscara monetária BR (R$) no painel e validação de `mes_referencia` antes de PATCH.
 
-## Decisões pendentes antes de implementar
+### Sprint B — Onboarding e cobrança mínima (1 semana)
 
-- (a) Usa conta Google nova dedicada ou mantém o Gmail atual do Leonardo? Mantem por enquanto
-- (b) Subpastas por mês dentro de Orçamentos/Cotações/Prestações (recomendado) ou tudo direto na raiz da seção? Subpastas
-- (c) Quer já implementar o módulo `/admin/arquivos` com preview no app nesta leva, ou só a parte de isolamento + geração (mais rápido) e o visualizador fica em uma segunda etapa? Implementa ja
+B
+
+1. Tela `/admin/plano`: mostra status, dias restantes do trial, CTA "Falar com vendas" (cobrança manual por enquanto, como decidido).
+
+B
+
+2. Wizard pós-setup: checklist (Drive ✅, fornecedores cadastrados, dados do termo SIT preenchidos, primeira captura).
+
+B
+
+3. Reenvio/expiração visível de convites + verificação de domínio Resend.
+
+B
+
+4. Tela "Trial expirado" amigável (não só PlanoGuard cinza).
+
+### Sprint C — Performance e observabilidade (3-4 dias)
+
+C
+
+1. Índices: `eventos_financeiros(organization_id, mes_referencia)`, `documentos_anexos(organization_id, criado_em DESC)`, `audit_log(organization_id, criado_em DESC)`.
+
+C
+
+2. `EscritorioDashboard` em uma única query agregada.
+
+C
+
+3. `staleTime` razoável em `useCurrentUser` e `useActiveOrg`.
+
+C
+
+4. Sentry/logflare ou ao menos `error-capture.ts` enviando pro `audit_log` em produção.
+
+### Sprint D — Acabamento (3-4 dias)
+
+D
+
+1. Unificar `CATEGORIAS` do painel com `CATEGORIAS_REO` do SIT (uma única fonte).
+
+D
+
+2. Limpar props `tour` mortas na sidebar e código deletado.
+
+D
+
+3. OG-images por rota leaf no marketing; sitemap.xml revisado.
+
+D
+
+4. Testes E2E mínimos (Playwright): login → captura → editar → exportar TXT → fechar mês.
+
+D
+
+5. Página `/status` simples (Drive ok, Resend ok, IA ok) para suporte.
+
+### Sprint E — Pré-venda (paralelo)
+
+E
+
+1. Domínio próprio + e-mail (`@sistemaapprova.com.br`) verificado no Resend.
+
+E
+
+2. Política de privacidade e termos revisados (já existem rotas).
+
+E
+
+3. Vídeo curto da demonstração + um caso real com dados anonimizados.
+
+## 7. Perguntas que ainda preciso responder para fechar o roteiro
+
+- **Cobrança no MVP:** confirma manual (boleto/PIX fora do app) ou já quer Stripe/Pagar.me em D-day? manual
+- **Travamento de mês fechado:** total (nada edita) ou só admin/owner pode reabrir? admin e owner podem abrir
+- **Audit log:** registrar apenas eventos financeiros e documentos, ou todo o CRUD (fornecedores, modelos, convites)? todo crud
+- **Multi-org rápido:** confirma que `activeOrgId` deve ser passado do front em TODA serverFn (sim, recomendo) e aposentar `current_user_org()` como fallback? sim
+- **Lançamento beta:** quer abrir com convites manuais (você cria orgs no /owner) ou self-service público desde o dia 1? abrir com convites manuais
+
+Responda essas 5 e eu volto com o plano executável das Sprints A–E em ordem.
