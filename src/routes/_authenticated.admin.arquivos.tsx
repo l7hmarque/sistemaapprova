@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink } from "lucide-react";
-import { listarArquivosDaOrg, getDriveQuota } from "@/lib/arquivos.functions";
+import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink, CloudUpload, AlertTriangle } from "lucide-react";
+import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
