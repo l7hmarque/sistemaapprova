@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarCNPJ, validarCPF } from "@/lib/sit/validarDoc";
+import { RegrasSitSchema } from "@/lib/sit/regrasSitSchema";
 
 const FornecedorSchema = z.object({
   id: z.string().uuid().optional(),
@@ -19,6 +20,7 @@ const FornecedorSchema = z.object({
   email: z.string().email().max(255).nullish().or(z.literal("")),
   telefone: z.string().max(40).nullish(),
   endereco: z.string().max(500).nullish(),
+  regras_sit: RegrasSitSchema.optional(),
 });
 
 export const listarFornecedores = createServerFn({ method: "GET" })
