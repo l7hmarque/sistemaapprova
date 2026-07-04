@@ -147,11 +147,22 @@ export function aplicarOverrideFavorecido(input: {
   nr_doc_fav: string | null;
   nm_favorecido: string | null;
   razao_social_ia?: string | null;
+  /** Regras SIT do fornecedor (JSONB). Precedência máxima. */
+  regras_sit?: RegrasSit | Record<string, unknown> | null;
 }): {
   tp_doc_fav: "CPF" | "CNPJ" | "EXT" | null;
   nr_doc_fav: string | null;
   nm_favorecido: string | null;
 } {
+  // 0) regras_sit do fornecedor têm precedência máxima
+  const regras = parseRegrasSit(input.regras_sit ?? {});
+  if (regras.tp_doc_fav || regras.nm_favorecido_override) {
+    return {
+      tp_doc_fav: regras.tp_doc_fav ?? input.tp_doc_fav,
+      nr_doc_fav: input.nr_doc_fav,
+      nm_favorecido: regras.nm_favorecido_override ?? input.nm_favorecido,
+    };
+  }
   // 1) override por tipo de documento (DARF/GPS/GFIP/GRRF/GFD)
   if (input.tp_documento_despesa != null && FAVORECIDO_OVERRIDES[input.tp_documento_despesa]) {
     const o = FAVORECIDO_OVERRIDES[input.tp_documento_despesa];
@@ -168,6 +179,46 @@ export function aplicarOverrideFavorecido(input: {
     tp_doc_fav: input.tp_doc_fav,
     nr_doc_fav: input.nr_doc_fav,
     nm_favorecido: input.nm_favorecido,
+  };
+}
+
+/**
+ * Resolve todos os campos SIT combinando regras_sit do fornecedor (precedência
+ * máxima) com a inferência baseada em código. `regras_sit` vem direto da coluna
+ * JSONB `fornecedores.regras_sit`.
+ */
+export function resolverCamposSIT(input: {
+  regras_sit?: RegrasSit | Record<string, unknown> | null;
+  tipo?: string | null;
+  descricao?: string | null;
+  forma_pagamento?: string | null;
+  cnpj_favorecido?: string | null;
+  nm_favorecido?: string | null;
+  razao_social_ia?: string | null;
+}): CamposSIT {
+  const regras = parseRegrasSit(input.regras_sit ?? {});
+  const tpDocDespesa = regras.tp_documento_despesa ?? inferirTpDocDespesa(input.tipo, input.descricao);
+  const tpDocPag = regras.tp_documento_pagamento
+    ?? inferirTpDocPagamento(`${input.forma_pagamento ?? ""} ${input.descricao ?? ""}`);
+  const tpDespesa = regras.tp_despesa ?? inferirTpDespesa(input.descricao, input.tipo);
+  const tpDocFavInicial = regras.tp_doc_fav ?? inferirTpDocFav(input.cnpj_favorecido);
+  const override = aplicarOverrideFavorecido({
+    tp_documento_despesa: tpDocDespesa,
+    tp_doc_fav: tpDocFavInicial,
+    nr_doc_fav: input.cnpj_favorecido ?? null,
+    nm_favorecido: input.nm_favorecido ?? null,
+    razao_social_ia: input.razao_social_ia ?? null,
+    regras_sit: regras,
+  });
+  return {
+    tp_documento_despesa: tpDocDespesa,
+    tp_doc_fav: override.tp_doc_fav,
+    nr_doc_fav: override.nr_doc_fav,
+    nm_favorecido: override.nm_favorecido,
+    nr_documento: null,
+    tp_documento_pagamento: tpDocPag,
+    tp_despesa: tpDespesa,
+    cd_modalidade_compra: regras.cd_modalidade_compra ?? null,
   };
 }
 
