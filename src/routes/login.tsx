@@ -23,6 +23,7 @@ function LoginPage() {
   const nav = useNavigate();
   const { redirect } = useSearch({ from: "/login" });
   const dest = redirect || "/admin";
+  const goDest = () => { window.location.assign(dest); };
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [modo, setModo] = useState<"login" | "signup">("login");
