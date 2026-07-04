@@ -65,7 +65,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       : payload;
     const { data: row, error } = await context.supabase
       .from("fornecedores")
-      .insert(insertPayload)
+      .insert(insertPayload as never)
       .select()
       .single();
     if (error) throw new Error(error.message);
