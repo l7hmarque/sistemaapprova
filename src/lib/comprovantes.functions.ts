@@ -4,6 +4,24 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKET = "documentos";
 
+async function enqueueDriveSyncSafe(args: {
+  organizationId: string;
+  path: string;
+  section: "Documentos" | "Orçamentos" | "Cotações" | "Prestações";
+  mesRef?: string | null;
+  refTable?: string | null;
+  refId?: string | null;
+  nomeOriginal?: string | null;
+  mimeType?: string | null;
+}): Promise<void> {
+  try {
+    const { enqueueDriveSync } = await import("@/lib/drive-queue.server");
+    await enqueueDriveSync({ ...args, bucket: "documentos" });
+  } catch (e) {
+    console.warn("[comprovantes] enqueue Drive falhou:", e);
+  }
+}
+
 export type ComprovanteResumo = {
   id: string;
   despesa_uid: string;

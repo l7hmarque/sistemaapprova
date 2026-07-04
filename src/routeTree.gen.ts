@@ -50,6 +50,7 @@ import { Route as AuthenticatedAdminAprovacoesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAgendaRouteImport } from './routes/_authenticated.admin.agenda'
 import { Route as AuthenticatedAdminConfiguracoesIndexRouteImport } from './routes/_authenticated.admin.configuracoes.index'
+import { Route as ApiPublicHooksDriveSyncTickRouteImport } from './routes/api/public/hooks/drive-sync-tick'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
 import { Route as ApiFilesIdPreviewRouteImport } from './routes/api/files.$id.preview'
 import { Route as AuthenticatedOwnerClientesIdRouteImport } from './routes/_authenticated.owner.clientes.$id'
@@ -279,6 +280,12 @@ const AuthenticatedAdminConfiguracoesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminConfiguracoesRoute,
   } as any)
+const ApiPublicHooksDriveSyncTickRoute =
+  ApiPublicHooksDriveSyncTickRouteImport.update({
+    id: '/api/public/hooks/drive-sync-tick',
+    path: '/api/public/hooks/drive-sync-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
   id: '/api/public/cotacao/$token',
   path: '/api/public/cotacao/$token',
@@ -373,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -420,6 +428,7 @@ export interface FileRoutesByTo {
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -472,6 +481,7 @@ export interface FileRoutesById {
   '/_authenticated/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/_authenticated/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -524,6 +534,7 @@ export interface FileRouteTypes {
     | '/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesByTo: FileRoutesByTo
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes'
     | '/api/public/cotacao/$token/pdf'
   id:
@@ -622,6 +634,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/drive-sync-tick'
     | '/_authenticated/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
   fileRoutesById: FileRoutesById
@@ -649,6 +662,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
+  ApiPublicHooksDriveSyncTickRoute: typeof ApiPublicHooksDriveSyncTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -940,6 +954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminConfiguracoesIndexRouteImport
       parentRoute: typeof AuthenticatedAdminConfiguracoesRoute
     }
+    '/api/public/hooks/drive-sync-tick': {
+      id: '/api/public/hooks/drive-sync-tick'
+      path: '/api/public/hooks/drive-sync-tick'
+      fullPath: '/api/public/hooks/drive-sync-tick'
+      preLoaderRoute: typeof ApiPublicHooksDriveSyncTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cotacao/$token': {
       id: '/api/public/cotacao/$token'
       path: '/api/public/cotacao/$token'
@@ -1155,6 +1176,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
+  ApiPublicHooksDriveSyncTickRoute: ApiPublicHooksDriveSyncTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
