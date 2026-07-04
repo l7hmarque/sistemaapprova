@@ -197,7 +197,7 @@ function CapturaPage() {
           .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
           .eq("organization_id", activeOrgId)
           .eq("mes_referencia", mes),
-        supabase.from("fornecedores").select("id, razao_social, cnpj").eq("organization_id", activeOrgId),
+        supabase.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", activeOrgId),
         supabase.from("configuracoes").select("valor").eq("organization_id", activeOrgId).eq("chave", "auto_vinculo").maybeSingle(),
       ]);
       setEventos((ev ?? []) as Evento[]);
