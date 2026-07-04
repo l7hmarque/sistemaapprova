@@ -32,7 +32,7 @@ function LoginPage() {
   // Redireciona se já estiver logado
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) nav({ to: dest, replace: true });
+      if (data.session) goDest();
     });
   }, [dest, nav]);
 
@@ -44,7 +44,7 @@ function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
         if (error) throw error;
         toast.success("Bem-vindo!");
-        nav({ to: dest, replace: true });
+        goDest();
       } else {
         const { error } = await supabase.auth.signUp({
           email,
