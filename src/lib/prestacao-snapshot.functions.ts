@@ -347,3 +347,71 @@ export const obterUrlSnapshot = createServerFn({ method: "POST" })
     if (es || !signed) throw new Error("Falha ao gerar URL");
     return { url: signed.signedUrl };
   });
+
+/**
+ * Reabertura controlada de prestação: marca o snapshot como revogado,
+ * libera os eventos financeiros do vínculo e grava motivo em `audit_log`.
+ * Só owner/admin da organização.
+ */
+export const reabrirPrestacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      snapshotId: z.string().uuid(),
+      activeOrgId: z.string().uuid(),
+      motivo: z.string().min(3).max(500),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Verifica papel na org (owner/admin) via has_role/is_org_owner.
+    const { data: isOwner } = await supabase.rpc("is_org_owner", {
+      _user_id: userId,
+      _org_id: data.activeOrgId,
+    });
+    if (isOwner !== true) throw new Error("Apenas owner/admin pode reabrir prestações.");
+
+    // Carrega snapshot da org.
+    const { data: snap, error: eSel } = await supabaseAdmin
+      .from("prestacoes_snapshot")
+      .select("id, organization_id, revogado_em")
+      .eq("id", data.snapshotId)
+      .maybeSingle();
+    if (eSel) throw new Error(eSel.message);
+    if (!snap) throw new Error("Snapshot não encontrado.");
+    if ((snap as { organization_id: string }).organization_id !== data.activeOrgId) {
+      throw new Error("Snapshot de outra organização.");
+    }
+    if ((snap as { revogado_em: string | null }).revogado_em) {
+      throw new Error("Prestação já estava reaberta.");
+    }
+
+    // Marca como revogado.
+    const { error: eUp } = await (supabaseAdmin as any)
+      .from("prestacoes_snapshot")
+      .update({
+        revogado_em: new Date().toISOString(),
+        revogado_por: userId,
+        revogado_motivo: data.motivo,
+      })
+      .eq("id", data.snapshotId);
+    if (eUp) throw new Error(eUp.message);
+
+    // Libera eventos.
+    const { error: eEv } = await supabaseAdmin
+      .from("eventos_financeiros")
+      .update({ prestacao_snapshot_id: null })
+      .eq("prestacao_snapshot_id", data.snapshotId);
+    if (eEv) throw new Error(eEv.message);
+
+    // Log de auditoria.
+    await (supabaseAdmin as any).from("audit_log").insert({
+      organization_id: data.activeOrgId,
+      user_id: userId,
+      acao: "prestacoes_snapshot:reabrir",
+      payload: { snapshot_id: data.snapshotId, motivo: data.motivo },
+    });
+
+    return { ok: true as const };
+  });
