@@ -9,9 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Pencil, Trash2, Users, ChevronDown, Sparkles } from "lucide-react";
 import { listarFornecedores, salvarFornecedor, removerFornecedor } from "@/lib/fornecedores.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import { REGRAS_TEMPLATES, type RegrasSit } from "@/lib/sit/regrasSitSchema";
+import {
+  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS,
+} from "@/lib/sit/catalogos";
 
 export const Route = createFileRoute("/_authenticated/admin/fornecedores")({
   head: () => ({ meta: [{ title: "Fornecedores — Approva" }] }),
@@ -27,6 +35,7 @@ type Fornecedor = {
   email: string | null;
   telefone: string | null;
   endereco: string | null;
+  regras_sit?: RegrasSit | null;
 };
 
 function FornecedoresPage() {
