@@ -15,7 +15,7 @@ import { Plus, Trash2, FolderOpen, FileText, ArrowRight } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/orcamentos")({
+export const Route = createFileRoute("/_authenticated/admin/orcamentos")({
   head: () => ({ meta: [{ title: "Cotações — Approva" }] }),
   component: CotacoesPage,
 });

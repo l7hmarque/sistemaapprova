@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, FileSpreadsheet, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/admin/modelos/ajuda")({ component: AjudaModelos });
+export const Route = createFileRoute("/_authenticated/admin/modelos/ajuda")({ component: AjudaModelos });
 
 function AjudaModelos() {
   return (

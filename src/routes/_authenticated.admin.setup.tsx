@@ -23,7 +23,7 @@ import {
 import { validarDocs, validarSheets } from "@/lib/setup-wizard.functions";
 import { garantirEstruturaDrive } from "@/lib/arquivos.functions";
 
-export const Route = createFileRoute("/admin/setup")({ component: WizardPage });
+export const Route = createFileRoute("/_authenticated/admin/setup")({ component: WizardPage });
 
 const SUBPASTAS = ["Orçamentos", "Cotações", "Prestações", "Documentos"] as const;
 

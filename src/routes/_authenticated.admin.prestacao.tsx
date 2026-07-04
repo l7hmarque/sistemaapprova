@@ -19,7 +19,7 @@ import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
 import { Badge } from "@/components/ui/badge";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/prestacao")({ component: PrestacaoPage });
+export const Route = createFileRoute("/_authenticated/admin/prestacao")({ component: PrestacaoPage });
 
 type Doc = {
   id: string;

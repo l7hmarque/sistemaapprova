@@ -11,7 +11,7 @@ import { FileText, Users, Package, CalendarClock } from "lucide-react";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 
-export const Route = createFileRoute("/admin/")({ component: DashboardRoute });
+export const Route = createFileRoute("/_authenticated/admin/")({ component: DashboardRoute });
 
 
 function DashboardRoute() {

@@ -11,7 +11,7 @@ import { OrgSwitcher } from "@/components/admin/OrgSwitcher";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PlanoGuard } from "@/components/admin/PlanoGuard";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayoutWrapper,
   head: () => ({
     meta: [

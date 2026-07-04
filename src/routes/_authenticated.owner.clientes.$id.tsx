@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/owner/clientes/$id")({ component: ClienteDetalhe });
+export const Route = createFileRoute("/_authenticated/owner/clientes/$id")({ component: ClienteDetalhe });
 
 function ClienteDetalhe() {
   const { id } = Route.useParams();

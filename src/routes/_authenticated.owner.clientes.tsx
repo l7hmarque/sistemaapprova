@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/owner/clientes")({ component: ClientesPage });
+export const Route = createFileRoute("/_authenticated/owner/clientes")({ component: ClientesPage });
 
 type Org = {
   id: string;

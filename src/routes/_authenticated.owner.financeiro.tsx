@@ -10,7 +10,7 @@ const PLANO_VALOR: Record<string, number> = {
   escritorio: 299,
 };
 
-export const Route = createFileRoute("/owner/financeiro")({ component: FinanceiroPage });
+export const Route = createFileRoute("/_authenticated/owner/financeiro")({ component: FinanceiroPage });
 
 function FinanceiroPage() {
   const { data } = useQuery({

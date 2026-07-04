@@ -5,7 +5,7 @@ import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
-export const Route = createFileRoute("/owner")({
+export const Route = createFileRoute("/_authenticated/owner")({
   component: OwnerLayout,
   head: () => ({ meta: [{ title: "Owner — Approva" }] }),
 });

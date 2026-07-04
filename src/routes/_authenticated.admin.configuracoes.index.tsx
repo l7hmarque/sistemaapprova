@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, Trash2 } from "lucide-react";
 import { extrairSheetId } from "@/lib/modelos";
 
-export const Route = createFileRoute("/admin/configuracoes/")({ component: ConfigGeralPage });
+export const Route = createFileRoute("/_authenticated/admin/configuracoes/")({ component: ConfigGeralPage });
 
 function ConfigGeralPage() {
   const [templateId, setTemplateId] = useState("");

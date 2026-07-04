@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/admin/configuracoes")({
+export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   component: ConfigLayout,
 });
 

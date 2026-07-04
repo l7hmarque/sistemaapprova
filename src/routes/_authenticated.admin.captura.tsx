@@ -19,7 +19,7 @@ import {
   inferirTpDespesa, aplicarOverrideFavorecido, gerarIdInterno,
 } from "@/lib/sit/inferCaptura";
 
-export const Route = createFileRoute("/admin/captura")({ component: CapturaPage });
+export const Route = createFileRoute("/_authenticated/admin/captura")({ component: CapturaPage });
 
 type Status = "fila" | "processando" | "vinculado" | "orfao" | "duplicata" | "erro";
 

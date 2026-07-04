@@ -21,7 +21,7 @@ import { listarFornecedores } from "@/lib/fornecedores.functions";
 import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/cotacoes/$id")({
+export const Route = createFileRoute("/_authenticated/admin/cotacoes/$id")({
   head: () => ({ meta: [{ title: "Cotação — Approva" }] }),
   component: CotacaoDetalhePage,
 });

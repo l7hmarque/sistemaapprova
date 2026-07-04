@@ -9,7 +9,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
-export const Route = createFileRoute("/admin/analytics")({
+export const Route = createFileRoute("/_authenticated/admin/analytics")({
   head: () => ({
     meta: [
       { title: "Analytics — Approva" },
