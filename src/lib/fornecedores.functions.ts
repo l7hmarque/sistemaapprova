@@ -53,7 +53,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
     if (data.id) {
       const { data: row, error } = await context.supabase
         .from("fornecedores")
-        .update(payload)
+        .update(payload as never)
         .eq("id", data.id)
         .select()
         .single();
