@@ -374,14 +374,14 @@ function CapturaPage() {
               cnpj: cnpjDigits,
               razao_social: dados.razao_social,
             })
-            .select("id, razao_social, cnpj")
+            .select("id, razao_social, cnpj, regras_sit")
             .single();
           if (fIns.error) {
             // pode ser conflito de unicidade — tenta buscar
             console.warn("[captura] auto-cadastro fornecedor falhou, tentando buscar", fIns.error);
             const { data: jaExiste } = await supabase
               .from("fornecedores")
-              .select("id, razao_social, cnpj")
+              .select("id, razao_social, cnpj, regras_sit")
               .eq("organization_id", activeOrgId)
               .eq("cnpj", cnpjDigits)
               .maybeSingle();
