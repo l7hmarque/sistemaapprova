@@ -421,8 +421,8 @@ function CapturaPage() {
           razao_social_ia: dados?.razao_social ?? null,
         });
 
-        // id_interno sequencial dentro do mês (estimativa: total atual + 1)
-        const idInterno = gerarIdInterno(mesRef, eventos.length + 1);
+        // id_interno agora é gerado por trigger BEFORE INSERT no banco (formato AAAAMM-XXXX, sequencial por org/competência)
+
 
         const evIns = await supabase
           .from("eventos_financeiros")
