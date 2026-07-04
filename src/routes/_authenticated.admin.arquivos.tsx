@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink } from "lucide-react";
-import { listarArquivosDaOrg, getDriveQuota } from "@/lib/arquivos.functions";
+import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink, CloudUpload, AlertTriangle } from "lucide-react";
+import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
@@ -43,6 +43,7 @@ function ArquivosPage() {
 
   const fnList = useServerFn(listarArquivosDaOrg);
   const fnQuota = useServerFn(getDriveQuota);
+  const fnSync = useServerFn(getDriveSyncStatus);
 
   const filesQ = useQuery({
     queryKey: ["arquivos", activeOrgId, section, mes],
@@ -56,6 +57,13 @@ function ArquivosPage() {
     queryFn: async () => fnQuota(),
     enabled: !!activeOrgId,
     staleTime: 60_000,
+  });
+
+  const syncQ = useQuery({
+    queryKey: ["drive-sync", activeOrgId],
+    queryFn: async () => fnSync(),
+    enabled: !!activeOrgId,
+    refetchInterval: 30_000,
   });
 
   const filtered = useMemo(() => {
@@ -108,6 +116,22 @@ function ArquivosPage() {
               </div>
               {pct >= 80 && (
                 <p className="text-[11px] text-amber-700">Atenção: aproximando do limite.</p>
+              )}
+              {syncQ.data && (syncQ.data.pendente > 0 || syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
+                <div className="pt-2 border-t space-y-1">
+                  {syncQ.data.pendente > 0 && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <CloudUpload className="h-3 w-3 animate-pulse" />
+                      Sincronizando {syncQ.data.pendente} arquivo(s) com Drive…
+                    </div>
+                  )}
+                  {(syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-700">
+                      <AlertTriangle className="h-3 w-3" />
+                      {syncQ.data.falhou_retry + syncQ.data.falhou_definitivo} falha(s) — retry automático
+                    </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

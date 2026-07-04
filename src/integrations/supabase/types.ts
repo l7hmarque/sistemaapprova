@@ -338,6 +338,7 @@ export type Database = {
           cnpj_extraido: string | null
           created_at: string
           data_extraida: string | null
+          drive_file_id: string | null
           evento_id: string | null
           gmail_message_id: string | null
           id: string
@@ -354,6 +355,7 @@ export type Database = {
           cnpj_extraido?: string | null
           created_at?: string
           data_extraida?: string | null
+          drive_file_id?: string | null
           evento_id?: string | null
           gmail_message_id?: string | null
           id?: string
@@ -370,6 +372,7 @@ export type Database = {
           cnpj_extraido?: string | null
           created_at?: string
           data_extraida?: string | null
+          drive_file_id?: string | null
           evento_id?: string | null
           gmail_message_id?: string | null
           id?: string
@@ -390,6 +393,74 @@ export type Database = {
           },
           {
             foreignKeyName: "documentos_anexos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_sync_queue: {
+        Row: {
+          atualizado_em: string
+          bucket: string
+          criado_em: string
+          drive_file_id: string | null
+          id: string
+          mes_ref: string | null
+          mime_type: string | null
+          nome_original: string | null
+          organization_id: string
+          path: string
+          proximo_retry: string
+          ref_id: string | null
+          ref_table: string | null
+          section: string
+          status: string
+          tentativas: number
+          ultimo_erro: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          bucket: string
+          criado_em?: string
+          drive_file_id?: string | null
+          id?: string
+          mes_ref?: string | null
+          mime_type?: string | null
+          nome_original?: string | null
+          organization_id: string
+          path: string
+          proximo_retry?: string
+          ref_id?: string | null
+          ref_table?: string | null
+          section: string
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          bucket?: string
+          criado_em?: string
+          drive_file_id?: string | null
+          id?: string
+          mes_ref?: string | null
+          mime_type?: string | null
+          nome_original?: string | null
+          organization_id?: string
+          path?: string
+          proximo_retry?: string
+          ref_id?: string | null
+          ref_table?: string | null
+          section?: string
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_sync_queue_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1250,9 +1321,13 @@ export type Database = {
           pdf_path: string | null
           pdf_url: string | null
           revisao: number
+          revogado_em: string | null
+          revogado_motivo: string | null
+          revogado_por: string | null
           titulo: string | null
           total_documentos: number
           total_eventos: number
+          versao: number
         }
         Insert: {
           assinatura_hash: string
@@ -1265,9 +1340,13 @@ export type Database = {
           pdf_path?: string | null
           pdf_url?: string | null
           revisao?: number
+          revogado_em?: string | null
+          revogado_motivo?: string | null
+          revogado_por?: string | null
           titulo?: string | null
           total_documentos?: number
           total_eventos?: number
+          versao?: number
         }
         Update: {
           assinatura_hash?: string
@@ -1280,9 +1359,13 @@ export type Database = {
           pdf_path?: string | null
           pdf_url?: string | null
           revisao?: number
+          revogado_em?: string | null
+          revogado_motivo?: string | null
+          revogado_por?: string | null
           titulo?: string | null
           total_documentos?: number
           total_eventos?: number
+          versao?: number
         }
         Relationships: [
           {
@@ -1368,6 +1451,34 @@ export type Database = {
     }
     Functions: {
       current_user_org: { Args: never; Returns: string }
+      drive_queue_claim: {
+        Args: { _limit?: number }
+        Returns: {
+          atualizado_em: string
+          bucket: string
+          criado_em: string
+          drive_file_id: string | null
+          id: string
+          mes_ref: string | null
+          mime_type: string | null
+          nome_original: string | null
+          organization_id: string
+          path: string
+          proximo_retry: string
+          ref_id: string | null
+          ref_table: string | null
+          section: string
+          status: string
+          tentativas: number
+          ultimo_erro: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "drive_sync_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

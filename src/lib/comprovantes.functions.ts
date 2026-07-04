@@ -4,6 +4,24 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKET = "documentos";
 
+async function enqueueDriveSyncSafe(args: {
+  organizationId: string;
+  path: string;
+  section: "Documentos" | "Orçamentos" | "Cotações" | "Prestações";
+  mesRef?: string | null;
+  refTable?: string | null;
+  refId?: string | null;
+  nomeOriginal?: string | null;
+  mimeType?: string | null;
+}): Promise<void> {
+  try {
+    const { enqueueDriveSync } = await import("@/lib/drive-queue.server");
+    await enqueueDriveSync({ ...args, bucket: "documentos" });
+  } catch (e) {
+    console.warn("[comprovantes] enqueue Drive falhou:", e);
+  }
+}
+
 export type ComprovanteResumo = {
   id: string;
   despesa_uid: string;
@@ -109,6 +127,22 @@ export const anexarComprovante = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
+
+    // Enfileira sincronização para o Google Drive master (não bloqueia a resposta).
+    const { data: orgId } = await supabase.rpc("current_user_org");
+    if (orgId) {
+      const mesRef = new Date().toISOString().slice(0, 7);
+      await enqueueDriveSyncSafe({
+        organizationId: orgId as string,
+        path,
+        section: "Documentos",
+        mesRef,
+        refTable: "prestacao_documentos",
+        refId: ins.id,
+        nomeOriginal: data.nome,
+        mimeType: data.mimeType,
+      });
+    }
     return { ok: true as const, id: ins.id, path };
   });
 
