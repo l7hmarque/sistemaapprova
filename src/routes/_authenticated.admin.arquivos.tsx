@@ -104,6 +104,13 @@ function ArquivosPage() {
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <HardDrive className="h-3.5 w-3.5" /> Armazenamento
                 </span>
+        {quota && (
+          <Card className="w-full sm:w-72">
+            <CardContent className="pt-4 pb-3 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <HardDrive className="h-3.5 w-3.5" /> Armazenamento
+                </span>
                 <span className={pct >= 80 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
                   {formatBytes(quota.usage)} / {formatBytes(quota.limit)}
                 </span>
@@ -116,6 +123,22 @@ function ArquivosPage() {
               </div>
               {pct >= 80 && (
                 <p className="text-[11px] text-amber-700">Atenção: aproximando do limite.</p>
+              )}
+              {syncQ.data && (syncQ.data.pendente > 0 || syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
+                <div className="pt-2 border-t space-y-1">
+                  {syncQ.data.pendente > 0 && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <CloudUpload className="h-3 w-3 animate-pulse" />
+                      Sincronizando {syncQ.data.pendente} arquivo(s) com Drive…
+                    </div>
+                  )}
+                  {(syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-700">
+                      <AlertTriangle className="h-3 w-3" />
+                      {syncQ.data.falhou_retry + syncQ.data.falhou_definitivo} falha(s) — retry automático
+                    </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
