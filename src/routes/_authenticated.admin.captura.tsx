@@ -56,7 +56,7 @@ type Evento = {
   fornecedor_id: string | null;
 };
 
-type Fornecedor = { id: string; razao_social: string; cnpj: string };
+type Fornecedor = { id: string; razao_social: string; cnpj: string; regras_sit?: Record<string, unknown> | null };
 
 async function sha256(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
