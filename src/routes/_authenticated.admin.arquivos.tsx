@@ -104,13 +104,6 @@ function ArquivosPage() {
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <HardDrive className="h-3.5 w-3.5" /> Armazenamento
                 </span>
-        {quota && (
-          <Card className="w-full sm:w-72">
-            <CardContent className="pt-4 pb-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <HardDrive className="h-3.5 w-3.5" /> Armazenamento
-                </span>
                 <span className={pct >= 80 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
                   {formatBytes(quota.usage)} / {formatBytes(quota.limit)}
                 </span>
