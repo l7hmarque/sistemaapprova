@@ -24,7 +24,7 @@ import {
 } from "@/lib/sit/catalogos";
 import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 
-export const Route = createFileRoute("/admin/painel")({ component: PainelPage });
+export const Route = createFileRoute("/_authenticated/admin/painel")({ component: PainelPage });
 
 type Evento = {
   id: string;

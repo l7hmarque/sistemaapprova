@@ -14,7 +14,7 @@ import {
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { CheckCircle2, XCircle, FileText, ExternalLink, ShieldCheck } from "lucide-react";
 
-export const Route = createFileRoute("/admin/aprovacoes")({
+export const Route = createFileRoute("/_authenticated/admin/aprovacoes")({
   head: () => ({
     meta: [{ title: "Aprovações pendentes — Approva" }],
   }),

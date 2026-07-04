@@ -1,13 +1,13 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/admin/configuracoes")({
+export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   component: ConfigLayout,
 });
 
 const TABS = [
-  { to: "/admin/configuracoes", label: "Geral", exact: true },
-  { to: "/admin/configuracoes/equipe", label: "Equipe", exact: false },
-  { to: "/admin/configuracoes/organizacao", label: "Organização", exact: false },
+  { to: "/_authenticated/admin/configuracoes", label: "Geral", exact: true },
+  { to: "/_authenticated/admin/configuracoes/equipe", label: "Equipe", exact: false },
+  { to: "/_authenticated/admin/configuracoes/organizacao", label: "Organização", exact: false },
 ];
 
 function ConfigLayout() {

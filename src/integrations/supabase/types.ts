@@ -78,6 +78,35 @@ export type Database = {
           },
         ]
       }
+      contadores_periodo: {
+        Row: {
+          atualizado_em: string
+          mes_referencia: string
+          organization_id: string
+          ultimo_numero: number
+        }
+        Insert: {
+          atualizado_em?: string
+          mes_referencia: string
+          organization_id: string
+          ultimo_numero?: number
+        }
+        Update: {
+          atualizado_em?: string
+          mes_referencia?: string
+          organization_id?: string
+          ultimo_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contadores_periodo_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       convites_cotacao: {
         Row: {
           atualizado_em: string
@@ -433,6 +462,8 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
+          excluido_em: string | null
+          excluido_por: string | null
           fornecedor_id: string | null
           id: string
           id_interno: string | null
@@ -462,6 +493,8 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
           fornecedor_id?: string | null
           id?: string
           id_interno?: string | null
@@ -491,6 +524,8 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
           fornecedor_id?: string | null
           id?: string
           id_interno?: string | null

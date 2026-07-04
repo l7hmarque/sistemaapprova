@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, Trash2 } from "lucide-react";
 import { extrairSheetId } from "@/lib/modelos";
 
-export const Route = createFileRoute("/admin/configuracoes/")({ component: ConfigGeralPage });
+export const Route = createFileRoute("/_authenticated/admin/configuracoes/")({ component: ConfigGeralPage });
 
 function ConfigGeralPage() {
   const [templateId, setTemplateId] = useState("");
@@ -85,7 +85,7 @@ function ConfigGeralPage() {
               Wizard de 5 passos para conectar Drive, Docs e Sheets. Otimizado para quem não é da área técnica.
             </p>
           </div>
-          <Link to="/admin/setup">
+          <Link to="/_authenticated/admin/setup">
             <Button>
               Iniciar wizard <ArrowRight className="ml-1 h-4 w-4" />
             </Button>

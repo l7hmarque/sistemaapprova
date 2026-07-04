@@ -1,17 +1,16 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
 import { Toaster } from "@/components/ui/sonner";
-import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
-import { Loader2, Menu, X, Eye } from "lucide-react";
+import { useState } from "react";
+import { Menu, X, Eye } from "lucide-react";
 import { ViewAsProvider, useViewAs } from "@/hooks/use-view-as";
 import { ActiveOrgProvider, useActiveOrg } from "@/hooks/use-active-org";
 import { OrgSwitcher } from "@/components/admin/OrgSwitcher";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PlanoGuard } from "@/components/admin/PlanoGuard";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayoutWrapper,
   head: () => ({
     meta: [
@@ -32,26 +31,11 @@ function AdminLayoutWrapper() {
 }
 
 function AdminLayout() {
-  const { user, loading } = useAuth();
-  const nav = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isOverriding, role, tipo } = useViewAs();
   const { activeOrg } = useActiveOrg();
   const { isSuperAdmin } = useCurrentUser();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      nav({ to: "/login", search: { redirect: window.location.pathname }, replace: true });
-    }
-  }, [loading, user, nav]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">

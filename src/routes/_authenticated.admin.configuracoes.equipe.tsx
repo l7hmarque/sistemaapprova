@@ -24,7 +24,7 @@ import {
   removerConviteMembro,
 } from "@/lib/convites-membro.functions";
 
-export const Route = createFileRoute("/admin/configuracoes/equipe")({
+export const Route = createFileRoute("/_authenticated/admin/configuracoes/equipe")({
   component: EquipePage,
 });
 

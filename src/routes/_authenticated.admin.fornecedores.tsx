@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import { listarFornecedores, salvarFornecedor, removerFornecedor } from "@/lib/fornecedores.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/fornecedores")({
+export const Route = createFileRoute("/_authenticated/admin/fornecedores")({
   head: () => ({ meta: [{ title: "Fornecedores — Approva" }] }),
   component: FornecedoresPage,
 });

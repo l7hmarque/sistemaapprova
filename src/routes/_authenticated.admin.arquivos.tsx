@@ -13,7 +13,7 @@ import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink 
 import { listarArquivosDaOrg, getDriveQuota } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/arquivos")({
+export const Route = createFileRoute("/_authenticated/admin/arquivos")({
   component: ArquivosPage,
 });
 

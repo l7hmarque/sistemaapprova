@@ -15,7 +15,7 @@ import { Plus, Trash2, FolderOpen, FileText, ArrowRight } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/orcamentos")({
+export const Route = createFileRoute("/_authenticated/admin/orcamentos")({
   head: () => ({ meta: [{ title: "Cotações — Approva" }] }),
   component: CotacoesPage,
 });
@@ -222,7 +222,7 @@ function CotacoesPage() {
                     </div>
                   </div>
                   <Badge variant="outline">{STATUS_LABEL[c.status] ?? c.status}</Badge>
-                  <Link to="/admin/cotacoes/$id" params={{ id: c.id }}>
+                  <Link to="/_authenticated/admin/cotacoes/$id" params={{ id: c.id }}>
                     <Button size="sm" variant="ghost" className="gap-1">
                       Abrir <ArrowRight className="h-3.5 w-3.5" />
                     </Button>

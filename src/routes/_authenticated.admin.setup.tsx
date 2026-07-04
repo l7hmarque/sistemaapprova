@@ -23,7 +23,7 @@ import {
 import { validarDocs, validarSheets } from "@/lib/setup-wizard.functions";
 import { garantirEstruturaDrive } from "@/lib/arquivos.functions";
 
-export const Route = createFileRoute("/admin/setup")({ component: WizardPage });
+export const Route = createFileRoute("/_authenticated/admin/setup")({ component: WizardPage });
 
 const SUBPASTAS = ["Orçamentos", "Cotações", "Prestações", "Documentos"] as const;
 
@@ -141,7 +141,7 @@ function WizardPage() {
     <div className="p-8 max-w-3xl space-y-6">
       <header>
         <Link
-          to="/admin/configuracoes"
+          to="/_authenticated/admin/configuracoes"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="mr-1 h-4 w-4" /> Voltar para Configurações
@@ -268,7 +268,7 @@ function WizardPage() {
               <Info className="h-4 w-4" />
               <AlertDescription>
                 Os arquivos gerados (orçamentos, cotações, prestações) e os documentos da captura vão direto
-                para esta pasta. Você acessa tudo em <Link to="/admin/arquivos" className="underline">Arquivos</Link>.
+                para esta pasta. Você acessa tudo em <Link to="/_authenticated/admin/arquivos" className="underline">Arquivos</Link>.
               </AlertDescription>
             </Alert>
 
@@ -380,10 +380,10 @@ function WizardPage() {
             </Alert>
             <div className="flex gap-2">
               <Button asChild>
-                <Link to="/admin">Ir para o painel</Link>
+                <Link to="/_authenticated/admin">Ir para o painel</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link to="/admin/arquivos">Ver arquivos</Link>
+                <Link to="/_authenticated/admin/arquivos">Ver arquivos</Link>
               </Button>
             </div>
           </CardContent>

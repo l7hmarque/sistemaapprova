@@ -139,7 +139,7 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
                     )}
                   </div>
                   <Link
-                    to="/admin"
+                    to="/_authenticated/admin"
                     onClick={() => setActiveOrgId(osc.id)}
                     className="inline-flex items-center gap-1 text-sm font-medium text-[var(--module-accent)] hover:underline"
                   >

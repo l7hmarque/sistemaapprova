@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/owner/clientes/$id")({ component: ClienteDetalhe });
+export const Route = createFileRoute("/_authenticated/owner/clientes/$id")({ component: ClienteDetalhe });
 
 function ClienteDetalhe() {
   const { id } = Route.useParams();
@@ -34,7 +34,7 @@ function ClienteDetalhe() {
 
   return (
     <div className="p-8 space-y-6 max-w-4xl">
-      <Link to="/owner/clientes" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground">
+      <Link to="/_authenticated/owner/clientes" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground">
         <ArrowLeft className="h-3 w-3" /> Voltar
       </Link>
 

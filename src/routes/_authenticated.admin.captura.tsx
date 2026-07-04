@@ -16,10 +16,11 @@ import { extrairDocumento } from "@/lib/captura.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
   inferirTpDocDespesa, inferirTpDocPagamento, inferirTpDocFav,
-  inferirTpDespesa, aplicarOverrideFavorecido, gerarIdInterno,
+  inferirTpDespesa, aplicarOverrideFavorecido,
 } from "@/lib/sit/inferCaptura";
 
-export const Route = createFileRoute("/admin/captura")({ component: CapturaPage });
+
+export const Route = createFileRoute("/_authenticated/admin/captura")({ component: CapturaPage });
 
 type Status = "fila" | "processando" | "vinculado" | "orfao" | "duplicata" | "erro";
 
@@ -421,8 +422,8 @@ function CapturaPage() {
           razao_social_ia: dados?.razao_social ?? null,
         });
 
-        // id_interno sequencial dentro do mês (estimativa: total atual + 1)
-        const idInterno = gerarIdInterno(mesRef, eventos.length + 1);
+        // id_interno agora é gerado por trigger BEFORE INSERT no banco (formato AAAAMM-XXXX, sequencial por org/competência)
+
 
         const evIns = await supabase
           .from("eventos_financeiros")
@@ -438,7 +439,7 @@ function CapturaPage() {
             data_pagamento: dataPag,
             data_emissao: dados?.data_emissao ?? null,
             origem: "captura",
-            id_interno: idInterno,
+            // id_interno preenchido automaticamente pela trigger fn_eventos_financeiros_set_id_interno
             tp_documento_despesa: tpDocDespesa,
             tp_doc_fav: override.tp_doc_fav,
             nr_doc_fav: override.nr_doc_fav,

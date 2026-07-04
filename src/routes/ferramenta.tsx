@@ -991,7 +991,7 @@ function AppPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/admin">
+            <Link to="/_authenticated/admin">
               <Button variant="ghost" className="gap-2">
                 <Settings2 className="h-4 w-4" /> Admin
               </Button>

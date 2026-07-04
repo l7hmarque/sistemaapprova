@@ -5,7 +5,7 @@ import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
-export const Route = createFileRoute("/owner")({
+export const Route = createFileRoute("/_authenticated/owner")({
   component: OwnerLayout,
   head: () => ({ meta: [{ title: "Owner — Approva" }] }),
 });
@@ -15,9 +15,8 @@ function OwnerLayout() {
   const nav = useNavigate();
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) nav({ to: "/login", search: { redirect: "/owner" }, replace: true });
-    else if (!isSuperAdmin) nav({ to: "/admin", replace: true });
+    if (loading || !user) return;
+    if (!isSuperAdmin) nav({ to: "/_authenticated/admin", replace: true });
   }, [loading, user, isSuperAdmin, nav]);
 
   if (loading || !user || !isSuperAdmin) {

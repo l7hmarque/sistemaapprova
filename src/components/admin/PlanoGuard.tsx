@@ -84,7 +84,7 @@ export function PlanoGuard({ children }: { children: ReactNode }) {
           <div className="flex flex-col gap-2">
             {isOwnerOrAdmin ? (
               <Button asChild>
-                <Link to="/admin/configuracoes/organizacao">
+                <Link to="/_authenticated/admin/configuracoes/organizacao">
                   Abrir Configurações da Organização
                 </Link>
               </Button>

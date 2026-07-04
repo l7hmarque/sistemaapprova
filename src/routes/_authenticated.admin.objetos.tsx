@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, Package } from "lucide-react";
 import { listarObjetos, salvarObjeto, removerObjeto } from "@/lib/objetos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/admin/objetos")({
+export const Route = createFileRoute("/_authenticated/admin/objetos")({
   head: () => ({ meta: [{ title: "Objetos de cotação — Approva" }] }),
   component: ObjetosPage,
 });
