@@ -40,7 +40,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FornecedorSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       razao_social: data.razao_social,
       cnpj: data.cnpj,
       representante_legal: data.representante_legal || null,
@@ -49,6 +49,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       telefone: data.telefone || null,
       endereco: data.endereco || null,
     };
+    if (data.regras_sit !== undefined) payload.regras_sit = data.regras_sit;
     if (data.id) {
       const { data: row, error } = await context.supabase
         .from("fornecedores")
