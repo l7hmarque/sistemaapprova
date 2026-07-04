@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { validarCNPJ, validarCPF } from "@/lib/sit/validarDoc";
+import { RegrasSitSchema } from "@/lib/sit/regrasSitSchema";
 
 const FornecedorSchema = z.object({
   id: z.string().uuid().optional(),
@@ -19,6 +20,7 @@ const FornecedorSchema = z.object({
   email: z.string().email().max(255).nullish().or(z.literal("")),
   telefone: z.string().max(40).nullish(),
   endereco: z.string().max(500).nullish(),
+  regras_sit: RegrasSitSchema.optional(),
 });
 
 export const listarFornecedores = createServerFn({ method: "GET" })
@@ -38,7 +40,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FornecedorSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       razao_social: data.razao_social,
       cnpj: data.cnpj,
       representante_legal: data.representante_legal || null,
@@ -47,10 +49,11 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       telefone: data.telefone || null,
       endereco: data.endereco || null,
     };
+    if (data.regras_sit !== undefined) payload.regras_sit = data.regras_sit;
     if (data.id) {
       const { data: row, error } = await context.supabase
         .from("fornecedores")
-        .update(payload)
+        .update(payload as never)
         .eq("id", data.id)
         .select()
         .single();
@@ -62,7 +65,7 @@ export const salvarFornecedor = createServerFn({ method: "POST" })
       : payload;
     const { data: row, error } = await context.supabase
       .from("fornecedores")
-      .insert(insertPayload)
+      .insert(insertPayload as never)
       .select()
       .single();
     if (error) throw new Error(error.message);

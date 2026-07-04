@@ -699,6 +699,7 @@ export type Database = {
           id: string
           organization_id: string
           razao_social: string
+          regras_sit: Json
           representante_legal: string | null
           telefone: string | null
         }
@@ -711,6 +712,7 @@ export type Database = {
           id?: string
           organization_id?: string
           razao_social: string
+          regras_sit?: Json
           representante_legal?: string | null
           telefone?: string | null
         }
@@ -723,6 +725,7 @@ export type Database = {
           id?: string
           organization_id?: string
           razao_social?: string
+          regras_sit?: Json
           representante_legal?: string | null
           telefone?: string | null
         }
