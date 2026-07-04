@@ -438,7 +438,7 @@ function CapturaPage() {
             data_pagamento: dataPag,
             data_emissao: dados?.data_emissao ?? null,
             origem: "captura",
-            id_interno: idInterno,
+            // id_interno preenchido automaticamente pela trigger fn_eventos_financeiros_set_id_interno
             tp_documento_despesa: tpDocDespesa,
             tp_doc_fav: override.tp_doc_fav,
             nr_doc_fav: override.nr_doc_fav,
