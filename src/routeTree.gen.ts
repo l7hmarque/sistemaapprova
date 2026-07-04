@@ -21,6 +21,7 @@ import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
 import { Route as AtualizarSenhaRouteImport } from './routes/atualizar-senha'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as ShowcaseScreenRouteImport } from './routes/showcase.$screen'
@@ -118,6 +119,10 @@ const AtualizarSenhaRoute = AtualizarSenhaRouteImport.update({
   path: '/atualizar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -154,14 +159,14 @@ const ApiExtractRoute = ApiExtractRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
-  id: '/_authenticated/owner',
+  id: '/owner',
   path: '/owner',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/_authenticated/admin',
+  id: '/admin',
   path: '/admin',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedOwnerIndexRoute = AuthenticatedOwnerIndexRouteImport.update({
   id: '/',
@@ -421,6 +426,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/atualizar-senha': typeof AtualizarSenhaRoute
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
@@ -570,6 +576,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/atualizar-senha'
     | '/contadores'
     | '/demonstracao'
@@ -621,6 +628,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AtualizarSenhaRoute: typeof AtualizarSenhaRoute
   ContadoresRoute: typeof ContadoresRoute
   DemonstracaoRoute: typeof DemonstracaoRoute
@@ -633,8 +641,6 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRouteWithChildren
   ApiExtractRoute: typeof ApiExtractRoute
   BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
@@ -731,6 +737,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtualizarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -785,14 +798,14 @@ declare module '@tanstack/react-router' {
       path: '/owner'
       fullPath: '/owner'
       preLoaderRoute: typeof AuthenticatedOwnerRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/owner/': {
       id: '/_authenticated/owner/'
@@ -1092,6 +1105,20 @@ const AuthenticatedOwnerRouteChildren: AuthenticatedOwnerRouteChildren = {
 const AuthenticatedOwnerRouteWithChildren =
   AuthenticatedOwnerRoute._addFileChildren(AuthenticatedOwnerRouteChildren)
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRouteWithChildren
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedOwnerRoute: AuthenticatedOwnerRouteWithChildren,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 interface ApiPublicCotacaoTokenRouteChildren {
   ApiPublicCotacaoTokenPdfRoute: typeof ApiPublicCotacaoTokenPdfRoute
 }
@@ -1107,6 +1134,7 @@ const ApiPublicCotacaoTokenRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AtualizarSenhaRoute: AtualizarSenhaRoute,
   ContadoresRoute: ContadoresRoute,
   DemonstracaoRoute: DemonstracaoRoute,
@@ -1119,8 +1147,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
-  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedOwnerRoute: AuthenticatedOwnerRouteWithChildren,
   ApiExtractRoute: ApiExtractRoute,
   BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
   ConviteTokenRoute: ConviteTokenRoute,
