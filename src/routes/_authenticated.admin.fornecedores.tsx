@@ -102,7 +102,7 @@ function FornecedoresPage() {
             </Button>
           </DialogTrigger>
           {editing && (
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editing.id ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle>
               </DialogHeader>
@@ -139,6 +139,11 @@ function FornecedoresPage() {
                   <Label>Endereço</Label>
                   <Input value={editing.endereco ?? ""} onChange={(e) => setEditing({ ...editing, endereco: e.target.value })} />
                 </div>
+
+                <RegrasSitPanel
+                  regras={(editing.regras_sit ?? {}) as RegrasSit}
+                  onChange={(r) => setEditing({ ...editing, regras_sit: r })}
+                />
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
