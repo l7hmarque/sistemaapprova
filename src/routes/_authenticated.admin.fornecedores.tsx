@@ -67,6 +67,7 @@ function FornecedoresPage() {
           email: f.email,
           telefone: f.telefone,
           endereco: f.endereco,
+          regras_sit: (f.regras_sit ?? {}) as RegrasSit,
         },
       }),
     onSuccess: () => {
