@@ -193,3 +193,181 @@ function FornecedoresPage() {
     </AdminShell>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Regras SIT — painel colapsável dentro do formulário de fornecedor.
+// Regras aqui têm precedência sobre a inferência automática na captura.
+// ---------------------------------------------------------------------------
+
+function RegrasSitPanel({
+  regras,
+  onChange,
+}: {
+  regras: RegrasSit;
+  onChange: (r: RegrasSit) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const set = (patch: Partial<RegrasSit>) => onChange({ ...regras, ...patch });
+  const preencheu = Object.values(regras).some((v) => v !== null && v !== undefined && v !== "");
+
+  const cat = CATEGORIAS.find((c) => c.codigo === regras.categoria_padrao);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="border rounded-md">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted/50"
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          Regras SIT
+          {preencheu && <Badge variant="secondary" className="ml-2">Configurado</Badge>}
+          <span className="ml-auto text-xs font-normal text-muted-foreground">
+            Preenche automaticamente os campos SIT na captura
+          </span>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="p-3 pt-1 space-y-3 border-t">
+        {/* Templates */}
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5" /> Aplicar template
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {REGRAS_TEMPLATES.map((t) => (
+              <Button
+                key={t.id}
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => onChange({ ...regras, ...t.regras })}
+                title={t.descricao}
+              >
+                {t.label}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-destructive"
+              onClick={() => onChange({})}
+            >
+              Limpar
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Tipo de documento (despesa)</Label>
+            <Select
+              value={regras.tp_documento_despesa?.toString() ?? "none"}
+              onValueChange={(v) => set({ tp_documento_despesa: v === "none" ? null : Number(v) })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {TIPOS_DOC_DESPESA.map((t) => (
+                  <SelectItem key={t.codigo} value={String(t.codigo)}>{t.codigo} – {t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs">Tipo de documento (pagamento)</Label>
+            <Select
+              value={regras.tp_documento_pagamento?.toString() ?? "none"}
+              onValueChange={(v) => set({ tp_documento_pagamento: v === "none" ? null : Number(v) })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {TIPOS_DOC_PAGAMENTO.map((t) => (
+                  <SelectItem key={t.codigo} value={String(t.codigo)}>{t.codigo} – {t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="col-span-2">
+            <Label className="text-xs">Categoria padrão (REO)</Label>
+            <Select
+              value={regras.categoria_padrao ?? "none"}
+              onValueChange={(v) => set({ categoria_padrao: v === "none" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {CATEGORIAS.map((c) => (
+                  <SelectItem key={c.codigo} value={c.codigo}>{c.codigo} – {c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {cat && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Código econômico oficial TCE-PR.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-xs">Modalidade de compra</Label>
+            <Select
+              value={regras.cd_modalidade_compra?.toString() ?? "none"}
+              onValueChange={(v) => set({ cd_modalidade_compra: v === "none" ? null : Number(v) })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {MODALIDADES_COMPRA.map((m) => (
+                  <SelectItem key={m.codigo} value={String(m.codigo)}>{m.codigo} – {m.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs">Tipo doc. favorecido</Label>
+            <Select
+              value={regras.tp_doc_fav ?? "none"}
+              onValueChange={(v) =>
+                set({ tp_doc_fav: v === "none" ? null : (v as "CPF" | "CNPJ" | "EXT") })
+              }
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                <SelectItem value="CNPJ">CNPJ</SelectItem>
+                <SelectItem value="CPF">CPF</SelectItem>
+                <SelectItem value="EXT">Estrangeiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="col-span-2">
+            <Label className="text-xs">Sobrescrever nome do favorecido (opcional)</Label>
+            <Input
+              value={regras.nm_favorecido_override ?? ""}
+              onChange={(e) => set({ nm_favorecido_override: e.target.value || null })}
+              placeholder="Ex.: MINISTERIO DA FAZENDA - MATRIZ"
+            />
+          </div>
+
+          <div className="col-span-2">
+            <Label className="text-xs">Observação</Label>
+            <Textarea
+              rows={2}
+              value={regras.observacao ?? ""}
+              onChange={(e) => set({ observacao: e.target.value || null })}
+              placeholder="Nota interna sobre esse fornecedor..."
+            />
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
