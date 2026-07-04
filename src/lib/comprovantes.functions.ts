@@ -127,6 +127,22 @@ export const anexarComprovante = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
+
+    // Enfileira sincronização para o Google Drive master (não bloqueia a resposta).
+    const { data: orgId } = await supabase.rpc("current_user_org");
+    if (orgId) {
+      const mesRef = new Date().toISOString().slice(0, 7);
+      await enqueueDriveSyncSafe({
+        organizationId: orgId as string,
+        path,
+        section: "Documentos",
+        mesRef,
+        refTable: "prestacao_documentos",
+        refId: ins.id,
+        nomeOriginal: data.nome,
+        mimeType: data.mimeType,
+      });
+    }
     return { ok: true as const, id: ins.id, path };
   });
 
