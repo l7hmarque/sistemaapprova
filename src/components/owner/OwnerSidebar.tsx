@@ -60,7 +60,7 @@ export function OwnerSidebar() {
           );
         })}
         <Link
-          to="/admin"
+          to="/_authenticated/admin"
           className="mt-4 flex items-center gap-3 px-3 py-2 text-sm rounded-md text-muted-foreground hover:bg-muted transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -141,7 +141,7 @@ function ClientesPage() {
               {orgs.map((o) => (
                 <div key={o.id} className="grid grid-cols-12 gap-3 items-center py-3">
                   <div className="col-span-4">
-                    <Link to="/owner/clientes/$id" params={{ id: o.id }} className="font-medium hover:underline">
+                    <Link to="/_authenticated/owner/clientes/$id" params={{ id: o.id }} className="font-medium hover:underline">
                       {o.nome}
                     </Link>
                     <div className="text-xs text-muted-foreground">

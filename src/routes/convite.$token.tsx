@@ -89,7 +89,7 @@ function ConvitePage() {
             <div className="space-y-3 text-sm">
               <p className="text-destructive">{msg}</p>
               <Button asChild variant="outline" className="w-full">
-                <Link to="/admin">Ir para o painel</Link>
+                <Link to="/_authenticated/admin">Ir para o painel</Link>
               </Button>
             </div>
           )}

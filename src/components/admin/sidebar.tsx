@@ -101,7 +101,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {isSuperAdmin && <ViewAsSwitcher />}
         {isSuperAdmin && viewAsRole === "real" && (
           <Link
-            to="/owner"
+            to="/_authenticated/owner"
             className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-accent/30 text-foreground hover:bg-accent transition-colors"
           >
             <Crown className="h-4 w-4" />

@@ -135,7 +135,7 @@ function ModelosPage() {
           </p>
         </div>
         <Link
-          to="/admin/modelos/ajuda"
+          to="/_authenticated/admin/modelos/ajuda"
           className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
         >
           <HelpCircle className="h-4 w-4" />
