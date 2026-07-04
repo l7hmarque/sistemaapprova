@@ -43,6 +43,7 @@ function ArquivosPage() {
 
   const fnList = useServerFn(listarArquivosDaOrg);
   const fnQuota = useServerFn(getDriveQuota);
+  const fnSync = useServerFn(getDriveSyncStatus);
 
   const filesQ = useQuery({
     queryKey: ["arquivos", activeOrgId, section, mes],
@@ -56,6 +57,13 @@ function ArquivosPage() {
     queryFn: async () => fnQuota(),
     enabled: !!activeOrgId,
     staleTime: 60_000,
+  });
+
+  const syncQ = useQuery({
+    queryKey: ["drive-sync", activeOrgId],
+    queryFn: async () => fnSync(),
+    enabled: !!activeOrgId,
+    refetchInterval: 30_000,
   });
 
   const filtered = useMemo(() => {
