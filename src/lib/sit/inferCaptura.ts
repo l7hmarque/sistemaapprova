@@ -4,6 +4,7 @@
  */
 import { FAVORECIDO_OVERRIDES, CATEGORIAS, CATEGORIA_TO_TPDESPESA } from "./catalogos";
 import { validarDocFavorecido } from "./validarDoc";
+import { parseRegrasSit, type RegrasSit } from "./regrasSitSchema";
 
 export type CamposSIT = {
   tp_documento_despesa: number | null;
