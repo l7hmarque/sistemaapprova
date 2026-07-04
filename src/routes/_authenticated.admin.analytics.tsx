@@ -27,7 +27,7 @@ function AnalyticsPage() {
 
   useEffect(() => {
     if (!loading && !canSee) {
-      nav({ to: "/admin", replace: true });
+      nav({ to: "/_authenticated/admin", replace: true });
     }
   }, [loading, canSee, nav]);
 

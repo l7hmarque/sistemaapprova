@@ -13,10 +13,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 const ITEMS = [
-  { to: "/owner", label: "Visão geral", icon: LayoutDashboard, exact: true },
-  { to: "/owner/clientes", label: "Clientes", icon: Building2 },
-  { to: "/owner/suporte", label: "Suporte", icon: LifeBuoy },
-  { to: "/owner/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/_authenticated/owner", label: "Visão geral", icon: LayoutDashboard, exact: true },
+  { to: "/_authenticated/owner/clientes", label: "Clientes", icon: Building2 },
+  { to: "/_authenticated/owner/suporte", label: "Suporte", icon: LifeBuoy },
+  { to: "/_authenticated/owner/financeiro", label: "Financeiro", icon: DollarSign },
 ];
 
 export function OwnerSidebar() {

@@ -34,7 +34,7 @@ function ConvitePage() {
       setEstado("ok");
       toast.success("Convite aceito");
       try { localStorage.setItem("approva.activeOrgId", (r as any).organization_id); } catch {}
-      setTimeout(() => nav({ to: "/admin", replace: true }), 800);
+      setTimeout(() => nav({ to: "/_authenticated/admin", replace: true }), 800);
     } catch (e: any) {
       setMsg(e?.message || "Erro ao aceitar convite");
       setEstado("erro");

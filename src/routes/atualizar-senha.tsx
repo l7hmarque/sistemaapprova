@@ -49,7 +49,7 @@ function AtualizarSenhaPage() {
     setLoading(false);
     if (error) return toast.error(error.message || "Erro ao atualizar");
     toast.success("Senha atualizada");
-    nav({ to: "/admin", replace: true });
+    nav({ to: "/_authenticated/admin", replace: true });
   };
 
   return (

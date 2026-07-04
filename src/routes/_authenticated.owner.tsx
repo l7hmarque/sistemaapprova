@@ -16,8 +16,8 @@ function OwnerLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) nav({ to: "/login", search: { redirect: "/owner" }, replace: true });
-    else if (!isSuperAdmin) nav({ to: "/admin", replace: true });
+    if (!user) nav({ to: "/login", search: { redirect: "/_authenticated/owner" }, replace: true });
+    else if (!isSuperAdmin) nav({ to: "/_authenticated/admin", replace: true });
   }, [loading, user, isSuperAdmin, nav]);
 
   if (loading || !user || !isSuperAdmin) {

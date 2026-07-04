@@ -27,19 +27,19 @@ import { toast } from "sonner";
 
 type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; tour?: string; module: string; superAdminOnly?: boolean };
 const ITEMS: Item[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard", module: "dashboard" },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, tour: "nav-analytics", module: "analytics", superAdminOnly: true },
-  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel", module: "painel" },
-  { to: "/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura", module: "captura" },
-  { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos", module: "orcamentos" },
-  { to: "/admin/fornecedores", label: "Fornecedores", icon: Users, tour: "nav-fornecedores", module: "fornecedores" },
-  { to: "/admin/objetos", label: "Objetos", icon: Package, tour: "nav-objetos", module: "objetos" },
-  { to: "/admin/modelos", label: "Modelos", icon: FileCog, tour: "nav-modelos", module: "modelos" },
-  { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao", module: "prestacao" },
-  { to: "/admin/arquivos", label: "Arquivos", icon: FolderTree, tour: "nav-arquivos", module: "arquivos" },
-  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes", module: "aprovacoes" },
-  { to: "/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes", module: "configuracoes" },
+  { to: "/_authenticated/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard", module: "dashboard" },
+  { to: "/_authenticated/admin/analytics", label: "Analytics", icon: BarChart3, tour: "nav-analytics", module: "analytics", superAdminOnly: true },
+  { to: "/_authenticated/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel", module: "painel" },
+  { to: "/_authenticated/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura", module: "captura" },
+  { to: "/_authenticated/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos", module: "orcamentos" },
+  { to: "/_authenticated/admin/fornecedores", label: "Fornecedores", icon: Users, tour: "nav-fornecedores", module: "fornecedores" },
+  { to: "/_authenticated/admin/objetos", label: "Objetos", icon: Package, tour: "nav-objetos", module: "objetos" },
+  { to: "/_authenticated/admin/modelos", label: "Modelos", icon: FileCog, tour: "nav-modelos", module: "modelos" },
+  { to: "/_authenticated/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao", module: "prestacao" },
+  { to: "/_authenticated/admin/arquivos", label: "Arquivos", icon: FolderTree, tour: "nav-arquivos", module: "arquivos" },
+  { to: "/_authenticated/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes", module: "aprovacoes" },
+  { to: "/_authenticated/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
+  { to: "/_authenticated/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes", module: "configuracoes" },
 ];
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
