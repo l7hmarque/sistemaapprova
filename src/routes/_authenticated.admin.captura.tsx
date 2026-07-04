@@ -401,21 +401,16 @@ function CapturaPage() {
         const dataPag = dados?.data_pagamento ?? null;
         const temPagamento = !!dataPag;
 
-        // === Campos SIT ===
-        const tpDocDespesa = inferirTpDocDespesa(dados?.tipo, dados?.descricao);
-        const tpDocPag = inferirTpDocPagamento(
-          `${dados?.forma_pagamento ?? ""} ${dados?.descricao ?? ""}`,
-        );
-        const tpDespesa = inferirTpDespesa(dados?.descricao, dados?.tipo);
+        // === Campos SIT (regras_sit do fornecedor têm precedência sobre a inferência) ===
         const cnpjDigitsForFav = fornEncontrado?.cnpj?.replace(/\D/g, "")
           ?? (dados?.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null);
-        const tpDocFavInicial = inferirTpDocFav(cnpjDigitsForFav);
-        const nmFavInicial = fornEncontrado?.razao_social ?? dados?.razao_social ?? null;
-        const override = aplicarOverrideFavorecido({
-          tp_documento_despesa: tpDocDespesa,
-          tp_doc_fav: tpDocFavInicial,
-          nr_doc_fav: cnpjDigitsForFav,
-          nm_favorecido: nmFavInicial,
+        const camposSIT = resolverCamposSIT({
+          regras_sit: fornEncontrado?.regras_sit ?? null,
+          tipo: dados?.tipo ?? null,
+          descricao: dados?.descricao ?? null,
+          forma_pagamento: dados?.forma_pagamento ?? null,
+          cnpj_favorecido: cnpjDigitsForFav,
+          nm_favorecido: fornEncontrado?.razao_social ?? dados?.razao_social ?? null,
           razao_social_ia: dados?.razao_social ?? null,
         });
 
@@ -437,14 +432,15 @@ function CapturaPage() {
             data_emissao: dados?.data_emissao ?? null,
             origem: "captura",
             // id_interno preenchido automaticamente pela trigger fn_eventos_financeiros_set_id_interno
-            tp_documento_despesa: tpDocDespesa,
-            tp_doc_fav: override.tp_doc_fav,
-            nr_doc_fav: override.nr_doc_fav,
-            nm_favorecido: override.nm_favorecido,
+            tp_documento_despesa: camposSIT.tp_documento_despesa,
+            tp_doc_fav: camposSIT.tp_doc_fav,
+            nr_doc_fav: camposSIT.nr_doc_fav,
+            nm_favorecido: camposSIT.nm_favorecido,
             nr_documento: dados?.numero ?? null,
-            tp_documento_pagamento: tpDocPag,
+            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
             nr_documento_pagamento: dados?.numero_pagamento ?? null,
-            tp_despesa: tpDespesa,
+            tp_despesa: camposSIT.tp_despesa,
+            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
             status_documental: ehDuplicata
               ? "revisar"
               : (valorValido && (temPagamento || dataVenc) ? "completo" : "revisar"),
