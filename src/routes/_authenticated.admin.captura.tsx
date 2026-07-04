@@ -16,8 +16,9 @@ import { extrairDocumento } from "@/lib/captura.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
   inferirTpDocDespesa, inferirTpDocPagamento, inferirTpDocFav,
-  inferirTpDespesa, aplicarOverrideFavorecido, gerarIdInterno,
+  inferirTpDespesa, aplicarOverrideFavorecido,
 } from "@/lib/sit/inferCaptura";
+
 
 export const Route = createFileRoute("/_authenticated/admin/captura")({ component: CapturaPage });
 
