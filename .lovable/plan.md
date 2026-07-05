@@ -1,25 +1,89 @@
-# Milestone 3 — Confiabilidade de Captura e Sincronização (implementado)
 
-## Entregas
+# Milestone 4 — Fechamento do plano original
 
-### 3.1 Fila assíncrona Drive
-- Tabela `drive_sync_queue` (status/tentativas/próximo_retry/erro/drive_file_id), RLS por org, GRANT service_role, RPC atômico `drive_queue_claim` (FOR UPDATE SKIP LOCKED).
-- `src/lib/drive-queue.server.ts` — `enqueueDriveSync` (inserção não bloqueante) e `processDriveQueueTick` (retry exponencial 30s → 6h, máx 5 tentativas).
-- `src/routes/api/public/hooks/drive-sync-tick.ts` — endpoint público autenticado por `apikey` (anon).
-- `pg_cron` agenda `drive-sync-tick` a cada 1 minuto.
-- `anexarComprovante` passa a enfileirar após upload no Storage.
-- Colunas `drive_file_id` em `documentos_anexos` e `prestacao_documentos` (propagadas quando o job conclui).
+Você tem razão: melhor terminar o M4 e só então polir. Se o polimento
+descobrir algo, ele conserta em cima do M4 já entregue.
 
-### 3.2 Trava de imutabilidade (snapshot lock)
-- `fn_lock_snapshot_eventos` + trigger BEFORE UPDATE/DELETE em `eventos_financeiros` — só permite editar observação/tags/soft-delete quando o evento está vinculado a prestação homologada não revogada.
-- `fn_lock_snapshot_anexos` + trigger BEFORE UPDATE/DELETE em `documentos_anexos`.
-- `prestacoes_snapshot` ganhou `revogado_em/por/motivo` (`versao` reservado).
-- `reabrirPrestacao({ snapshotId, activeOrgId, motivo })` — só owner/admin, marca snapshot como revogado, libera eventos e registra em `audit_log`.
+## Escopo confirmado
 
-### 3.3 UI
-- `_authenticated.admin.arquivos.tsx` — badge "Sincronizando N arquivo(s) com Drive…" / "N falha(s) — retry automático" no cartão de armazenamento; `getDriveSyncStatus` refetch a cada 30s.
+### 4.1 Categorias financeiras unificadas
+Hoje `orcamentos` e `prestacao` mantêm listas de categorias independentes,
+o que impede relatório de execução orçamentária (previsto × realizado).
 
-## Fora de escopo (M4)
-- UX profunda de fila local na captura (retry client-side com localStorage) — deixado para M4 quando revisitarmos captura completa.
-- Unificação categorias orçamento ↔ prestação (M4.1).
-- PlanoGuard/cobrança automática (adiada).
+- Nova tabela `categorias_financeiras` por org: `id`, `organization_id`,
+  `nome`, `tipo` (`receita` | `despesa`), `codigo` (opcional para TCE),
+  `ativo`, `ordem`, timestamps.
+- RLS + `GRANT` completo (padrão do projeto).
+- Seed idempotente por org com as categorias hoje hardcoded em `orcamentos`
+  e `prestacao` (união dos dois conjuntos, deduplicada por nome).
+- `orcamentos_itens.categoria_id` e `eventos_financeiros.categoria_id`
+  passam a referenciar a nova tabela. Backfill via `nome` (case-insensitive)
+  na mesma migração; linhas sem match ficam com `categoria_id NULL` e um
+  aviso na UI ("categoria antiga — reclassificar").
+- CRUD de categorias em `_authenticated.admin.configuracoes.organizacao.tsx`
+  (nova aba/seção).
+- `_authenticated.admin.orcamentos.tsx` e
+  `_authenticated.admin.prestacao.tsx` passam a ler do banco (server fn
+  `listarCategorias({ tipo })`).
+
+### 4.2 Captura resiliente client-side
+Complementa a fila server-side do M3. Cobre queda de rede/aba fechada
+antes do upload chegar no Storage.
+
+- Em `_authenticated.admin.captura.tsx`: fila local em `localStorage`
+  chaveada por `activeOrgId`, item `{ id, file (base64), meta, tentativas,
+  proximoRetry }`.
+- Retry client-side 3× com backoff (2s → 10s → 30s) antes de marcar
+  "falhou — reenvie manualmente".
+- Barra de progresso por arquivo + banner "N upload(s) pendente(s)"
+  restaurado ao reabrir a página.
+- Quando o upload no Storage conclui, a fila server-side do M3 assume
+  a partir daí (Drive).
+
+### 4.3 Cobrança automática — decisão final
+Fica **fora** por decisão sua. Apenas ajustar o texto do `PlanoGuard`
+para não prometer autosserviço ("entre em contato com o suporte" em vez
+de "reative seu plano"). ~5 linhas.
+
+### 4.4 Remoções confirmadas (feitas dentro deste milestone)
+- `rm src/routes/showcase.$screen.tsx`
+- `rm src/routes/ferramenta.tsx`
+- `rm src/lib/extracoes-online.ts`
+- `rm src/lib/regrasUsuario.ts`
+- Esconder item "Agenda" do menu em `src/components/admin/sidebar.tsx`
+  (comentar entrada, manter arquivo da rota + `placeholder.tsx` para
+  quando entregarmos Fase 4).
+- Ajustar `sitemap[.]xml.ts` e qualquer `<Link>` que aponte para
+  `/ferramenta` ou `/showcase/*` (varrer com `rg` antes de remover).
+
+## Ordem de execução
+
+1. Migração SQL (`categorias_financeiras` + backfill).
+2. Server fn `listarCategorias` + CRUD UI.
+3. Refatorar `orcamentos` e `prestacao` para ler do banco.
+4. Fila local na captura.
+5. Ajuste texto `PlanoGuard`.
+6. Remoções + esconder Agenda + limpar links.
+7. Regenerar types (automático) e conferir build.
+
+## Detalhes técnicos
+
+- Migração precisa dos 4 passos canônicos (CREATE → GRANT → ENABLE RLS →
+  POLICY). Policies: `SELECT/INSERT/UPDATE/DELETE` para `authenticated`
+  restritas por `organization_id = current_user_org()`; `ALL` para
+  `service_role`.
+- Backfill: `UPDATE ... SET categoria_id = (SELECT id FROM
+  categorias_financeiras WHERE organization_id = ... AND lower(nome) =
+  lower(<valor_antigo>) AND tipo = ...)`. Deixar coluna antiga
+  `categoria_texto` por 1 milestone como fallback de leitura (não
+  editável na UI).
+- Fila local: usar `IndexedDB` se algum arquivo > 4 MB (localStorage
+  quota); caso contrário `localStorage` mesmo, mais simples.
+- Não tocar em `client.ts`, `types.ts`, `routeTree.gen.ts`, `.env`,
+  `supabase/config.toml` (auto-gen).
+
+## Fora de escopo (fica pro polimento posterior)
+
+Metadata SEO das rotas públicas, scan de segurança, alertas de fila
+Drive no painel `/owner`, revisão de `errorComponent`/`notFoundComponent`.
+Depois do M4 eu retomo estes.
