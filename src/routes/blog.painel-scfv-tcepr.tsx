@@ -7,7 +7,7 @@ import { capturarLeadBlog } from "@/lib/blog-leads.functions";
 const SLUG = "painel-scfv-tcepr";
 const TITLE = "Domingo à noite, planilha aberta, café frio: a rotina de quem presta contas de SCFV";
 const DESCRIPTION = "Por que a prestação de contas SCFV consome seus domingos — e uma planilha gratuita pronta no leiaute IN 201/2026 do TCE-PR para você usar hoje à noite.";
-const URL = "https://synsit.lovable.app/blog/painel-scfv-tcepr";
+const URL = "https://sistemaapprova.lovable.app/blog/painel-scfv-tcepr";
 const PUBLISHED = "2026-05-27";
 
 export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
           publisher: {
             "@type": "Organization",
             name: "Approva",
-            url: "https://synsit.lovable.app",
+            url: "https://sistemaapprova.lovable.app",
           },
           mainEntityOfPage: { "@type": "WebPage", "@id": URL },
           keywords: "SCFV, TCE-PR, IN 201/2026, prestação de contas, OSC, terceiro setor, Medianeira",

@@ -7,7 +7,7 @@ export const Route = createFileRoute("/termos")({
       { title: "Termos de Uso — Approva" },
       { name: "description", content: "Termos de Uso da plataforma Approva, operada pela 3RD TECH." },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/termos" }],
+    links: [{ rel: "canonical", href: "https://sistemaapprova.lovable.app/termos" }],
   }),
   component: TermosPage,
 });

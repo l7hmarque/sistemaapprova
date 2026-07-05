@@ -13,9 +13,9 @@ export const Route = createFileRoute("/gestores")({
       { property: "og:title", content: "Approva para Gestores de OSCs" },
       { property: "og:description", content: "Acompanhe orçamento, metas e prazos da sua OSC sem planilhas paralelas." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://synsit.lovable.app/gestores" },
+      { property: "og:url", content: "https://sistemaapprova.lovable.app/gestores" },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/gestores" }],
+    links: [{ rel: "canonical", href: "https://sistemaapprova.lovable.app/gestores" }],
     scripts: [{
       type: "application/ld+json",
       children: JSON.stringify({

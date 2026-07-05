@@ -3,7 +3,8 @@ Allow: /
 Disallow: /admin
 Disallow: /login
 Disallow: /obrigado
-
 Disallow: /orcamentos
+Disallow: /convite
+Disallow: /cotacao
 
-Sitemap: https://synsit.lovable.app/sitemap.xml
+Sitemap: https://sistemaapprova.lovable.app/sitemap.xml
