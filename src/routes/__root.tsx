@@ -109,7 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           url: "https://sistemaapprova.lovable.app",
           logo: "https://sistemaapprova.lovable.app/favicon.ico",
           description:
-            "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios de contabilidade do terceiro setor (SCFV, IN 201/2026 TCE-PR).",
+            "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios contábeis do terceiro setor. Convênios e termos de fomento com exportação para TCE-PR e prestações municipais.",
           areaServed: { "@type": "Country", name: "Brasil" },
         }),
       },
