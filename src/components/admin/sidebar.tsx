@@ -6,7 +6,7 @@ import {
   Package,
   FileCog,
   FolderCheck,
-  CalendarDays,
+  // CalendarDays,  // reintroduzir quando a Agenda voltar ao menu
   Settings,
   LogOut,
   Wallet,
