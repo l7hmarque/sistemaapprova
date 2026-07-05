@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDriveQueueStats } from "@/lib/owner.functions";
+import { AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/owner/")({ component: OwnerDashboard });
+
 
 function OwnerDashboard() {
   const { data: stats } = useQuery({
@@ -44,7 +48,10 @@ function OwnerDashboard() {
         <Stat label="Tickets abertos" value={stats?.ticketsAbertos} />
       </div>
 
+      <DriveQueueCard />
+
       <Card>
+
         <CardHeader>
           <CardTitle className="text-sm uppercase tracking-wide">Modelo escritório-contábil — métricas de referência</CardTitle>
         </CardHeader>
@@ -77,3 +84,51 @@ function Stat({ label, value, accent }: { label: string; value?: number; accent?
     </Card>
   );
 }
+
+function DriveQueueCard() {
+  const fetchStats = useServerFn(getDriveQueueStats);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["owner-drive-queue"],
+    queryFn: () => fetchStats(),
+    refetchInterval: 30_000,
+  });
+
+  const alerta = (data?.falhou_retry ?? 0) > 0 || (data?.falhou_permanente ?? 0) > 0 || (data?.atrasados ?? 0) > 0;
+
+  return (
+    <Card className={alerta ? "border-destructive/60" : undefined}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-sm uppercase tracking-wide flex items-center gap-2">
+          {alerta && <AlertTriangle className="h-4 w-4 text-destructive" />}
+          Fila Drive — todas as organizações
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+        {error && <p className="text-sm text-destructive">Não foi possível carregar a fila.</p>}
+        {data && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <QueueStat label="Pendentes" value={data.pendente} />
+            <QueueStat label="Em andamento" value={data.em_andamento} />
+            <QueueStat label="Falhou — retry" value={data.falhou_retry} danger={data.falhou_retry > 0} />
+            <QueueStat label="Falhou — permanente" value={data.falhou_permanente} danger={data.falhou_permanente > 0} />
+            <QueueStat label="Atrasados" value={data.atrasados} danger={data.atrasados > 0} />
+            <QueueStat label="Concluídos (24h)" value={data.concluido_24h} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function QueueStat({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={["text-2xl font-display mt-1", danger ? "text-destructive" : "text-foreground"].join(" ")}>
+        {value}
+      </div>
+    </div>
+  );
+}
+

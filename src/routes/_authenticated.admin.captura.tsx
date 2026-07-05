@@ -133,16 +133,39 @@ async function comRetry<T>(
 
 
 function msgErro(e: unknown): string {
-  if (e instanceof Error && e.message) return e.message;
-  if (e && typeof e === "object") {
-    const o = e as Record<string, unknown>;
-    if (typeof o.message === "string" && o.message) return o.message;
-    if (typeof o.error === "string" && o.error) return o.error;
-    if (typeof o.hint === "string" && o.hint) return o.hint;
-    try { return JSON.stringify(e); } catch { /* noop */ }
-  }
-  return "Falha desconhecida";
+  const raw =
+    e instanceof Error
+      ? e.message
+      : (e && typeof e === "object"
+          ? ((e as Record<string, unknown>).message as string | undefined)
+            ?? ((e as Record<string, unknown>).error as string | undefined)
+            ?? ((e as Record<string, unknown>).hint as string | undefined)
+          : typeof e === "string" ? e : "") ?? "";
+  const t = String(raw).toLowerCase();
+  if (!t) return "Falha desconhecida. Tente reprocessar em alguns instantes.";
+  if (t.includes("selecione uma organiza")) return raw as string;
+  if (t.includes("network") || t.includes("fetch") || t.includes("timeout") || t.includes("econnreset"))
+    return "Sem resposta da rede. Verifique a conexão e reprocesse.";
+  if (t.includes("duplicad") || t.includes("duplicate") || t.includes("já existe"))
+    return "Este arquivo já foi enviado neste mês.";
+  if (t.includes("storage") || t.includes("bucket") || t.includes("not found"))
+    return "Arquivo não encontrado no armazenamento. Reenvie o documento.";
+  if (t.includes("drive") && (t.includes("permission") || t.includes("403") || t.includes("forbidden")))
+    return "Sem permissão no Google Drive. Reconecte a pasta em Configurações.";
+  if (t.includes("drive") && (t.includes("404") || t.includes("not found")))
+    return "Pasta ou arquivo não encontrado no Drive. Reconecte a pasta.";
+  if (t.includes("rls") || t.includes("permission denied") || t.startsWith("pgrst"))
+    return "Sem permissão para concluir a operação. Verifique seu acesso à organização.";
+  if (t.includes("unenv") || t.includes("worker") || t.includes("wasm"))
+    return "Falha temporária no servidor. Tente novamente em alguns instantes.";
+  if (t.includes("payload") || t.includes("too large") || t.includes("413"))
+    return "Arquivo muito grande. Reduza o tamanho e reenvie.";
+  if (t.includes("ocr") || t.includes("extra") && t.includes("texto"))
+    return "Não conseguimos ler o conteúdo. Reenvie com melhor qualidade.";
+  if (String(raw).length > 160) return "Falha ao processar o documento. Reenvie o arquivo.";
+  return raw as string;
 }
+
 
 function inferirCategoria(dados?: { tipo?: string; descricao?: string }): string {
   const txt = `${dados?.tipo ?? ""} ${dados?.descricao ?? ""}`.toLowerCase();

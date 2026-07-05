@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@/hooks/use-auth";
+import { createFileRoute, Link } from "@tanstack/react-router";
+
 
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +19,7 @@ import {
   gerarMapaComparativoNoDrive,
 } from "@/lib/orcamentos.functions";
 
-export const Route = createFileRoute("/orcamentos")({
+export const Route = createFileRoute("/_authenticated/orcamentos")({
   head: () => ({
     meta: [
       { title: "Orçamentos — Approva" },
@@ -64,18 +64,7 @@ const ENTIDADE_DEFAULT = {
 };
 
 function OrcamentosPage() {
-  const { user, loading } = useAuth();
-  const nav = useNavigate();
-  useEffect(() => {
-    if (!loading && !user) nav({ to: "/login", search: { redirect: "/orcamentos" }, replace: true });
-  }, [loading, user, nav]);
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Toaster richColors position="top-right" />
