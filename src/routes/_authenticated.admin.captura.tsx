@@ -366,10 +366,17 @@ function CapturaPage() {
       if (!activeOrgId) throw new Error("Selecione uma organização ativa antes de processar");
       const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
       const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
-      const up = await supabase.storage.from("documentos").upload(path, arquivo, {
-        upsert: true,
-        contentType: arquivo.type || undefined,
-      });
+      const up = await comRetry(
+        async () => {
+          const r = await supabase.storage.from("documentos").upload(path, arquivo, {
+            upsert: true,
+            contentType: arquivo.type || undefined,
+          });
+          if (r.error) throw r.error;
+          return r;
+        },
+        (tentativa) => atualiza(it.id, { mensagem: `rede instável — tentativa ${tentativa + 1}/4` }),
+      );
       if (up.error) {
         console.error("[captura] storage upload error", up.error, { path, activeOrgId });
         throw up.error;
