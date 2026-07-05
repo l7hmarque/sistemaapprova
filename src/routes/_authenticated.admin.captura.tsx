@@ -101,6 +101,34 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
   }
 }
 
+/**
+ * Retry com backoff para erros transitórios de rede/Storage.
+ * Não faz retry para erros de validação/permissão (4xx do PostgREST/Storage).
+ */
+async function comRetry<T>(
+  fn: () => Promise<T>,
+  onTentativa?: (tentativa: number, ultimoErro: unknown) => void,
+): Promise<T> {
+  const backoffMs = [2000, 10000, 30000];
+  let ultimo: unknown;
+  for (let i = 0; i <= backoffMs.length; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      ultimo = e;
+      const msg = (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "").toLowerCase();
+      const transitorio =
+        msg.includes("network") || msg.includes("failed to fetch") ||
+        msg.includes("timeout") || msg.includes("timed out") ||
+        msg.includes("fetch failed") || msg.includes("load failed") ||
+        msg.includes("econn") || msg.includes("temporar");
+      if (!transitorio || i === backoffMs.length) throw e;
+      onTentativa?.(i + 1, e);
+      await new Promise((r) => setTimeout(r, backoffMs[i]));
+    }
+  }
+  throw ultimo;
+
 function msgErro(e: unknown): string {
   if (e instanceof Error && e.message) return e.message;
   if (e && typeof e === "object") {
