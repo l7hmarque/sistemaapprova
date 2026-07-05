@@ -19,7 +19,7 @@ import {
   gerarMapaComparativoNoDrive,
 } from "@/lib/orcamentos.functions";
 
-export const Route = createFileRoute("/orcamentos")({
+export const Route = createFileRoute("/_authenticated/orcamentos")({
   head: () => ({
     meta: [
       { title: "Orçamentos — Approva" },

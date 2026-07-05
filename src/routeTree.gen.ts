@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GestoresRouteImport } from './routes/gestores'
@@ -28,6 +27,7 @@ import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
 import { Route as ApiExtractRouteImport } from './routes/api/extract'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated.owner'
+import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated.orcamentos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedOwnerIndexRouteImport } from './routes/_authenticated.owner.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
@@ -71,11 +71,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrcamentosRoute = OrcamentosRouteImport.update({
-  id: '/orcamentos',
-  path: '/orcamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObrigadoRoute = ObrigadoRouteImport.update({
@@ -150,6 +145,11 @@ const ApiExtractRoute = ApiExtractRouteImport.update({
 const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
   id: '/owner',
   path: '/owner',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -330,11 +330,11 @@ export interface FileRoutesByFullPath {
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
-  '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/owner': typeof AuthenticatedOwnerRouteWithChildren
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
@@ -379,10 +379,10 @@ export interface FileRoutesByTo {
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
-  '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -427,11 +427,11 @@ export interface FileRoutesById {
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
-  '/orcamentos': typeof OrcamentosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRouteWithChildren
   '/api/extract': typeof ApiExtractRoute
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
@@ -478,11 +478,11 @@ export interface FileRouteTypes {
     | '/gestores'
     | '/login'
     | '/obrigado'
-    | '/orcamentos'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
     | '/admin'
+    | '/orcamentos'
     | '/owner'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
@@ -527,10 +527,10 @@ export interface FileRouteTypes {
     | '/gestores'
     | '/login'
     | '/obrigado'
-    | '/orcamentos'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/orcamentos'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
     | '/convite/$token'
@@ -574,11 +574,11 @@ export interface FileRouteTypes {
     | '/gestores'
     | '/login'
     | '/obrigado'
-    | '/orcamentos'
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
     | '/_authenticated/admin'
+    | '/_authenticated/orcamentos'
     | '/_authenticated/owner'
     | '/api/extract'
     | '/blog/painel-scfv-tcepr'
@@ -625,7 +625,6 @@ export interface RootRouteChildren {
   GestoresRoute: typeof GestoresRoute
   LoginRoute: typeof LoginRoute
   ObrigadoRoute: typeof ObrigadoRoute
-  OrcamentosRoute: typeof OrcamentosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
@@ -660,13 +659,6 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orcamentos': {
-      id: '/orcamentos'
-      path: '/orcamentos'
-      fullPath: '/orcamentos'
-      preLoaderRoute: typeof OrcamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/obrigado': {
@@ -772,6 +764,13 @@ declare module '@tanstack/react-router' {
       path: '/owner'
       fullPath: '/owner'
       preLoaderRoute: typeof AuthenticatedOwnerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/orcamentos': {
+      id: '/_authenticated/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/orcamentos'
+      preLoaderRoute: typeof AuthenticatedOrcamentosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin': {
@@ -1088,11 +1087,13 @@ const AuthenticatedOwnerRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRouteWithChildren,
 }
 
@@ -1123,7 +1124,6 @@ const rootRouteChildren: RootRouteChildren = {
   GestoresRoute: GestoresRoute,
   LoginRoute: LoginRoute,
   ObrigadoRoute: ObrigadoRoute,
-  OrcamentosRoute: OrcamentosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
