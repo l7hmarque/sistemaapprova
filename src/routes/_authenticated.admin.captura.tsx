@@ -588,6 +588,15 @@ function CapturaPage() {
     toast.success(`Processados ${pend.length} arquivo(s)`);
   }
 
+  async function reprocessarErros() {
+    const erros = itens.filter((i) => i.status === "erro");
+    for (const it of erros) {
+      atualiza(it.id, { status: "fila", mensagem: undefined });
+      // eslint-disable-next-line no-await-in-loop
+      await processar({ ...it, status: "fila" });
+    }
+  }
+
   async function vincularManual(itemId: string, eventoId: string) {
     const it = itens.find((i) => i.id === itemId);
     if (!it?.docId) return;
