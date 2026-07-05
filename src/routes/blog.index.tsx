@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 
-const URL = "https://synsit.lovable.app/blog";
+const URL = "https://sistemaapprova.lovable.app/blog";
 
 export const Route = createFileRoute("/blog/")({
   head: () => ({

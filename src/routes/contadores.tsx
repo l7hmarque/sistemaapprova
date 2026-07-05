@@ -12,9 +12,9 @@ export const Route = createFileRoute("/contadores")({
       { property: "og:title", content: "Approva para Contadores que atendem OSCs" },
       { property: "og:description", content: "Multi-OSC, modelos por edital, exportação SIT. Sem retrabalho." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://synsit.lovable.app/contadores" },
+      { property: "og:url", content: "https://sistemaapprova.lovable.app/contadores" },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/contadores" }],
+    links: [{ rel: "canonical", href: "https://sistemaapprova.lovable.app/contadores" }],
     scripts: [{
       type: "application/ld+json",
       children: JSON.stringify({

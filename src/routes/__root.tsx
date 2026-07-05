@@ -106,8 +106,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "Approva",
-          url: "https://synsit.lovable.app",
-          logo: "https://synsit.lovable.app/favicon.ico",
+          url: "https://sistemaapprova.lovable.app",
+          logo: "https://sistemaapprova.lovable.app/favicon.ico",
           description:
             "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios de contabilidade do terceiro setor (SCFV, IN 201/2026 TCE-PR).",
           areaServed: { "@type": "Country", name: "Brasil" },

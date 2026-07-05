@@ -7,7 +7,7 @@ export const Route = createFileRoute("/privacidade")({
       { title: "Política de Privacidade — Approva" },
       { name: "description", content: "Como o Approva trata dados pessoais e financeiros, conforme a LGPD." },
     ],
-    links: [{ rel: "canonical", href: "https://synsit.lovable.app/privacidade" }],
+    links: [{ rel: "canonical", href: "https://sistemaapprova.lovable.app/privacidade" }],
   }),
   component: PrivacidadePage,
 });

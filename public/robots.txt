@@ -6,4 +6,4 @@ Disallow: /obrigado
 
 Disallow: /orcamentos
 
-Sitemap: https://synsit.lovable.app/sitemap.xml
+Sitemap: https://sistemaapprova.lovable.app/sitemap.xml
