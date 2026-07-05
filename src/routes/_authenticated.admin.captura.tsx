@@ -128,6 +128,9 @@ async function comRetry<T>(
     }
   }
   throw ultimo;
+}
+
+
 
 function msgErro(e: unknown): string {
   if (e instanceof Error && e.message) return e.message;
