@@ -64,18 +64,7 @@ const ENTIDADE_DEFAULT = {
 };
 
 function OrcamentosPage() {
-  const { user, loading } = useAuth();
-  const nav = useNavigate();
-  useEffect(() => {
-    if (!loading && !user) nav({ to: "/login", search: { redirect: "/orcamentos" }, replace: true });
-  }, [loading, user, nav]);
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Toaster richColors position="top-right" />
