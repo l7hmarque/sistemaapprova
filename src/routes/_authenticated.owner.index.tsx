@@ -132,4 +132,3 @@ function QueueStat({ label, value, danger }: { label: string; value: number; dan
   );
 }
 
-}
