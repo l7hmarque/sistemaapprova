@@ -246,7 +246,6 @@ function Card({
       <rect x={x} y={y} width={4} height={h} rx={2} fill={accent} />
       <foreignObject x={x + 16} y={y + 14} width={w - 32} height={h - 28}>
         <div
-          xmlns="http://www.w3.org/1999/xhtml"
           style={{
             fontFamily: "Inter, system-ui, sans-serif",
             color: NAVY,
