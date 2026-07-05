@@ -684,6 +684,11 @@ function CapturaPage() {
           <Button onClick={processarTudo} disabled={!activeOrgId || !itens.some((i) => i.status === "fila")}>
             Processar fila
           </Button>
+          {itens.some((i) => i.status === "erro") && (
+            <Button onClick={reprocessarErros} variant="secondary" disabled={!activeOrgId}>
+              Reprocessar {itens.filter((i) => i.status === "erro").length} erro(s)
+            </Button>
+          )}
           <div className="ml-auto text-xs text-muted-foreground self-center">
             {eventos.length} evento(s) candidato(s) em {mes}
           </div>
