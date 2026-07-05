@@ -48,7 +48,10 @@ function OwnerDashboard() {
         <Stat label="Tickets abertos" value={stats?.ticketsAbertos} />
       </div>
 
+      <DriveQueueCard />
+
       <Card>
+
         <CardHeader>
           <CardTitle className="text-sm uppercase tracking-wide">Modelo escritório-contábil — métricas de referência</CardTitle>
         </CardHeader>
