@@ -1,15 +1,16 @@
 # Approva
 
-> Plataforma SaaS para prestação de contas de Termo de Fomento no padrão SIT/TCE-PR. Importa o PDF mensal, extrai despesas com IA, organiza comprovantes com aprovação em duas mãos e exporta o arquivo Despesa.txt oficial.
+> Plataforma SaaS de gestão financeira e prestação de contas para OSCs (organizações da sociedade civil) e escritórios contábeis do terceiro setor. Organiza convênios e termos de fomento, captura documentos sem digitação, registra aprovação em duas mãos e exporta relatórios para o TCE-PR e para prestações municipais.
 
-Approva é desenvolvido pela 3RD TECH (Medianeira, PR, Brasil) e atende organizações da sociedade civil (OSCs) e escritórios contábeis que prestam contas ao TCE-PR.
+Approva é desenvolvido pela 3RD TECH (Medianeira, PR, Brasil). Atende OSCs que prestam contas ao TCE-PR e a órgãos municipais, e escritórios contábeis que gerenciam carteiras de organizações do terceiro setor.
 
 ## Pages
 
-- [Início](/): Visão geral do produto, como funciona em 3 etapas e planos.
+- [Início](/): Visão geral do produto, dores que resolve, fluxo mensal e planos.
 - [Para contadores](/contadores): Vantagens para escritórios contábeis que atendem múltiplas OSCs.
 - [Para gestores](/gestores): Vantagens para gestores e equipes financeiras de OSCs.
 - [Demonstração](/demonstracao): Solicitar 30 dias gratuitos.
+- [Blog](/blog): Conteúdo prático sobre prestação de contas, MROSC e SCFV.
 
 ## Optional
 
