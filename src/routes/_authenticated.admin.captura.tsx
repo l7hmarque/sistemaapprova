@@ -101,6 +101,37 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
   }
 }
 
+/**
+ * Retry com backoff para erros transitórios de rede/Storage.
+ * Não faz retry para erros de validação/permissão (4xx do PostgREST/Storage).
+ */
+async function comRetry<T>(
+  fn: () => Promise<T>,
+  onTentativa?: (tentativa: number, ultimoErro: unknown) => void,
+): Promise<T> {
+  const backoffMs = [2000, 10000, 30000];
+  let ultimo: unknown;
+  for (let i = 0; i <= backoffMs.length; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      ultimo = e;
+      const msg = (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "").toLowerCase();
+      const transitorio =
+        msg.includes("network") || msg.includes("failed to fetch") ||
+        msg.includes("timeout") || msg.includes("timed out") ||
+        msg.includes("fetch failed") || msg.includes("load failed") ||
+        msg.includes("econn") || msg.includes("temporar");
+      if (!transitorio || i === backoffMs.length) throw e;
+      onTentativa?.(i + 1, e);
+      await new Promise((r) => setTimeout(r, backoffMs[i]));
+    }
+  }
+  throw ultimo;
+}
+
+
+
 function msgErro(e: unknown): string {
   if (e instanceof Error && e.message) return e.message;
   if (e && typeof e === "object") {
@@ -335,10 +366,17 @@ function CapturaPage() {
       if (!activeOrgId) throw new Error("Selecione uma organização ativa antes de processar");
       const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
       const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
-      const up = await supabase.storage.from("documentos").upload(path, arquivo, {
-        upsert: true,
-        contentType: arquivo.type || undefined,
-      });
+      const up = await comRetry(
+        async () => {
+          const r = await supabase.storage.from("documentos").upload(path, arquivo, {
+            upsert: true,
+            contentType: arquivo.type || undefined,
+          });
+          if (r.error) throw r.error;
+          return r;
+        },
+        (tentativa) => atualiza(it.id, { mensagem: `rede instável — tentativa ${tentativa + 1}/4` }),
+      );
       if (up.error) {
         console.error("[captura] storage upload error", up.error, { path, activeOrgId });
         throw up.error;
@@ -550,6 +588,15 @@ function CapturaPage() {
     toast.success(`Processados ${pend.length} arquivo(s)`);
   }
 
+  async function reprocessarErros() {
+    const erros = itens.filter((i) => i.status === "erro");
+    for (const it of erros) {
+      atualiza(it.id, { status: "fila", mensagem: undefined });
+      // eslint-disable-next-line no-await-in-loop
+      await processar({ ...it, status: "fila" });
+    }
+  }
+
   async function vincularManual(itemId: string, eventoId: string) {
     const it = itens.find((i) => i.id === itemId);
     if (!it?.docId) return;
@@ -637,6 +684,11 @@ function CapturaPage() {
           <Button onClick={processarTudo} disabled={!activeOrgId || !itens.some((i) => i.status === "fila")}>
             Processar fila
           </Button>
+          {itens.some((i) => i.status === "erro") && (
+            <Button onClick={reprocessarErros} variant="secondary" disabled={!activeOrgId}>
+              Reprocessar {itens.filter((i) => i.status === "erro").length} erro(s)
+            </Button>
+          )}
           <div className="ml-auto text-xs text-muted-foreground self-center">
             {eventos.length} evento(s) candidato(s) em {mes}
           </div>

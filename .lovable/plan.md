@@ -1,25 +1,61 @@
-# Milestone 3 — Confiabilidade de Captura e Sincronização (implementado)
+# Milestone 4 — Fechamento do plano original (implementado)
 
 ## Entregas
 
-### 3.1 Fila assíncrona Drive
-- Tabela `drive_sync_queue` (status/tentativas/próximo_retry/erro/drive_file_id), RLS por org, GRANT service_role, RPC atômico `drive_queue_claim` (FOR UPDATE SKIP LOCKED).
-- `src/lib/drive-queue.server.ts` — `enqueueDriveSync` (inserção não bloqueante) e `processDriveQueueTick` (retry exponencial 30s → 6h, máx 5 tentativas).
-- `src/routes/api/public/hooks/drive-sync-tick.ts` — endpoint público autenticado por `apikey` (anon).
-- `pg_cron` agenda `drive-sync-tick` a cada 1 minuto.
-- `anexarComprovante` passa a enfileirar após upload no Storage.
-- Colunas `drive_file_id` em `documentos_anexos` e `prestacao_documentos` (propagadas quando o job conclui).
+### 4.1 Categorias financeiras unificadas — reavaliado, sem mudança
+Ao mapear o código descobrimos que **não existe a duplicação assumida**:
 
-### 3.2 Trava de imutabilidade (snapshot lock)
-- `fn_lock_snapshot_eventos` + trigger BEFORE UPDATE/DELETE em `eventos_financeiros` — só permite editar observação/tags/soft-delete quando o evento está vinculado a prestação homologada não revogada.
-- `fn_lock_snapshot_anexos` + trigger BEFORE UPDATE/DELETE em `documentos_anexos`.
-- `prestacoes_snapshot` ganhou `revogado_em/por/motivo` (`versao` reservado).
-- `reabrirPrestacao({ snapshotId, activeOrgId, motivo })` — só owner/admin, marca snapshot como revogado, libera eventos e registra em `audit_log`.
+- `_authenticated.admin.orcamentos.tsx` é o módulo de **cotações** (RFQ),
+  não uma lista de rubricas orçamentárias — não tem categorias próprias.
+- `eventos_financeiros.categoria` é sempre um código de **natureza
+  econômica SIT/TCE** vindo do catálogo único em `src/lib/sit/catalogos.ts`
+  (`CATEGORIAS`), consumido por captura, prestação, snapshot e
+  `inferCaptura`.
+- Portanto não há duas listas para unificar. A "categoria por org" só faz
+  sentido se um dia quisermos rótulos internos além do código SIT — fica
+  como M5 sob demanda real.
 
-### 3.3 UI
-- `_authenticated.admin.arquivos.tsx` — badge "Sincronizando N arquivo(s) com Drive…" / "N falha(s) — retry automático" no cartão de armazenamento; `getDriveSyncStatus` refetch a cada 30s.
+Nenhuma migração criada aqui.
 
-## Fora de escopo (M4)
-- UX profunda de fila local na captura (retry client-side com localStorage) — deixado para M4 quando revisitarmos captura completa.
-- Unificação categorias orçamento ↔ prestação (M4.1).
-- PlanoGuard/cobrança automática (adiada).
+### 4.2 Captura resiliente client-side
+- `comRetry()` em `_authenticated.admin.captura.tsx`: backoff 2s → 10s → 30s
+  apenas para erros de rede reconhecíveis (`network`, `failed to fetch`,
+  `timeout`, `fetch failed`, `load failed`, `econn`, `temporar`). Erros
+  4xx (validação/RLS) não sofrem retry.
+- Upload no Supabase Storage passa a usar `comRetry`; a mensagem do item
+  vira `"rede instável — tentativa N/4"` durante o retry.
+- Novo botão **"Reprocessar N erro(s)"** no cartão de ações — só aparece
+  quando há itens em `status = "erro"`. Ele re-envia sem pedir para o
+  usuário selecionar os arquivos de novo (o `File` fica em memória).
+- Persistência entre reloads (localStorage/IndexedDB) foi deliberadamente
+  omitida: `File` bruto não sobrevive a reload sem re-serializar em base64,
+  o que estoura quota rápido e ainda perde metadados. Se virar dor real,
+  retomamos com IndexedDB.
+
+### 4.3 Cobrança automática
+Mantida fora, conforme decidido. Texto do `PlanoGuard` ajustado para
+não prometer autosserviço:
+- "Regularize o pagamento…" → "Fale com nossa equipe para regularizar…"
+- "Escolha um plano…" → "Fale com nossa equipe para contratar um plano…"
+
+### 4.4 Remoções e limpeza
+Removidos (confirmados como não usados em produção):
+- `src/routes/showcase.$screen.tsx`
+- `src/routes/ferramenta.tsx`
+- `src/lib/extracoes-online.ts`
+- `src/lib/regrasUsuario.ts`
+- `Disallow: /ferramenta` de `public/robots.txt`
+
+Escondidos do menu (rota permanece):
+- Item "Agenda" em `src/components/admin/sidebar.tsx` — ficou comentado
+  junto com o import `CalendarDays`. A rota
+  `_authenticated.admin.agenda.tsx` e o `PlaceholderPage` seguem para
+  quando entregarmos a Fase 4.
+
+## Fora de escopo (polimento pós-M4)
+
+- Metadata SEO por rota pública (título/description/og reais).
+- Auditoria rota-a-rota do gate `_authenticated/`.
+- Scan de segurança + revisão de RLS/GRANT das tabelas novas do M3.
+- Alertas de fila Drive no painel `/owner` (hoje só na tela de arquivos).
+- Padronização de `errorComponent`/`notFoundComponent` em rotas com loader.

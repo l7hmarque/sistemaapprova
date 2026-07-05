@@ -6,7 +6,7 @@ import {
   Package,
   FileCog,
   FolderCheck,
-  CalendarDays,
+  // CalendarDays,  // reintroduzir quando a Agenda voltar ao menu
   Settings,
   LogOut,
   Wallet,
@@ -38,7 +38,8 @@ const ITEMS: Item[] = [
   { to: "/_authenticated/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao", module: "prestacao" },
   { to: "/_authenticated/admin/arquivos", label: "Arquivos", icon: FolderTree, tour: "nav-arquivos", module: "arquivos" },
   { to: "/_authenticated/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes", module: "aprovacoes" },
-  { to: "/_authenticated/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
+  // Agenda: rota disponível mas escondida do menu até entrega da Fase 4.
+  // { to: "/_authenticated/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
   { to: "/_authenticated/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes", module: "configuracoes" },
 ];
 

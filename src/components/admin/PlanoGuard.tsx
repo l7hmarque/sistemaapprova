@@ -47,10 +47,10 @@ export function PlanoGuard({ children }: { children: ReactNode }) {
 
   const detalhe =
     activeOrg.status === "suspenso"
-      ? "O acesso desta organização foi suspenso. Regularize o pagamento para liberar novamente."
+      ? "O acesso desta organização foi suspenso. Fale com nossa equipe para regularizar e liberar o acesso."
       : activeOrg.status === "cancelado"
       ? "O plano desta organização foi cancelado. Fale com nossa equipe para reativar."
-      : `O trial expirou em ${activeOrg.trial_ate ? new Date(activeOrg.trial_ate).toLocaleDateString("pt-BR") : "—"}. Escolha um plano para continuar usando o Approva.`;
+      : `O período de avaliação terminou em ${activeOrg.trial_ate ? new Date(activeOrg.trial_ate).toLocaleDateString("pt-BR") : "—"}. Fale com nossa equipe para contratar um plano e continuar usando o Approva.`;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-6">

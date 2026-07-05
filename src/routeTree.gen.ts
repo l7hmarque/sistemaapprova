@@ -16,7 +16,6 @@ import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ObrigadoRouteImport } from './routes/obrigado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GestoresRouteImport } from './routes/gestores'
-import { Route as FerramentaRouteImport } from './routes/ferramenta'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContadoresRouteImport } from './routes/contadores'
@@ -24,7 +23,6 @@ import { Route as AtualizarSenhaRouteImport } from './routes/atualizar-senha'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
-import { Route as ShowcaseScreenRouteImport } from './routes/showcase.$screen'
 import { Route as CotacaoTokenRouteImport } from './routes/cotacao.$token'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as BlogPainelScfvTceprRouteImport } from './routes/blog.painel-scfv-tcepr'
@@ -95,11 +93,6 @@ const GestoresRoute = GestoresRouteImport.update({
   path: '/gestores',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FerramentaRoute = FerramentaRouteImport.update({
-  id: '/ferramenta',
-  path: '/ferramenta',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
   id: '/esqueci-senha',
   path: '/esqueci-senha',
@@ -132,11 +125,6 @@ const IndexRoute = IndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShowcaseScreenRoute = ShowcaseScreenRouteImport.update({
-  id: '/showcase/$screen',
-  path: '/showcase/$screen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CotacaoTokenRoute = CotacaoTokenRouteImport.update({
@@ -339,7 +327,6 @@ export interface FileRoutesByFullPath {
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
-  '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
@@ -353,7 +340,6 @@ export interface FileRoutesByFullPath {
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
-  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/agenda': typeof AuthenticatedAdminAgendaRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -390,7 +376,6 @@ export interface FileRoutesByTo {
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
-  '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
@@ -402,7 +387,6 @@ export interface FileRoutesByTo {
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
-  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/blog': typeof BlogIndexRoute
   '/admin/agenda': typeof AuthenticatedAdminAgendaRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -440,7 +424,6 @@ export interface FileRoutesById {
   '/contadores': typeof ContadoresRoute
   '/demonstracao': typeof DemonstracaoRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
-  '/ferramenta': typeof FerramentaRoute
   '/gestores': typeof GestoresRoute
   '/login': typeof LoginRoute
   '/obrigado': typeof ObrigadoRoute
@@ -454,7 +437,6 @@ export interface FileRoutesById {
   '/blog/painel-scfv-tcepr': typeof BlogPainelScfvTceprRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/cotacao/$token': typeof CotacaoTokenRoute
-  '/showcase/$screen': typeof ShowcaseScreenRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/agenda': typeof AuthenticatedAdminAgendaRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -493,7 +475,6 @@ export interface FileRouteTypes {
     | '/contadores'
     | '/demonstracao'
     | '/esqueci-senha'
-    | '/ferramenta'
     | '/gestores'
     | '/login'
     | '/obrigado'
@@ -507,7 +488,6 @@ export interface FileRouteTypes {
     | '/blog/painel-scfv-tcepr'
     | '/convite/$token'
     | '/cotacao/$token'
-    | '/showcase/$screen'
     | '/blog/'
     | '/admin/agenda'
     | '/admin/analytics'
@@ -544,7 +524,6 @@ export interface FileRouteTypes {
     | '/contadores'
     | '/demonstracao'
     | '/esqueci-senha'
-    | '/ferramenta'
     | '/gestores'
     | '/login'
     | '/obrigado'
@@ -556,7 +535,6 @@ export interface FileRouteTypes {
     | '/blog/painel-scfv-tcepr'
     | '/convite/$token'
     | '/cotacao/$token'
-    | '/showcase/$screen'
     | '/blog'
     | '/admin/agenda'
     | '/admin/analytics'
@@ -593,7 +571,6 @@ export interface FileRouteTypes {
     | '/contadores'
     | '/demonstracao'
     | '/esqueci-senha'
-    | '/ferramenta'
     | '/gestores'
     | '/login'
     | '/obrigado'
@@ -607,7 +584,6 @@ export interface FileRouteTypes {
     | '/blog/painel-scfv-tcepr'
     | '/convite/$token'
     | '/cotacao/$token'
-    | '/showcase/$screen'
     | '/blog/'
     | '/_authenticated/admin/agenda'
     | '/_authenticated/admin/analytics'
@@ -646,7 +622,6 @@ export interface RootRouteChildren {
   ContadoresRoute: typeof ContadoresRoute
   DemonstracaoRoute: typeof DemonstracaoRoute
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
-  FerramentaRoute: typeof FerramentaRoute
   GestoresRoute: typeof GestoresRoute
   LoginRoute: typeof LoginRoute
   ObrigadoRoute: typeof ObrigadoRoute
@@ -658,7 +633,6 @@ export interface RootRouteChildren {
   BlogPainelScfvTceprRoute: typeof BlogPainelScfvTceprRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
-  ShowcaseScreenRoute: typeof ShowcaseScreenRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
@@ -716,13 +690,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GestoresRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ferramenta': {
-      id: '/ferramenta'
-      path: '/ferramenta'
-      fullPath: '/ferramenta'
-      preLoaderRoute: typeof FerramentaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/esqueci-senha': {
       id: '/esqueci-senha'
       path: '/esqueci-senha'
@@ -770,13 +737,6 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/showcase/$screen': {
-      id: '/showcase/$screen'
-      path: '/showcase/$screen'
-      fullPath: '/showcase/$screen'
-      preLoaderRoute: typeof ShowcaseScreenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cotacao/$token': {
@@ -1160,7 +1120,6 @@ const rootRouteChildren: RootRouteChildren = {
   ContadoresRoute: ContadoresRoute,
   DemonstracaoRoute: DemonstracaoRoute,
   EsqueciSenhaRoute: EsqueciSenhaRoute,
-  FerramentaRoute: FerramentaRoute,
   GestoresRoute: GestoresRoute,
   LoginRoute: LoginRoute,
   ObrigadoRoute: ObrigadoRoute,
@@ -1172,7 +1131,6 @@ const rootRouteChildren: RootRouteChildren = {
   BlogPainelScfvTceprRoute: BlogPainelScfvTceprRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
-  ShowcaseScreenRoute: ShowcaseScreenRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
