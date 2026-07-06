@@ -80,7 +80,14 @@ function ArquivosPage() {
       const token = sess.session?.access_token;
       if (!token) throw new Error("Sessão expirada, faça login novamente.");
       const res = await fetch(`/api/files/${id}/preview?t=${encodeURIComponent(token)}`);
-      if (!res.ok) throw new Error(`Falha ao baixar (${res.status})`);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        if (res.status === 403) {
+          throw new Error("Sem permissão para baixar este arquivo (fora da sua organização).");
+        }
+        if (res.status === 401) throw new Error("Sessão expirada.");
+        throw new Error(`Falha ao baixar (${res.status}) ${txt.slice(0, 120)}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
