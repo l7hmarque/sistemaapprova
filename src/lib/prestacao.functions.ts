@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { driveCopyFile } from "./orcamentos.server";
 import { ensureMesFolder } from "./drive-org.server";
+import { extrairSheetId } from "./modelos";
 
 const GDOCS = "https://connector-gateway.lovable.dev/google_docs/v1";
 
