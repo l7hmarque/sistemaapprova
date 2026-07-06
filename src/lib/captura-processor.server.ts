@@ -458,7 +458,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         mensagem: mensagemFinal,
         evento_id: eventoId,
         documento_id: anexo.data.id,
-        dados: dados as unknown as Record<string, unknown>,
+        dados: dados as unknown as never,
         finalizado_em: new Date().toISOString(),
       })
       .eq("id", jobId);
