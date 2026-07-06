@@ -300,9 +300,11 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
 
     const cnpjDigits = dados.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null;
-    let fornEncontrado: { id: string; razao_social: string; cnpj: string; regras_sit?: unknown } | null = null;
+    type Forn = { id: string; razao_social: string; cnpj: string; regras_sit?: unknown };
+    let fornEncontrado: Forn | null = null;
     if (cnpjDigits && forns) {
-      fornEncontrado = (forns.find((f) => f.cnpj.replace(/\D/g, "") === cnpjDigits) as typeof fornEncontrado) ?? null;
+      const achou = forns.find((f) => f.cnpj.replace(/\D/g, "") === cnpjDigits);
+      if (achou) fornEncontrado = achou as unknown as Forn;
     }
     if (!fornEncontrado && cnpjDigits && dados.razao_social) {
       const fIns = await supabaseAdmin
@@ -311,7 +313,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         .select("id, razao_social, cnpj, regras_sit")
         .single();
       if (fIns.data) {
-        fornEncontrado = fIns.data as typeof fornEncontrado;
+        fornEncontrado = fIns.data as unknown as Forn;
       } else if (fIns.error) {
         const { data: ja } = await supabaseAdmin
           .from("fornecedores")
@@ -319,7 +321,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
           .eq("organization_id", orgId)
           .eq("cnpj", cnpjDigits)
           .maybeSingle();
-        if (ja) fornEncontrado = ja as typeof fornEncontrado;
+        if (ja) fornEncontrado = ja as unknown as Forn;
       }
     }
 
