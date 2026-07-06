@@ -418,8 +418,42 @@ function PrestacaoPage() {
               <Field label="Descrição (opcional)">
                 <Textarea rows={2} value={edit.descricao ?? ""} onChange={(e) => setEdit({ ...edit, descricao: e.target.value })} />
               </Field>
-              <Field label="URL do arquivo (Drive ou link)">
-                <Input value={edit.arquivo_url ?? ""} onChange={(e) => setEdit({ ...edit, arquivo_url: e.target.value })} placeholder="https://drive.google.com/…" />
+              <Field label="Arquivo (Drive/URL ou upload do computador)">
+                <div className="space-y-2">
+                  <Input
+                    value={edit.arquivo_url ?? ""}
+                    onChange={(e) => setEdit({ ...edit, arquivo_url: e.target.value })}
+                    placeholder="https://drive.google.com/…  ou envie um arquivo abaixo"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="upload-doc-prestacao"
+                      type="file"
+                      accept="application/pdf,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadDoComputador(f);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingDoc}
+                      onClick={() => document.getElementById("upload-doc-prestacao")?.click()}
+                    >
+                      {uploadingDoc ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                      {uploadingDoc ? "Enviando…" : "Enviar do computador"}
+                    </Button>
+                    {isStorageUrl(edit.arquivo_url) && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        Arquivo enviado: {(storagePathFromUrl(edit.arquivo_url!)?.path ?? "").split("/").pop()}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Data de emissão">
