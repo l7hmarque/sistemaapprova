@@ -16,7 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
-import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
+
 import { Badge } from "@/components/ui/badge";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
@@ -64,7 +64,6 @@ function PrestacaoPage() {
   const [gerando, setGerando] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
-  const abrirSnap = useServerFn(obterUrlSnapshot);
   const { activeOrgId } = useActiveOrg();
 
   const carregar = async () => {
@@ -105,10 +104,30 @@ function PrestacaoPage() {
     setLoading(false);
   };
 
-  const abrirSnapshot = async (id: string) => {
+  const baixarPdfDoStorage = async (storagePath: string, filename: string) => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) throw new Error("Sessão expirada, faça login novamente.");
+    const res = await fetch(`/api/prestacao/download?path=${encodeURIComponent(storagePath)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Falha ao baixar PDF (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const abrirSnapshot = async (s: Snapshot) => {
     try {
-      const r = await abrirSnap({ data: { id } });
-      window.open(r.url, "_blank");
+      if (!s.pdf_path) throw new Error("Snapshot sem arquivo salvo");
+      await baixarPdfDoStorage(s.pdf_path, `prestacao-${mes}.pdf`);
     } catch (e: any) {
       toast.error(e?.message || "Falha ao abrir");
     }
@@ -270,7 +289,7 @@ function PrestacaoPage() {
                   </div>
                 </div>
                 <Badge variant="outline" className="shrink-0">imutável</Badge>
-                <Button size="sm" variant="outline" onClick={() => abrirSnapshot(s.id)}>
+                <Button size="sm" variant="outline" onClick={() => abrirSnapshot(s)}>
                   <FileDown className="h-4 w-4 mr-1" /> Abrir PDF
                 </Button>
               </div>
