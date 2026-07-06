@@ -1,45 +1,64 @@
-## Diagnóstico
+## Problema
 
-`ERR_BLOCKED_BY_CLIENT` = **bloqueador de anúncios/privacidade do navegador** (uBlock, AdBlock, Brave Shields, Kaspersky, etc.) barrando o domínio `*.supabase.co`. Várias listas populares (EasyPrivacy, Fanboy) tratam subdomínios de PaaS como `supabase.co` como tracker de terceiros. Como agora servimos o PDF via signed URL do Storage direto em `afikxcuergsyygytmgub.supabase.co`, o clique cai nessa lista.
+1. Após "PDF pronto" o `window.open(blobUrl)` é chamado depois de vários awaits (fetch + blob). Sem gesto do usuário no mesmo tick, o Chrome/pop-up blocker silenciosamente descarta a janela — daí "toast apareceu mas nada abriu".
+2. O botão "Abrir" na lista de snapshots (`abrirSnapshot`) ainda chama `obterUrlSnapshot`, que devolve uma signed URL de `*.supabase.co` — mesmo bug de ad-blocker que já corrigimos no fluxo de geração.
 
-Não dá pra "consertar" no cliente. A saída é servir o PDF do **mesmo domínio da aplicação** (`*.lovable.app` / domínio custom), que não está nas listas.
+## Correção
 
-## Solução
+### 1. Abrir PDF sem pop-up bloqueado
+Substituir `window.open(blobUrl)` por um `<a>` temporário disparado programaticamente com `download="prestacao-<mes>.pdf"`. Downloads via `<a download>` não são tratados como pop-up e não exigem gesto imediato.
 
-Criar uma rota de servidor autenticada que faz proxy do PDF a partir do Storage, e devolver essa URL como link primário no lugar do signed URL do Supabase.
+Helper compartilhado em `src/routes/_authenticated.admin.prestacao.tsx`:
 
-### 1. Nova rota `src/routes/api/prestacao.download.ts`
-- `GET /api/prestacao/download?path=<storage-path>`
-- Auth: valida bearer token via `SUPABASE_URL/auth/v1/user` (mesmo padrão da rota `prestacao.preview.ts` deletada). Se não tiver sessão → 401.
-- Confere que `path` começa com `${orgId}/` do usuário atual (via `current_user_org`) — impede baixar PDF de outra org.
-- Faz `supabaseAdmin.storage.from('prestacoes').download(path)` e devolve os bytes com:
-  - `Content-Type: application/pdf`
-  - `Content-Disposition: inline; filename="Prestacao ${mes}.pdf"`
-  - `Cache-Control: private, max-age=300`
+```ts
+const baixarPdfDoStorage = async (storagePath: string, filename: string) => {
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess.session?.access_token;
+  if (!token) throw new Error("Sessão expirada, faça login novamente.");
+  const res = await fetch(`/api/prestacao/download?path=${encodeURIComponent(storagePath)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Falha ao baixar PDF (${res.status})`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;         // força download/abertura pelo visualizador nativo
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+```
 
-### 2. Ajuste em `gerarPrestacaoContas` (`src/lib/prestacao.functions.ts`)
-- Depois do upload, montar a URL primária como caminho relativo `/api/prestacao/download?path=<encoded>` em vez de `signed url` do Supabase.
-- Manter `driveUrl` como secundário para o caso de o proxy falhar.
-- Não precisa mais gerar signed URL do Storage (economiza chamada).
+Usar esse helper em `gerarOficial` (após "PDF pronto") no lugar do `window.open` atual.
 
-### 3. Frontend
-- Como a rota exige bearer, `window.open(r.url)` numa nova aba não manda o header. Duas opções:
-  - **A (escolhida):** rota autentica por bearer no header **ou** por query token de curta duração (`?t=<jwt>`). Servidor aceita ambos e valida.
-  - Frontend anexa `?t=${session.access_token}` no href antes de abrir.
-- Alternativa mais simples e sem token na URL: fazer `fetch` com bearer → `blob()` → `URL.createObjectURL` → `window.open`. Objeto blob é local ao navegador, ad-blocker não vê domínio externo. Vou adotar essa (evita expor JWT em query/logs).
+### 2. Botão "Abrir" da lista de snapshots (relatório já gerado)
+A lista `snapshots` já é carregada por mês em `carregar()` e renderizada com um botão "Abrir". Trocar `abrirSnapshot` para usar o mesmo proxy `/api/prestacao/download`, passando `s.pdf_path` diretamente — sem depender de `obterUrlSnapshot`/signed URL:
 
-### Fluxo final no botão "Gerar relatório"
-1. `gerar()` → retorna `{ url: "/api/prestacao/download?path=...", driveUrl, nome, ... }`
-2. Frontend: `fetch(url, { headers: { Authorization: Bearer <token> } })` → `blob` → `window.open(URL.createObjectURL(blob))`
-3. Aba abre `blob:` — nenhum domínio externo → nenhum ad-blocker envolvido.
+```ts
+const abrirSnapshot = async (s: Snapshot) => {
+  try {
+    if (!s.pdf_path) throw new Error("Snapshot sem arquivo salvo");
+    await baixarPdfDoStorage(s.pdf_path, `prestacao-${mes}.pdf`);
+  } catch (e: any) {
+    toast.error(e?.message || "Falha ao abrir");
+  }
+};
+```
 
-## Arquivos
+Atualizar a chamada `onClick={() => abrirSnapshot(s.id)}` para passar `s`.
 
-- **Criar:** `src/routes/api/prestacao.download.ts`
-- **Editar:** `src/lib/prestacao.functions.ts` (retornar path relativo)
-- **Editar:** `src/routes/_authenticated.admin.prestacao.tsx` (fetch com bearer → blob → open)
+Como o botão vive no painel de snapshots do mês selecionado, o usuário já tem "abrir relatório já gerado praquele mês". Caso o painel esteja escondido quando vazio, garantir que ele apareça sempre que houver `snapshots.length > 0` (já é o caso hoje).
+
+### 3. Limpeza
+Remover o import não usado `obterUrlSnapshot` de `src/lib/prestacao-snapshot.functions` no arquivo da rota (mantém a server fn no backend por enquanto; sem mudanças em outros arquivos).
 
 ## Fora de escopo
+- Alterar `prestacao-snapshot.functions.ts` / rota `/api/prestacao/download` (já funcionam).
+- Botão "Abrir no Drive".
+- Preview em iframe (já removido).
 
-- Adicionar botão "abrir no Drive" — se quiser, faço numa próxima.
-- Fila assíncrona.
+## Arquivos afetados
+- `src/routes/_authenticated.admin.prestacao.tsx` (frontend apenas).
