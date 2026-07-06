@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle,
+  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, Eye, RotateCcw,
 } from "lucide-react";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useServerFn } from "@tanstack/react-start";
 import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
 import { obterUrlSnapshot } from "@/lib/prestacao-snapshot.functions";
@@ -30,6 +31,9 @@ type Doc = {
   data_emissao: string | null;
   data_vencimento: string | null;
   mes_referencia: string | null;
+  mes_referencia_fim: string | null;
+  valido_de: string | null;
+  valido_ate: string | null;
 };
 
 type Snapshot = {
@@ -44,12 +48,23 @@ type Snapshot = {
 
 const mesAtual = new Date().toISOString().slice(0, 7);
 
+function mesAnterior(mes: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function PrestacaoPage() {
   const [mes, setMes] = useState(mesAtual);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<Doc> | null>(null);
+  const [excluindo, setExcluindo] = useState<Doc | null>(null);
+  const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMeta, setPreviewMeta] = useState<{ paginas: number; docs: number; comprovantes: number } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
@@ -58,12 +73,15 @@ function PrestacaoPage() {
   const carregar = async () => {
     if (!activeOrgId) { setDocs([]); setSnapshots([]); return; }
     setLoading(true);
+    const primeiroDia = `${mes}-01`;
     const [docsRes, snapRes] = await Promise.all([
       supabase
         .from("prestacao_documentos")
-        .select("*")
+        .select("id, ordem, nome, descricao, arquivo_url, data_emissao, data_vencimento, mes_referencia, mes_referencia_fim, valido_de, valido_ate")
         .eq("organization_id", activeOrgId)
-        .eq("mes_referencia", mes)
+        .lte("mes_referencia", mes)
+        .or(`mes_referencia_fim.is.null,mes_referencia_fim.gte.${mes}`)
+        .or(`valido_ate.is.null,valido_ate.gte.${primeiroDia}`)
         .order("ordem", { ascending: true }),
       supabase
         .from("prestacoes_snapshot")
@@ -73,7 +91,19 @@ function PrestacaoPage() {
         .order("gerado_em", { ascending: false }),
     ]);
     if (docsRes.error) toast.error("Erro: " + docsRes.error.message);
-    setDocs((docsRes.data as any) ?? []);
+    let filtrados = ((docsRes.data as any) ?? []) as Doc[];
+    // Remove os que têm exceção para este mês
+    if (filtrados.length > 0) {
+      const ids = filtrados.map((d) => d.id);
+      const { data: exc } = await supabase
+        .from("prestacao_documentos_excecoes")
+        .select("documento_id")
+        .in("documento_id", ids)
+        .eq("mes_referencia", mes);
+      const bloq = new Set((exc ?? []).map((e: any) => e.documento_id));
+      filtrados = filtrados.filter((d) => !bloq.has(d.id));
+    }
+    setDocs(filtrados);
     setSnapshots((snapRes.data as any) ?? []);
     setLoading(false);
   };
@@ -89,9 +119,14 @@ function PrestacaoPage() {
 
   useEffect(() => { void carregar(); }, [mes, activeOrgId]);
 
-  const novo = () => setEdit({
-    nome: "", descricao: "", arquivo_url: "",
-    data_emissao: null, data_vencimento: null,
+  const novo = (base?: Partial<Doc>) => setEdit({
+    nome: base?.nome ?? "",
+    descricao: base?.descricao ?? "",
+    arquivo_url: "",
+    data_emissao: null,
+    data_vencimento: null,
+    valido_de: new Date().toISOString().slice(0, 10),
+    valido_ate: null,
     mes_referencia: mes,
     ordem: (docs[docs.length - 1]?.ordem ?? 0) + 1,
   });
@@ -105,6 +140,8 @@ function PrestacaoPage() {
       arquivo_url: edit.arquivo_url?.trim() || null,
       data_emissao: edit.data_emissao || null,
       data_vencimento: edit.data_vencimento || null,
+      valido_de: edit.valido_de || edit.data_emissao || `${edit.mes_referencia ?? mes}-01`,
+      valido_ate: edit.valido_ate || edit.data_vencimento || null,
       mes_referencia: edit.mes_referencia || mes,
       ordem: edit.ordem ?? 0,
     };
@@ -121,11 +158,30 @@ function PrestacaoPage() {
     void carregar();
   };
 
-  const excluir = async (d: Doc) => {
-    if (!confirm(`Excluir "${d.nome}"?`)) return;
-    const { error } = await supabase.from("prestacao_documentos").delete().eq("id", d.id);
-    if (error) return toast.error(error.message);
-    toast.success("Excluído");
+  const confirmarExclusao = async () => {
+    if (!excluindo || !activeOrgId) return;
+    const d = excluindo;
+    if (opcaoExclusao === "tudo") {
+      const { error } = await supabase.from("prestacao_documentos").delete().eq("id", d.id);
+      if (error) return toast.error(error.message);
+      toast.success("Documento removido de todos os meses");
+    } else if (opcaoExclusao === "seguintes") {
+      const corte = mesAnterior(mes);
+      const { error } = await supabase
+        .from("prestacao_documentos")
+        .update({ mes_referencia_fim: corte })
+        .eq("id", d.id);
+      if (error) return toast.error(error.message);
+      toast.success(`Documento não aparecerá mais a partir de ${mes}`);
+    } else {
+      const { error } = await supabase
+        .from("prestacao_documentos_excecoes")
+        .insert({ documento_id: d.id, organization_id: activeOrgId, mes_referencia: mes });
+      if (error) return toast.error(error.message);
+      toast.success(`Documento removido apenas de ${mes}`);
+    }
+    setExcluindo(null);
+    setOpcaoExclusao("so-mes");
     void carregar();
   };
 
@@ -139,16 +195,55 @@ function PrestacaoPage() {
     void carregar();
   };
 
-  const gerarRelatorio = async () => {
+  const abrirPreview = async () => {
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+    setPreviewMeta(null);
+    const t = toast.loading("Montando pré-visualização…");
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada, faça login novamente.");
+      const res = await fetch(`/api/prestacao/preview?mes=${mes}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `Erro ${res.status}`);
+      }
+      const paginas = Number(res.headers.get("x-total-paginas") ?? 0);
+      const nDocs = Number(res.headers.get("x-total-docs") ?? 0);
+      const nComp = Number(res.headers.get("x-total-comprovantes") ?? 0);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewMeta({ paginas, docs: nDocs, comprovantes: nComp });
+      toast.success("Preview pronto", { id: t });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar preview", { id: t });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const fecharPreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewMeta(null);
+  };
+
+  const gerarOficial = async () => {
     setGerando(true);
-    const t = toast.loading("Montando PDF único (template + documentos + comprovantes)…");
+    const t = toast.loading("Gerando PDF oficial e salvando no Drive…");
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
       toast.success(
         `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
         { id: t },
       );
+      fecharPreview();
       window.open(r.url, "_blank");
+      void carregar();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao gerar relatório", { id: t });
     } finally {
@@ -157,7 +252,7 @@ function PrestacaoPage() {
   };
 
   const hoje = new Date().toISOString().slice(0, 10);
-  const proximo30 = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const em30 = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   return (
     <div className="p-8 space-y-6">
@@ -165,19 +260,19 @@ function PrestacaoPage() {
         <div>
           <h1 className="font-display text-3xl uppercase">Prestação de Contas</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Cadastre os documentos do mês na ordem desejada. Ao gerar o relatório, o template do
-            Google Docs configurado é copiado e a lista é anexada ao final.
+            Cadastre os documentos do mês na ordem desejada. Documentos com validade que
+            atravessa meses (ex.: certidões) reaparecem automaticamente enquanto vigentes.
           </p>
         </div>
-        <div className="flex gap-2 items-end">
+        <div className="flex gap-2 items-end flex-wrap">
           <div>
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mês</Label>
             <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-44" />
           </div>
-          <Button onClick={novo} variant="outline"><Plus className="h-4 w-4 mr-1" />Documento</Button>
-          <Button onClick={gerarRelatorio} disabled={gerando || docs.length === 0}>
-            <FileDown className="h-4 w-4 mr-1" />
-            {gerando ? "Gerando…" : "Gerar relatório"}
+          <Button onClick={() => novo()} variant="outline"><Plus className="h-4 w-4 mr-1" />Documento</Button>
+          <Button onClick={abrirPreview} variant="outline" disabled={previewLoading}>
+            <Eye className="h-4 w-4 mr-1" />
+            {previewLoading ? "Gerando preview…" : "Pré-visualizar"}
           </Button>
         </div>
       </header>
@@ -213,13 +308,15 @@ function PrestacaoPage() {
         <div className="text-sm text-muted-foreground">Carregando…</div>
       ) : docs.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
-          Nenhum documento cadastrado para {mes}.
+          Nenhum documento vigente para {mes}.
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
           {docs.map((d, i) => {
-            const vencido = d.data_vencimento && d.data_vencimento < hoje;
-            const proximo = d.data_vencimento && d.data_vencimento >= hoje && d.data_vencimento <= proximo30;
+            const validade = d.valido_ate ?? d.data_vencimento;
+            const vencido = !!validade && validade < hoje;
+            const proximo = !!validade && validade >= hoje && validade <= em30;
+            const outroMes = d.mes_referencia && d.mes_referencia !== mes;
             return (
               <Card key={d.id} className={vencido ? "border-destructive" : proximo ? "border-yellow-500" : ""}>
                 <CardContent className="p-4 flex items-start gap-3">
@@ -227,16 +324,30 @@ function PrestacaoPage() {
                     {String(i + 1).padStart(2, "0")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate flex items-center gap-2">
+                    <div className="font-medium truncate flex items-center gap-2 flex-wrap">
                       {d.nome}
-                      {vencido && <span className="inline-flex items-center text-xs text-destructive gap-1"><AlertTriangle className="h-3 w-3" />vencido</span>}
-                      {!vencido && proximo && <span className="inline-flex items-center text-xs text-yellow-600 gap-1"><AlertTriangle className="h-3 w-3" />vence em breve</span>}
+                      {vencido ? (
+                        <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />vencido</Badge>
+                      ) : proximo ? (
+                        <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-500 text-white"><AlertTriangle className="h-3 w-3" />vence em breve</Badge>
+                      ) : validade ? (
+                        <Badge variant="outline">vigente</Badge>
+                      ) : null}
+                      {outroMes && (
+                        <Badge variant="secondary" className="text-[10px]">cadastrado em {d.mes_referencia}</Badge>
+                      )}
                     </div>
                     {d.descricao && <div className="text-xs text-muted-foreground mt-0.5">{d.descricao}</div>}
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4">
                       {d.data_emissao && <span>Emissão: <strong className="text-foreground">{fmt(d.data_emissao)}</strong></span>}
-                      {d.data_vencimento && <span>Vencimento: <strong className="text-foreground">{fmt(d.data_vencimento)}</strong></span>}
+                      {validade && <span>Válido até: <strong className="text-foreground">{fmt(validade)}</strong></span>}
                     </div>
+                    {vencido && (
+                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs"
+                        onClick={() => novo({ nome: d.nome, descricao: d.descricao })}>
+                        <RotateCcw className="h-3 w-3 mr-1" /> Cadastrar novo em substituição
+                      </Button>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button size="icon" variant="ghost" onClick={() => mover(i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
@@ -247,7 +358,7 @@ function PrestacaoPage() {
                       </Button>
                     )}
                     <Button size="icon" variant="ghost" onClick={() => setEdit(d)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => excluir(d)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => { setExcluindo(d); setOpcaoExclusao("so-mes"); }}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -256,6 +367,32 @@ function PrestacaoPage() {
         </div>
       )}
 
+      {/* Preview em iframe */}
+      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && fecharPreview()}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>Pré-visualização · {mes}</DialogTitle>
+            <DialogDescription>
+              {previewMeta && `${previewMeta.paginas} páginas · ${previewMeta.docs} documentos · ${previewMeta.comprovantes} comprovantes`}
+              {" — este PDF ainda não foi salvo no Drive."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-muted">
+            {previewUrl && (
+              <iframe src={previewUrl} className="w-full h-full" title="Preview da prestação de contas" />
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t">
+            <Button variant="outline" onClick={fecharPreview}>Fechar</Button>
+            <Button onClick={gerarOficial} disabled={gerando}>
+              <FileDown className="h-4 w-4 mr-1" />
+              {gerando ? "Salvando…" : "Gerar oficial e salvar no Drive"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de edição */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{edit?.id ? "Editar documento" : "Novo documento"}</DialogTitle></DialogHeader>
@@ -274,11 +411,14 @@ function PrestacaoPage() {
                 <Field label="Data de emissão">
                   <Input type="date" value={edit.data_emissao ?? ""} onChange={(e) => setEdit({ ...edit, data_emissao: e.target.value || null })} />
                 </Field>
-                <Field label="Data de vencimento">
-                  <Input type="date" value={edit.data_vencimento ?? ""} onChange={(e) => setEdit({ ...edit, data_vencimento: e.target.value || null })} />
+                <Field label="Válido até (opcional)">
+                  <Input type="date" value={edit.valido_ate ?? ""} onChange={(e) => setEdit({ ...edit, valido_ate: e.target.value || null })} />
                 </Field>
               </div>
-              <Field label="Mês de referência">
+              <p className="text-xs text-muted-foreground">
+                Se preencher "Válido até", o documento aparece automaticamente em todos os meses até essa data.
+              </p>
+              <Field label="Mês de referência (cadastro inicial)">
                 <Input type="month" value={edit.mes_referencia ?? mes} onChange={(e) => setEdit({ ...edit, mes_referencia: e.target.value })} />
               </Field>
             </div>
@@ -286,6 +426,43 @@ function PrestacaoPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
             <Button onClick={salvar}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de exclusão com 3 opções */}
+      <Dialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir "{excluindo?.nome}"</DialogTitle>
+            <DialogDescription>Escolha o alcance da exclusão:</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={opcaoExclusao} onValueChange={(v) => setOpcaoExclusao(v as any)} className="space-y-3">
+            <label className="flex gap-3 items-start cursor-pointer">
+              <RadioGroupItem value="so-mes" className="mt-1" />
+              <div>
+                <div className="font-medium text-sm">Excluir apenas de {mes}</div>
+                <div className="text-xs text-muted-foreground">O documento continua aparecendo em outros meses onde é vigente.</div>
+              </div>
+            </label>
+            <label className="flex gap-3 items-start cursor-pointer">
+              <RadioGroupItem value="seguintes" className="mt-1" />
+              <div>
+                <div className="font-medium text-sm">Excluir de {mes} em diante</div>
+                <div className="text-xs text-muted-foreground">Mantém histórico nos meses anteriores; não aparece mais a partir daqui.</div>
+              </div>
+            </label>
+            <label className="flex gap-3 items-start cursor-pointer">
+              <RadioGroupItem value="tudo" className="mt-1" />
+              <div>
+                <div className="font-medium text-sm">Excluir de todos os meses</div>
+                <div className="text-xs text-muted-foreground">Remove o documento permanentemente do sistema.</div>
+              </div>
+            </label>
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExcluindo(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmarExclusao}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
