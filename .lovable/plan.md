@@ -1,30 +1,42 @@
-## Problema
+## Problema 1 — páginas duplicadas no PDF de prestação
 
-1. Após "PDF pronto" o `window.open(blobUrl)` é chamado depois de vários awaits (fetch + blob). Sem gesto do usuário no mesmo tick, o Chrome/pop-up blocker silenciosamente descarta a janela — daí "toast apareceu mas nada abriu".
-2. O botão "Abrir" na lista de snapshots (`abrirSnapshot`) ainda chama `obterUrlSnapshot`, que devolve uma signed URL de `*.supabase.co` — mesmo bug de ad-blocker que já corrigimos no fluxo de geração.
+Investigação no banco: um mesmo arquivo de comprovante (`testeDespesas.pdf`) está anexado como `documentos_anexos` a 12 eventos diferentes (outra versão do mesmo arquivo, a 7). Como o pipeline em `montarPdfBytes` (`src/lib/prestacao.functions.ts`) cria um job por `(evento, anexo)` e mescla cada um sequencialmente, aquele PDF de várias páginas é copiado inteiro **12 vezes** no relatório final — daí a percepção de "várias páginas duplicadas das despesas capturadas".
 
-## Correção
+## Correção 1 — deduplicar comprovantes por conteúdo no merge
 
-### 1. Abrir PDF sem pop-up bloqueado
-Substituir `window.open(blobUrl)` por um `<a>` temporário disparado programaticamente com `download="prestacao-<mes>.pdf"`. Downloads via `<a download>` não são tratados como pop-up e não exigem gesto imediato.
+Trocar o loop de anexos por uma estratégia com chave de conteúdo estável:
 
-Helper compartilhado em `src/routes/_authenticated.admin.prestacao.tsx`:
+- `fileKey = drive_file_id ?? normalizar(arquivo_url)` (para signed URLs do Storage, extrair só o path interno — sem o query string do token — para que dois signed URLs do mesmo objeto colidam).
+- Manter um `Map<fileKey, { primeiroEventoIdInterno, eventos: string[] }>` percorrendo `eventos` na ordem.
+- Anexar o arquivo **uma única vez** no PDF, associado ao primeiro evento que o referencia. Os eventos subsequentes que compartilham o mesmo arquivo aparecem no sumário com a nota `"comprovante compartilhado com #NNN"` e **não geram novo download nem novas páginas**.
+- Ajustar `totalComprovantes` para contar arquivos distintos anexados (não relações evento×anexo), refletindo o que o PDF realmente contém.
+- Log server-side quando um comprovante é compartilhado (útil para auditoria futura), sem alterar o comportamento em caso de anexos únicos.
+
+Ganho colateral: menos downloads paralelos → geração mais rápida.
+
+Fora de escopo: alterar a UI de anexos ou impedir que o mesmo arquivo seja anexado a múltiplos eventos (isso é comportamento válido; a correção é só no relatório).
+
+## Problema 2 — botão "Visualizar" em Arquivos
+
+Em `src/routes/_authenticated.admin.arquivos.tsx` o botão do ícone `Eye` abre um `<Dialog>` com `<iframe src="/api/files/{id}/preview?t=…">`. O usuário pediu para trocar por download direto.
+
+## Correção 2 — download direto em Arquivos
+
+- Remover: estado `previewFile`, `previewUrl`, o `useEffect` que constrói a URL, o `<Dialog>` inteiro e o import do `Eye`.
+- Trocar o botão por um `FileDown` (ou `Download`) que chama um helper novo:
 
 ```ts
-const baixarPdfDoStorage = async (storagePath: string, filename: string) => {
+const baixarArquivo = async (id: string, name: string, mimeType: string) => {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token;
-  if (!token) throw new Error("Sessão expirada, faça login novamente.");
-  const res = await fetch(`/api/prestacao/download?path=${encodeURIComponent(storagePath)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Falha ao baixar PDF (${res.status})`);
+  if (!token) return toast.error("Sessão expirada, faça login novamente.");
+  const res = await fetch(`/api/files/${id}/preview?t=${encodeURIComponent(token)}`);
+  if (!res.ok) return toast.error(`Falha ao baixar (${res.status})`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;         // força download/abertura pelo visualizador nativo
-  a.rel = "noopener";
+  a.download = name || `arquivo-${id}`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -32,33 +44,13 @@ const baixarPdfDoStorage = async (storagePath: string, filename: string) => {
 };
 ```
 
-Usar esse helper em `gerarOficial` (após "PDF pronto") no lugar do `window.open` atual.
-
-### 2. Botão "Abrir" da lista de snapshots (relatório já gerado)
-A lista `snapshots` já é carregada por mês em `carregar()` e renderizada com um botão "Abrir". Trocar `abrirSnapshot` para usar o mesmo proxy `/api/prestacao/download`, passando `s.pdf_path` diretamente — sem depender de `obterUrlSnapshot`/signed URL:
-
-```ts
-const abrirSnapshot = async (s: Snapshot) => {
-  try {
-    if (!s.pdf_path) throw new Error("Snapshot sem arquivo salvo");
-    await baixarPdfDoStorage(s.pdf_path, `prestacao-${mes}.pdf`);
-  } catch (e: any) {
-    toast.error(e?.message || "Falha ao abrir");
-  }
-};
-```
-
-Atualizar a chamada `onClick={() => abrirSnapshot(s.id)}` para passar `s`.
-
-Como o botão vive no painel de snapshots do mês selecionado, o usuário já tem "abrir relatório já gerado praquele mês". Caso o painel esteja escondido quando vazio, garantir que ele apareça sempre que houver `snapshots.length > 0` (já é o caso hoje).
-
-### 3. Limpeza
-Remover o import não usado `obterUrlSnapshot` de `src/lib/prestacao-snapshot.functions` no arquivo da rota (mantém a server fn no backend por enquanto; sem mudanças em outros arquivos).
+O endpoint `src/routes/api/files/$id/preview.ts` **não muda** — continua servindo os bytes, e o `<a download>` no cliente força o download com o nome correto sem depender de `Content-Disposition`.
 
 ## Fora de escopo
-- Alterar `prestacao-snapshot.functions.ts` / rota `/api/prestacao/download` (já funcionam).
-- Botão "Abrir no Drive".
-- Preview em iframe (já removido).
+- Alterar migration / regras de duplicidade em `documentos_anexos`.
+- Alterar o endpoint `/api/files/$id/preview` ou renomeá-lo.
+- Mexer no botão "Abrir PDF" da lista de snapshots (já usa download proxy).
 
 ## Arquivos afetados
-- `src/routes/_authenticated.admin.prestacao.tsx` (frontend apenas).
+- `src/lib/prestacao.functions.ts` — dedup por `fileKey` no merge/sumário/contadores.
+- `src/routes/_authenticated.admin.arquivos.tsx` — trocar botão Visualizar por download direto e remover o modal.
