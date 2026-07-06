@@ -164,7 +164,8 @@ function CapturaPage() {
         .from("eventos_financeiros")
         .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
         .eq("organization_id", activeOrgId)
-        .eq("mes_referencia", mes);
+        .eq("mes_referencia", mes)
+        .is("excluido_em", null);
       setEventos((data ?? []) as Evento[]);
     })();
   }, [mes, activeOrgId]);
