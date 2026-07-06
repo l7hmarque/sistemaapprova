@@ -49,6 +49,94 @@ export type Database = {
           },
         ]
       }
+      captura_jobs: {
+        Row: {
+          arquivo_hash: string
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          dados: Json | null
+          documento_id: string | null
+          evento_id: string | null
+          finalizado_em: string | null
+          id: string
+          iniciado_em: string | null
+          mensagem: string | null
+          mes_referencia: string
+          mime_type: string | null
+          nome_arquivo: string
+          organization_id: string
+          status: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tentativas: number
+        }
+        Insert: {
+          arquivo_hash: string
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          dados?: Json | null
+          documento_id?: string | null
+          evento_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string | null
+          mensagem?: string | null
+          mes_referencia: string
+          mime_type?: string | null
+          nome_arquivo: string
+          organization_id: string
+          status?: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tentativas?: number
+        }
+        Update: {
+          arquivo_hash?: string
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          dados?: Json | null
+          documento_id?: string | null
+          evento_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string | null
+          mensagem?: string | null
+          mes_referencia?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          organization_id?: string
+          status?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tentativas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captura_jobs_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_anexos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captura_jobs_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captura_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracoes: {
         Row: {
           atualizado_em: string
