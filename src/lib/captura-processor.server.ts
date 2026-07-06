@@ -71,9 +71,7 @@ function parseData(v: unknown): string | null {
   const s = v.trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
-function parseDados(raw: string): Dados {
-  let p: Record<string, unknown> = {};
-  try { p = JSON.parse(sanitize(raw)); } catch { /* noop */ }
+function parseUmDado(p: Record<string, unknown>): Dados {
   const valor =
     typeof p.valor === "number" ? p.valor
     : typeof p.valor === "string" ? Number(String(p.valor).replace(/\./g, "").replace(",", ".")) : null;
@@ -93,6 +91,17 @@ function parseDados(raw: string): Dados {
     forma_pagamento: typeof p.forma_pagamento === "string" ? p.forma_pagamento : null,
     numero_pagamento: typeof p.numero_pagamento === "string" ? p.numero_pagamento : null,
   };
+}
+function parseListaDados(raw: string): Dados[] {
+  let p: Record<string, unknown> = {};
+  try { p = JSON.parse(sanitize(raw)); } catch { /* noop */ }
+  const lista = Array.isArray((p as { documentos?: unknown }).documentos)
+    ? ((p as { documentos: unknown[] }).documentos)
+    : Array.isArray(p) ? (p as unknown[])
+    : [p];
+  return lista
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
+    .map((x) => parseUmDado(x));
 }
 function pareceVazio(d: Dados): boolean {
   return (d.tipo === null || d.tipo === "outro") && d.valor === null && d.cnpj === null;
