@@ -24,7 +24,12 @@ export type Modelo = {
 /** Extrai o ID de uma URL completa do Google Sheets ou retorna a string como está. */
 export function extrairSheetId(input: string): string {
   const s = input.trim();
-  const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  const m =
+    s.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) ||
+    s.match(/\/document\/d\/([a-zA-Z0-9_-]+)/) ||
+    s.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/) ||
+    s.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+    s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   return (m ? m[1] : s).trim();
 }
 
