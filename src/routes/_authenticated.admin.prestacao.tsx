@@ -221,20 +221,9 @@ function PrestacaoPage() {
         { id: t },
       );
       // Baixa via proxy no mesmo domínio (evita ad-blockers que barram *.supabase.co)
-      // e abre como blob local — nenhuma URL externa exposta.
+      // e dispara um <a download> — não é pop-up, então o Chrome não bloqueia.
       if (r.storagePath) {
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token;
-        if (!token) throw new Error("Sessão expirada, faça login novamente.");
-        const res = await fetch(`/api/prestacao/download?path=${encodeURIComponent(r.storagePath)}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error(`Falha ao baixar PDF (${res.status})`);
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, "_blank");
-        // libera o blob após um tempo
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        await baixarPdfDoStorage(r.storagePath, `prestacao-${mes}.pdf`);
       } else if (r.driveUrl) {
         window.open(r.driveUrl, "_blank");
       }
