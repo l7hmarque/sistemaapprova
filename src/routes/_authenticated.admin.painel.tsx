@@ -89,7 +89,9 @@ function PainelPage() {
   const [open, setOpen] = useState(false);
   const [fechando, setFechando] = useState(false);
   const [validarSITAberto, setValidarSITAberto] = useState(false);
+  const [regras, setRegras] = useState<RegraDespesa[]>([]);
   const fecharMes = useServerFn(gerarPrestacaoSnapshot);
+  const carregarRegras = useServerFn(listarRegrasDespesa);
 
   function parseNum(s: string): number | null {
     const t = s.trim().replace(",", ".");
