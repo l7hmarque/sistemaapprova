@@ -13,10 +13,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 const ITEMS = [
-  { to: "/_authenticated/owner", label: "Visão geral", icon: LayoutDashboard, exact: true },
-  { to: "/_authenticated/owner/clientes", label: "Clientes", icon: Building2 },
-  { to: "/_authenticated/owner/suporte", label: "Suporte", icon: LifeBuoy },
-  { to: "/_authenticated/owner/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/owner", label: "Visão geral", icon: LayoutDashboard, exact: true },
+  { to: "/owner/clientes", label: "Clientes", icon: Building2 },
+  { to: "/owner/suporte", label: "Suporte", icon: LifeBuoy },
+  { to: "/owner/financeiro", label: "Financeiro", icon: DollarSign },
 ];
 
 export function OwnerSidebar() {
@@ -60,7 +60,7 @@ export function OwnerSidebar() {
           );
         })}
         <Link
-          to="/_authenticated/admin"
+          to="/admin"
           className="mt-4 flex items-center gap-3 px-3 py-2 text-sm rounded-md text-muted-foreground hover:bg-muted transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

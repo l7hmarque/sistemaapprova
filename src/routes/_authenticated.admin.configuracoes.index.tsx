@@ -85,7 +85,7 @@ function ConfigGeralPage() {
               Wizard de 5 passos para conectar Drive, Docs e Sheets. Otimizado para quem não é da área técnica.
             </p>
           </div>
-          <Link to="/_authenticated/admin/setup">
+          <Link to="/admin/setup">
             <Button>
               Iniciar wizard <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
