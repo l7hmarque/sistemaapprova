@@ -62,9 +62,7 @@ function PrestacaoPage() {
   const [excluindo, setExcluindo] = useState<Doc | null>(null);
   const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewMeta, setPreviewMeta] = useState<{ paginas: number; docs: number; comprovantes: number } | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
