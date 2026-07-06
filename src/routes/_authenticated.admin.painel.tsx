@@ -148,6 +148,16 @@ function PainelPage() {
       setFornecedores((data ?? []) as Fornecedor[]);
     })();
   }, [activeOrgId]);
+  useEffect(() => {
+    if (!activeOrgId) { setRegras([]); return; }
+    (async () => {
+      try {
+        const r = await carregarRegras({ data: { organizationId: activeOrgId } });
+        setRegras(r);
+      } catch { /* silencioso — regras são opcionais */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrgId]);
 
   const filtrados = useMemo(
     () => eventos.filter((e) => filtroCategoria === "todas" || e.categoria === filtroCategoria),
