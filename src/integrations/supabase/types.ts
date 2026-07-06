@@ -1465,6 +1465,71 @@ export type Database = {
           },
         ]
       }
+      regras_despesa: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          id: string
+          match_favorecido_regex: string | null
+          match_tp_despesa: number | null
+          match_tp_documento: number | null
+          nome: string
+          organization_id: string
+          prioridade: number
+          set_cd_modalidade: number | null
+          set_nm_favorecido: string | null
+          set_nr_documento_favorecido: string | null
+          set_tp_despesa: number | null
+          set_tp_documento_favorecido: string | null
+          set_tp_documento_pagamento: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          match_favorecido_regex?: string | null
+          match_tp_despesa?: number | null
+          match_tp_documento?: number | null
+          nome: string
+          organization_id: string
+          prioridade?: number
+          set_cd_modalidade?: number | null
+          set_nm_favorecido?: string | null
+          set_nr_documento_favorecido?: string | null
+          set_tp_despesa?: number | null
+          set_tp_documento_favorecido?: string | null
+          set_tp_documento_pagamento?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          match_favorecido_regex?: string | null
+          match_tp_despesa?: number | null
+          match_tp_documento?: number | null
+          nome?: string
+          organization_id?: string
+          prioridade?: number
+          set_cd_modalidade?: number | null
+          set_nm_favorecido?: string | null
+          set_nr_documento_favorecido?: string | null
+          set_tp_despesa?: number | null
+          set_tp_documento_favorecido?: string | null
+          set_tp_documento_pagamento?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_despesa_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           assunto: string

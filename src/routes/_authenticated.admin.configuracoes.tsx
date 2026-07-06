@@ -8,6 +8,7 @@ const TABS = [
   { to: "/admin/configuracoes", label: "Geral", exact: true },
   { to: "/admin/configuracoes/equipe", label: "Equipe", exact: false },
   { to: "/admin/configuracoes/organizacao", label: "Organização", exact: false },
+  { to: "/admin/configuracoes/regras", label: "Regras de despesa", exact: false },
 ];
 
 function ConfigLayout() {

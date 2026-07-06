@@ -55,6 +55,7 @@ import { Route as ApiFilesIdPreviewRouteImport } from './routes/api/files.$id.pr
 import { Route as AuthenticatedOwnerClientesIdRouteImport } from './routes/_authenticated.owner.clientes.$id'
 import { Route as AuthenticatedAdminModelosAjudaRouteImport } from './routes/_authenticated.admin.modelos.ajuda'
 import { Route as AuthenticatedAdminCotacoesIdRouteImport } from './routes/_authenticated.admin.cotacoes.$id'
+import { Route as AuthenticatedAdminConfiguracoesRegrasRouteImport } from './routes/_authenticated.admin.configuracoes.regras'
 import { Route as AuthenticatedAdminConfiguracoesOrganizacaoRouteImport } from './routes/_authenticated.admin.configuracoes.organizacao'
 import { Route as AuthenticatedAdminConfiguracoesEquipeRouteImport } from './routes/_authenticated.admin.configuracoes.equipe'
 import { Route as ApiPublicCotacaoTokenPdfRouteImport } from './routes/api/public/cotacao.$token.pdf'
@@ -309,6 +310,12 @@ const AuthenticatedAdminCotacoesIdRoute =
     path: '/cotacoes/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminConfiguracoesRegrasRoute =
+  AuthenticatedAdminConfiguracoesRegrasRouteImport.update({
+    id: '/regras',
+    path: '/regras',
+    getParentRoute: () => AuthenticatedAdminConfiguracoesRoute,
+  } as any)
 const AuthenticatedAdminConfiguracoesOrganizacaoRoute =
   AuthenticatedAdminConfiguracoesOrganizacaoRouteImport.update({
     id: '/organizacao',
@@ -368,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/owner/': typeof AuthenticatedOwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AuthenticatedAdminConfiguracoesOrganizacaoRoute
+  '/admin/configuracoes/regras': typeof AuthenticatedAdminConfiguracoesRegrasRoute
   '/admin/cotacoes/$id': typeof AuthenticatedAdminCotacoesIdRoute
   '/admin/modelos/ajuda': typeof AuthenticatedAdminModelosAjudaRoute
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
@@ -415,6 +423,7 @@ export interface FileRoutesByTo {
   '/owner': typeof AuthenticatedOwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
   '/admin/configuracoes/organizacao': typeof AuthenticatedAdminConfiguracoesOrganizacaoRoute
+  '/admin/configuracoes/regras': typeof AuthenticatedAdminConfiguracoesRegrasRoute
   '/admin/cotacoes/$id': typeof AuthenticatedAdminCotacoesIdRoute
   '/admin/modelos/ajuda': typeof AuthenticatedAdminModelosAjudaRoute
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
@@ -467,6 +476,7 @@ export interface FileRoutesById {
   '/_authenticated/owner/': typeof AuthenticatedOwnerIndexRoute
   '/_authenticated/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
   '/_authenticated/admin/configuracoes/organizacao': typeof AuthenticatedAdminConfiguracoesOrganizacaoRoute
+  '/_authenticated/admin/configuracoes/regras': typeof AuthenticatedAdminConfiguracoesRegrasRoute
   '/_authenticated/admin/cotacoes/$id': typeof AuthenticatedAdminCotacoesIdRoute
   '/_authenticated/admin/modelos/ajuda': typeof AuthenticatedAdminModelosAjudaRoute
   '/_authenticated/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
@@ -519,6 +529,7 @@ export interface FileRouteTypes {
     | '/owner/'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
+    | '/admin/configuracoes/regras'
     | '/admin/cotacoes/$id'
     | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
@@ -566,6 +577,7 @@ export interface FileRouteTypes {
     | '/owner'
     | '/admin/configuracoes/equipe'
     | '/admin/configuracoes/organizacao'
+    | '/admin/configuracoes/regras'
     | '/admin/cotacoes/$id'
     | '/admin/modelos/ajuda'
     | '/owner/clientes/$id'
@@ -617,6 +629,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner/'
     | '/_authenticated/admin/configuracoes/equipe'
     | '/_authenticated/admin/configuracoes/organizacao'
+    | '/_authenticated/admin/configuracoes/regras'
     | '/_authenticated/admin/cotacoes/$id'
     | '/_authenticated/admin/modelos/ajuda'
     | '/_authenticated/owner/clientes/$id'
@@ -976,6 +989,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCotacoesIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/configuracoes/regras': {
+      id: '/_authenticated/admin/configuracoes/regras'
+      path: '/regras'
+      fullPath: '/admin/configuracoes/regras'
+      preLoaderRoute: typeof AuthenticatedAdminConfiguracoesRegrasRouteImport
+      parentRoute: typeof AuthenticatedAdminConfiguracoesRoute
+    }
     '/_authenticated/admin/configuracoes/organizacao': {
       id: '/_authenticated/admin/configuracoes/organizacao'
       path: '/organizacao'
@@ -1003,6 +1023,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminConfiguracoesRouteChildren {
   AuthenticatedAdminConfiguracoesEquipeRoute: typeof AuthenticatedAdminConfiguracoesEquipeRoute
   AuthenticatedAdminConfiguracoesOrganizacaoRoute: typeof AuthenticatedAdminConfiguracoesOrganizacaoRoute
+  AuthenticatedAdminConfiguracoesRegrasRoute: typeof AuthenticatedAdminConfiguracoesRegrasRoute
   AuthenticatedAdminConfiguracoesIndexRoute: typeof AuthenticatedAdminConfiguracoesIndexRoute
 }
 
@@ -1012,6 +1033,8 @@ const AuthenticatedAdminConfiguracoesRouteChildren: AuthenticatedAdminConfigurac
       AuthenticatedAdminConfiguracoesEquipeRoute,
     AuthenticatedAdminConfiguracoesOrganizacaoRoute:
       AuthenticatedAdminConfiguracoesOrganizacaoRoute,
+    AuthenticatedAdminConfiguracoesRegrasRoute:
+      AuthenticatedAdminConfiguracoesRegrasRoute,
     AuthenticatedAdminConfiguracoesIndexRoute:
       AuthenticatedAdminConfiguracoesIndexRoute,
   }

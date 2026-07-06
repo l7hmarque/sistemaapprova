@@ -16,6 +16,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { extrairTextoPorPagina } from "@/lib/extract/pdfText";
 import { resolverCamposSIT } from "@/lib/sit/inferCaptura";
+import { aplicarRegrasDespesa, type RegraDespesa } from "@/lib/sit/regrasDespesa";
 
 type Dados = {
   tipo: string | null;
@@ -307,7 +308,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     // 6. Vínculo / fornecedor / evento — carrega config e caches uma vez
     await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando eventos" }).eq("id", jobId);
 
-    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }] = await Promise.all([
+    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }, { data: regrasRaw }] = await Promise.all([
       supabaseAdmin.from("configuracoes").select("valor").eq("organization_id", orgId).eq("chave", "auto_vinculo").maybeSingle(),
       supabaseAdmin.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", orgId),
       supabaseAdmin
@@ -316,7 +317,9 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         .eq("organization_id", orgId)
         .eq("mes_referencia", mesRef)
         .is("excluido_em", null),
+      supabaseAdmin.from("regras_despesa").select("*").eq("organization_id", orgId),
     ]);
+    const regrasOrg = (regrasRaw ?? []) as RegraDespesa[];
     const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
     const tolValor = ((typeof v?.valor_centavos === "number" ? v.valor_centavos : 50)) / 100;
     const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
@@ -411,6 +414,26 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
           razao_social_ia: dados.razao_social ?? null,
         });
 
+        // Aplica regras da organização + defaults determinísticos.
+        const { evento: camposFinal } = aplicarRegrasDespesa(
+          {
+            tp_despesa: camposSIT.tp_despesa,
+            tp_documento_despesa: camposSIT.tp_documento_despesa,
+            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
+            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
+            tp_doc_fav: camposSIT.tp_doc_fav,
+            nr_doc_fav: camposSIT.nr_doc_fav,
+            nm_favorecido: camposSIT.nm_favorecido,
+          },
+          regrasOrg,
+        );
+        // Default: REO 271 (3.3.90.39.99) → Pesquisa de Preços quando ainda vazio.
+        if (camposFinal.tp_despesa === 271 && camposFinal.cd_modalidade_compra == null) {
+          camposFinal.cd_modalidade_compra = 101;
+        }
+        // Nº doc pagamento espelha Nº do documento quando a IA não trouxe valor específico.
+        const nrDocPagamento = dados.numero_pagamento ?? dados.numero ?? null;
+
         const evIns = await supabaseAdmin
           .from("eventos_financeiros")
           .insert({
@@ -425,15 +448,15 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             data_pagamento: dataPag,
             data_emissao: dados.data_emissao ?? null,
             origem: "captura",
-            tp_documento_despesa: camposSIT.tp_documento_despesa,
-            tp_doc_fav: camposSIT.tp_doc_fav,
-            nr_doc_fav: camposSIT.nr_doc_fav,
-            nm_favorecido: camposSIT.nm_favorecido,
+            tp_documento_despesa: camposFinal.tp_documento_despesa,
+            tp_doc_fav: camposFinal.tp_doc_fav,
+            nr_doc_fav: camposFinal.nr_doc_fav,
+            nm_favorecido: camposFinal.nm_favorecido,
             nr_documento: dados.numero ?? null,
-            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
-            nr_documento_pagamento: dados.numero_pagamento ?? null,
-            tp_despesa: camposSIT.tp_despesa,
-            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
+            tp_documento_pagamento: camposFinal.tp_documento_pagamento,
+            nr_documento_pagamento: nrDocPagamento,
+            tp_despesa: camposFinal.tp_despesa,
+            cd_modalidade_compra: camposFinal.cd_modalidade_compra,
             status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados.tipo,
