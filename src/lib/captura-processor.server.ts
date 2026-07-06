@@ -32,23 +32,32 @@ type Dados = {
 };
 
 const SYSTEM = `Você extrai dados de documentos financeiros brasileiros (boleto, NF/NFS-e, fatura, holerite, comprovante de pagamento, guia DARF/GPS/GFIP, cupom fiscal).
-O PDF/imagem pode conter MAIS DE UM documento (ex.: a nota/boleto + o comprovante de pagamento juntos). Leia TODAS as páginas e CONSOLIDE em um único JSON.
+
+O PDF/imagem PODE conter MÚLTIPLOS documentos DISTINTOS (ex.: vários holerites de funcionários diferentes, várias NFs, vários boletos). Nesses casos, retorne UM ITEM POR DESPESA.
+
+REGRA IMPORTANTE de consolidação: quando o mesmo documento vem acompanhado do respectivo comprovante de pagamento (boleto + comprovante do mesmo valor/beneficiário; NF + comprovante), CONSOLIDE em um único item — preencha o comprovante em data_pagamento/forma_pagamento/numero_pagamento. Só separe quando forem despesas realmente distintas (CNPJs, favorecidos, valores ou finalidades diferentes).
 
 Retorne SOMENTE JSON válido, sem markdown, no formato:
 {
-  "tipo": "boleto"|"nf"|"fatura"|"holerite"|"comprovante_pgto"|"guia"|"darf"|"gps"|"gfip"|"grrf"|"gfd"|"cupom"|"recibo"|"outro",
-  "cnpj": "00000000000000"|null,
-  "razao_social": "string"|null,
-  "valor": número|null,
-  "numero": "string"|null,
-  "data_emissao": "AAAA-MM-DD"|null,
-  "data_vencimento": "AAAA-MM-DD"|null,
-  "data_pagamento": "AAAA-MM-DD"|null,
-  "descricao": "resumo curto (máx 200 caracteres)",
-  "forma_pagamento": "pix"|"ted"|"doc"|"cheque"|"ordem bancaria"|"debito em conta"|"deposito"|null,
-  "numero_pagamento": "string"|null
+  "documentos": [
+    {
+      "tipo": "boleto"|"nf"|"fatura"|"holerite"|"comprovante_pgto"|"guia"|"darf"|"gps"|"gfip"|"grrf"|"gfd"|"cupom"|"recibo"|"outro",
+      "cnpj": "00000000000000"|null,
+      "razao_social": "string"|null,
+      "valor": número|null,
+      "numero": "string"|null,
+      "data_emissao": "AAAA-MM-DD"|null,
+      "data_vencimento": "AAAA-MM-DD"|null,
+      "data_pagamento": "AAAA-MM-DD"|null,
+      "descricao": "resumo curto (máx 200 caracteres, inclua nome do funcionário se holerite)",
+      "forma_pagamento": "pix"|"ted"|"doc"|"cheque"|"ordem bancaria"|"debito em conta"|"deposito"|null,
+      "numero_pagamento": "string"|null,
+      "paginas": [1, 2]
+    }
+  ]
 }
-Regras: cnpj só dígitos; valor total como número; se não tiver certeza use null; NÃO invente.`;
+Regras: cnpj só dígitos; valor como número (nunca soma de vários documentos); se não tiver certeza use null; NÃO invente; se houver apenas um documento no arquivo, retorne uma lista com um único item.`;
+
 
 function sanitize(text: string): string {
   let s = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
