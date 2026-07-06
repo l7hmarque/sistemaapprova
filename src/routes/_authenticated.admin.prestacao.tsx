@@ -382,9 +382,16 @@ function PrestacaoPage() {
                     <Button size="icon" variant="ghost" onClick={() => mover(i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => mover(i, 1)} disabled={i === docs.length - 1}><ArrowDown className="h-4 w-4" /></Button>
                     {d.arquivo_url && (
-                      <Button size="icon" variant="ghost" asChild>
-                        <a href={d.arquivo_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                      </Button>
+                      isStorageUrl(d.arquivo_url) ? (
+                        <Button size="icon" variant="ghost" title="Baixar"
+                          onClick={() => baixarDocStorage(d.arquivo_url!, d.nome || "documento")}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button size="icon" variant="ghost" asChild title="Abrir">
+                          <a href={d.arquivo_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                        </Button>
+                      )
                     )}
                     <Button size="icon" variant="ghost" onClick={() => setEdit(d)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => { setExcluindo(d); setOpcaoExclusao("so-mes"); }}><Trash2 className="h-4 w-4" /></Button>
