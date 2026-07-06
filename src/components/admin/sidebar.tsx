@@ -45,7 +45,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
   const { isSuperAdmin } = useCurrentUser();
-  useViewAs();
+  const { role: viewAsRole } = useViewAs();
   const nav = useNavigate();
   const queryClient = useQueryClient();
 
