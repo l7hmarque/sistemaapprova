@@ -222,6 +222,23 @@ function PainelPage() {
   async function salvar() {
     if (!editing) return;
     const descricaoLimpa = (editing.descricao ?? "").slice(0, 200);
+    const numeroDoc = numeroDocStr.trim() || null;
+    // Nº doc pagamento espelha Nº do documento quando vazio.
+    const nrDocPag = editing.nr_documento_pagamento?.trim() || numeroDoc;
+    // Regras + default: REO 271 (3.3.90.39.99) → modalidade 101 se vazio.
+    const camposBase = {
+      tp_despesa: editing.tp_despesa,
+      tp_documento_despesa: editing.tp_documento_despesa,
+      cd_modalidade_compra: editing.cd_modalidade_compra,
+      tp_documento_pagamento: editing.tp_documento_pagamento,
+      tp_doc_fav: editing.tp_doc_fav,
+      nr_doc_fav: editing.nr_doc_fav?.replace(/\D/g, "") || null,
+      nm_favorecido: editing.nm_favorecido,
+    };
+    const { evento: comRegras } = aplicarRegrasDespesa(camposBase, regras);
+    if (comRegras.tp_despesa === 271 && comRegras.cd_modalidade_compra == null) {
+      comRegras.cd_modalidade_compra = 101;
+    }
     const payload = {
       mes_referencia: editing.mes_referencia,
       fornecedor_id: editing.fornecedor_id,
@@ -235,15 +252,15 @@ function PainelPage() {
       origem: editing.origem,
       status_documental: editing.status_documental,
       id_interno: editing.id_interno?.slice(0, 30) || null,
-      nr_documento: numeroDocStr.trim() || null,
-      tp_documento_despesa: editing.tp_documento_despesa,
-      tp_doc_fav: editing.tp_doc_fav,
-      nr_doc_fav: editing.nr_doc_fav?.replace(/\D/g, "") || null,
-      nm_favorecido: editing.nm_favorecido,
-      cd_modalidade_compra: editing.cd_modalidade_compra,
-      tp_documento_pagamento: editing.tp_documento_pagamento,
-      nr_documento_pagamento: editing.nr_documento_pagamento,
-      tp_despesa: editing.tp_despesa,
+      nr_documento: numeroDoc,
+      tp_documento_despesa: comRegras.tp_documento_despesa,
+      tp_doc_fav: comRegras.tp_doc_fav,
+      nr_doc_fav: comRegras.nr_doc_fav,
+      nm_favorecido: comRegras.nm_favorecido,
+      cd_modalidade_compra: comRegras.cd_modalidade_compra,
+      tp_documento_pagamento: comRegras.tp_documento_pagamento,
+      nr_documento_pagamento: nrDocPag,
+      tp_despesa: comRegras.tp_despesa,
       metadata: (editing.metadata ?? {}) as any,
     };
     if (editing.id) {
