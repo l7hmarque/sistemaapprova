@@ -24,10 +24,9 @@ import { useViewAs } from "@/hooks/use-view-as";
 import { ViewAsSwitcher } from "./ViewAsSwitcher";
 import { toast } from "sonner";
 
-type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; tour?: string; module: string; superAdminOnly?: boolean };
+type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; tour?: string; module: string };
 const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard", module: "dashboard" },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, tour: "nav-analytics", module: "analytics", superAdminOnly: true },
   { to: "/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel", module: "painel" },
   { to: "/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura", module: "captura" },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos", module: "orcamentos" },
@@ -46,12 +45,9 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
   const { isSuperAdmin } = useCurrentUser();
-  const { role: viewAsRole } = useViewAs();
+  useViewAs();
   const nav = useNavigate();
   const queryClient = useQueryClient();
-
-  // super_admin com view-as != real esconde Analytics como qualquer usuário
-  const showAnalytics = isSuperAdmin && viewAsRole === "real";
 
   const sair = async () => {
     await signOutLimpo(queryClient);
