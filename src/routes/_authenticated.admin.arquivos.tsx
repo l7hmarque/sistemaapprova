@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Eye, ExternalLink, CloudUpload, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle } from "lucide-react";
 import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
@@ -38,8 +38,7 @@ function ArquivosPage() {
   const [section, setSection] = useState<Section>("Documentos");
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
-  const [previewFile, setPreviewFile] = useState<{ id: string; name: string; mimeType: string } | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [baixando, setBaixando] = useState<string | null>(null);
 
   const fnList = useServerFn(listarArquivosDaOrg);
   const fnQuota = useServerFn(getDriveQuota);
@@ -73,15 +72,29 @@ function ArquivosPage() {
     return list.filter((f) => f.name.toLowerCase().includes(s));
   }, [filesQ.data, search]);
 
-  useEffect(() => {
-    if (!previewFile) { setPreviewUrl(null); return; }
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) return;
-      setPreviewUrl(`/api/files/${previewFile.id}/preview?t=${encodeURIComponent(token)}`);
-    })();
-  }, [previewFile]);
+  const baixarArquivo = async (id: string, name: string) => {
+    try {
+      setBaixando(id);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada, faça login novamente.");
+      const res = await fetch(`/api/files/${id}/preview?t=${encodeURIComponent(token)}`);
+      if (!res.ok) throw new Error(`Falha ao baixar (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name || `arquivo-${id}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao baixar");
+    } finally {
+      setBaixando(null);
+    }
+  };
 
   const quota = quotaQ.data;
   const pct = quota && quota.limit > 0 ? Math.round((quota.usage / quota.limit) * 100) : 0;
@@ -207,9 +220,15 @@ function ArquivosPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setPreviewFile({ id: f.id, name: f.name, mimeType: f.mimeType })}
+                    disabled={baixando === f.id}
+                    onClick={() => baixarArquivo(f.id, f.name)}
+                    title="Baixar"
                   >
-                    <Eye className="h-4 w-4" />
+                    {baixando === f.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                 </li>
               ))}
@@ -218,38 +237,6 @@ function ArquivosPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between gap-3 pr-8">
-              <span className="truncate">{previewFile?.name}</span>
-              {previewUrl && (
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> abrir em nova aba
-                </a>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 bg-muted rounded">
-            {previewUrl ? (
-              <iframe
-                src={previewUrl}
-                title={previewFile?.name}
-                className="w-full h-full rounded"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

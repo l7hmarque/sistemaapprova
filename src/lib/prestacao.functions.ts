@@ -372,8 +372,49 @@ export async function montarPdfBytes(args: {
     }
   }
 
-  const totalComprovantes = Array.from(anexosPorEvento.values()).reduce((s, a) => s + a.length, 0);
-  if ((docs?.length ?? 0) === 0 && totalComprovantes === 0) {
+  // Dedup de anexos por conteúdo: um mesmo arquivo (drive_file_id ou
+  // caminho normalizado da URL) referenciado por vários eventos entra no PDF
+  // uma única vez, junto do primeiro evento que o cita.
+  const fileKeyOf = (a: { drive_file_id: string | null; arquivo_url: string | null }): string | null => {
+    if (a.drive_file_id) return `drive:${a.drive_file_id}`;
+    if (!a.arquivo_url) return null;
+    try {
+      const u = new URL(a.arquivo_url);
+      // ignora query/token, mantém origem+path
+      return `url:${u.origin}${u.pathname}`;
+    } catch {
+      return `url:${a.arquivo_url}`;
+    }
+  };
+
+  type AnexoRef = { evento: any; anexo: any; label: string };
+  const anexosUnicos: AnexoRef[] = [];
+  const compartilhadosPorEvento = new Map<string, string[]>(); // eventoId -> [idsInternos donos]
+  const donoPorChave = new Map<string, string>(); // fileKey -> id_interno do evento dono
+  const anexosContadosPorEvento = new Map<string, number>(); // eventoId -> anexos únicos exibidos
+  let totalComprovantesUnicos = 0;
+  for (const e of eventos ?? []) {
+    for (const a of anexosPorEvento.get(e.id) ?? []) {
+      const key = fileKeyOf(a);
+      if (key && donoPorChave.has(key)) {
+        const dono = donoPorChave.get(key)!;
+        const arr = compartilhadosPorEvento.get(e.id) ?? [];
+        arr.push(dono);
+        compartilhadosPorEvento.set(e.id, arr);
+        continue;
+      }
+      if (key) donoPorChave.set(key, e.id_interno ?? "");
+      anexosUnicos.push({
+        evento: e,
+        anexo: a,
+        label: `Anexo ${a.tipo} (${e.id_interno ?? ""})`,
+      });
+      anexosContadosPorEvento.set(e.id, (anexosContadosPorEvento.get(e.id) ?? 0) + 1);
+      totalComprovantesUnicos++;
+    }
+  }
+
+  if ((docs?.length ?? 0) === 0 && totalComprovantesUnicos === 0) {
     throw new Error(`Nenhum documento nem comprovante encontrado para ${mes}.`);
   }
 
@@ -394,15 +435,22 @@ export async function montarPdfBytes(args: {
     n++;
   }
   for (const e of eventos ?? []) {
-    const anexos = anexosPorEvento.get(e.id) ?? [];
-    if (!anexos.length) continue;
+    const total = anexosContadosPorEvento.get(e.id) ?? 0;
+    const compart = compartilhadosPorEvento.get(e.id) ?? [];
+    if (total === 0 && compart.length === 0) continue;
     const val = fmtBRL(e.valor_efetivo ?? e.valor_previsto);
     const fav = e.nm_favorecido ?? "—";
     const dt = fmtDate(e.data_pagamento ?? e.data_vencimento);
+    const partes = [`${fav} · ${val} · ${dt}`];
+    if (total > 0) partes.push(`${total} anexo(s)`);
+    if (compart.length > 0) {
+      const donos = Array.from(new Set(compart)).filter(Boolean).map((x) => `#${x}`).join(", ");
+      partes.push(`comprovante compartilhado com ${donos}`);
+    }
     sumarioItens.push({
       numero: `${n}.`,
       titulo: `Comprovante #${e.id_interno ?? ""} — ${e.descricao ?? e.categoria}`,
-      subtitulo: `${fav} · ${val} · ${dt} · ${anexos.length} anexo(s)`,
+      subtitulo: partes.join(" · "),
     });
     n++;
   }
@@ -428,7 +476,7 @@ export async function montarPdfBytes(args: {
   };
 
   // ============ FASE DE DOWNLOAD (paralela) ============
-  // Prepara jobs para: template, cada documento cadastrado, cada anexo de evento.
+  // Prepara jobs para: template, cada documento cadastrado, cada anexo único.
   type Job =
     | { kind: "template" }
     | { kind: "doc"; label: string; driveId: string | null; url: string | null; mime: string }
@@ -445,16 +493,19 @@ export async function montarPdfBytes(args: {
       mime: d.mime_type ?? "",
     });
   }
-  for (const e of eventos ?? []) {
-    for (const a of anexosPorEvento.get(e.id) ?? []) {
-      jobs.push({
-        kind: "anexo",
-        label: `Anexo ${a.tipo} (${e.id_interno ?? ""})`,
-        driveId: a.drive_file_id ?? null,
-        url: a.arquivo_url ?? null,
-      });
-    }
+  for (const ref of anexosUnicos) {
+    jobs.push({
+      kind: "anexo",
+      label: ref.label,
+      driveId: ref.anexo.drive_file_id ?? null,
+      url: ref.anexo.arquivo_url ?? null,
+    });
   }
+  const totalCompartilhados = Array.from(compartilhadosPorEvento.values()).reduce((s, a) => s + a.length, 0);
+  if (totalCompartilhados > 0) {
+    console.log(`[prestacao] dedup: ${totalCompartilhados} referência(s) de anexo compartilhado suprimida(s)`);
+  }
+
 
   console.time("[prestacao] download");
   type Downloaded = { label: string; ok: boolean; bytes?: Uint8Array; mime?: string; error?: string };
@@ -500,7 +551,7 @@ export async function montarPdfBytes(args: {
     titulo: args.titulo ?? `Prestação de Contas — ${mes}`,
     itens: sumarioItens,
     totalDocs: docs.length,
-    totalComprovantes,
+    totalComprovantes: totalComprovantesUnicos,
   });
   await addPdf(sumarioBytes, "Sumário");
 
@@ -540,7 +591,7 @@ export async function montarPdfBytes(args: {
     bytes: finalBytes,
     totalPaginas: merged.getPageCount(),
     totalDocs: docs.length,
-    totalComprovantes,
+    totalComprovantes: totalComprovantesUnicos,
   };
 }
 
