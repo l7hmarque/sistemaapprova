@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,38 +10,41 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Camera, Upload, Link2, Trash2, Loader2 } from "lucide-react";
-import { extractPdfText } from "@/lib/pdf/extractTextClient";
-import { extrairDocumento } from "@/lib/captura.functions";
+import { Camera, Upload, Link2, Trash2, Loader2, RefreshCw } from "lucide-react";
+import {
+  enfileirarCaptura,
+  listarCapturaJobs,
+  reprocessarCapturaJob,
+  removerCapturaJob,
+} from "@/lib/captura-jobs.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
-import { resolverCamposSIT } from "@/lib/sit/inferCaptura";
-
 
 export const Route = createFileRoute("/_authenticated/admin/captura")({ component: CapturaPage });
 
-type Status = "fila" | "processando" | "vinculado" | "orfao" | "duplicata" | "erro";
+type Status = "pendente" | "processando" | "concluido" | "erro" | "cancelado";
 
-type Item = {
+type Job = {
   id: string;
-  file: File;
-  hash?: string;
   status: Status;
-  mensagem?: string;
-  dados?: {
-    tipo?: string;
+  mensagem: string | null;
+  nome_arquivo: string;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  mes_referencia: string;
+  evento_id: string | null;
+  documento_id: string | null;
+  dados: {
+    tipo?: string | null;
     cnpj?: string | null;
     razao_social?: string | null;
     valor?: number | null;
-    numero?: string | null;
-    data_emissao?: string | null;
     data_vencimento?: string | null;
+    data_emissao?: string | null;
     data_pagamento?: string | null;
-    descricao?: string;
-    forma_pagamento?: string | null;
-    numero_pagamento?: string | null;
-  };
-  eventoId?: string | null;
-  docId?: string;
+  } | null;
+  criado_em: string;
+  atualizado_em: string;
+  tentativas: number;
 };
 
 type Evento = {
@@ -52,8 +55,6 @@ type Evento = {
   data_vencimento: string | null;
   fornecedor_id: string | null;
 };
-
-type Fornecedor = { id: string; razao_social: string; cnpj: string; regras_sit?: Record<string, unknown> | null };
 
 async function sha256(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
@@ -66,22 +67,6 @@ function mesAtualISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-const TOLERANCIA_PADRAO = { valor_centavos: 50, janela_dias: 3 };
-
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onerror = () => rej(r.error);
-    r.onload = () => {
-      const v = r.result as string;
-      // strip prefix
-      const i = v.indexOf(",");
-      res(i >= 0 ? v.slice(i + 1) : v);
-    };
-    r.readAsDataURL(file);
-  });
-}
-
 async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
   try {
@@ -92,9 +77,7 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-    const blob: Blob = await new Promise((res) =>
-      canvas.toBlob((b) => res(b!), "image/jpeg", quality),
-    );
+    const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", quality));
     return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
   } catch {
     return file;
@@ -102,553 +85,195 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
 }
 
 /**
- * Retry com backoff para erros transitórios de rede/Storage.
- * Não faz retry para erros de validação/permissão (4xx do PostgREST/Storage).
+ * Dispara o worker para o job recém-criado em segundo plano.
+ * `keepalive: true` faz o navegador manter a requisição viva mesmo se o usuário
+ * sair da página. O `pg_cron` funciona como rede de segurança se algo falhar.
  */
-async function comRetry<T>(
-  fn: () => Promise<T>,
-  onTentativa?: (tentativa: number, ultimoErro: unknown) => void,
-): Promise<T> {
-  const backoffMs = [2000, 10000, 30000];
-  let ultimo: unknown;
-  for (let i = 0; i <= backoffMs.length; i++) {
-    try {
-      return await fn();
-    } catch (e) {
-      ultimo = e;
-      const msg = (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "").toLowerCase();
-      const transitorio =
-        msg.includes("network") || msg.includes("failed to fetch") ||
-        msg.includes("timeout") || msg.includes("timed out") ||
-        msg.includes("fetch failed") || msg.includes("load failed") ||
-        msg.includes("econn") || msg.includes("temporar");
-      if (!transitorio || i === backoffMs.length) throw e;
-      onTentativa?.(i + 1, e);
-      await new Promise((r) => setTimeout(r, backoffMs[i]));
-    }
-  }
-  throw ultimo;
-}
-
-
-
-function msgErro(e: unknown): string {
-  const raw =
-    e instanceof Error
-      ? e.message
-      : (e && typeof e === "object"
-          ? ((e as Record<string, unknown>).message as string | undefined)
-            ?? ((e as Record<string, unknown>).error as string | undefined)
-            ?? ((e as Record<string, unknown>).hint as string | undefined)
-          : typeof e === "string" ? e : "") ?? "";
-  const t = String(raw).toLowerCase();
-  if (!t) return "Falha desconhecida. Tente reprocessar em alguns instantes.";
-  if (t.includes("selecione uma organiza")) return raw as string;
-  if (t.includes("network") || t.includes("fetch") || t.includes("timeout") || t.includes("econnreset"))
-    return "Sem resposta da rede. Verifique a conexão e reprocesse.";
-  if (t.includes("duplicad") || t.includes("duplicate") || t.includes("já existe"))
-    return "Este arquivo já foi enviado neste mês.";
-  if (t.includes("storage") || t.includes("bucket") || t.includes("not found"))
-    return "Arquivo não encontrado no armazenamento. Reenvie o documento.";
-  if (t.includes("drive") && (t.includes("permission") || t.includes("403") || t.includes("forbidden")))
-    return "Sem permissão no Google Drive. Reconecte a pasta em Configurações.";
-  if (t.includes("drive") && (t.includes("404") || t.includes("not found")))
-    return "Pasta ou arquivo não encontrado no Drive. Reconecte a pasta.";
-  if (t.includes("rls") || t.includes("permission denied") || t.startsWith("pgrst"))
-    return "Sem permissão para concluir a operação. Verifique seu acesso à organização.";
-  if (t.includes("unenv") || t.includes("worker") || t.includes("wasm"))
-    return "Falha temporária no servidor. Tente novamente em alguns instantes.";
-  if (t.includes("payload") || t.includes("too large") || t.includes("413"))
-    return "Arquivo muito grande. Reduza o tamanho e reenvie.";
-  if (t.includes("ocr") || t.includes("extra") && t.includes("texto"))
-    return "Não conseguimos ler o conteúdo. Reenvie com melhor qualidade.";
-  if (String(raw).length > 160) return "Falha ao processar o documento. Reenvie o arquivo.";
-  return raw as string;
-}
-
-
-function inferirCategoria(dados?: { tipo?: string; descricao?: string }): string {
-  const txt = `${dados?.tipo ?? ""} ${dados?.descricao ?? ""}`.toLowerCase();
-  if (/holerite|sal[áa]rio|folha|rescis[ãa]o|rpa/.test(txt)) return "salario";
-  if (/energia|copel|eletric/.test(txt)) return "energia";
-  if (/[áa]gua|sanepar|saae/.test(txt)) return "agua";
-  if (/internet|telef|vivo|claro|tim|oi\b/.test(txt)) return "internet";
-  if (/aluguel|loca[çc][ãa]o/.test(txt)) return "aluguel";
-  if (/darf|gps|gfip|inss|fgts|iss|tribut|guia/.test(txt)) return "tributos";
-  if (/manuten[çc][ãa]o|reparo|conserto/.test(txt)) return "manutencao";
-  if (/servi[çc]o|nf|nfs|nota\s*fiscal/.test(txt)) return "servico";
-  if (/boleto|fatura|cupom|compra/.test(txt)) return "compra_eventual";
-  return "outros";
+function dispararWorker(jobId: string) {
+  try {
+    const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+    if (!anon) return;
+    void fetch("/api/public/hooks/captura-worker", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: anon },
+      body: JSON.stringify({ jobId }),
+      keepalive: true,
+    }).catch(() => { /* cron cobre */ });
+  } catch { /* noop */ }
 }
 
 function CapturaPage() {
-  const extrair = useServerFn(extrairDocumento);
+  const enfileirar = useServerFn(enfileirarCaptura);
+  const listar = useServerFn(listarCapturaJobs);
+  const reprocessar = useServerFn(reprocessarCapturaJob);
+  const remover = useServerFn(removerCapturaJob);
   const { activeOrgId, activeOrg, loading: orgLoading } = useActiveOrg();
-  const [itens, setItens] = useState<Item[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [tolerancia, setTolerancia] = useState(TOLERANCIA_PADRAO);
   const [mes, setMes] = useState(mesAtualISO());
+  const [enviando, setEnviando] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputCam = useRef<HTMLInputElement>(null);
 
-  const storageKey = activeOrgId ? `captura.itens.${activeOrgId}` : null;
-
-  // Carrega itens persistidos (sem o File em si, que não é serializável)
-  useEffect(() => {
-    if (!storageKey) return;
+  const recarregar = useCallback(async () => {
+    if (!activeOrgId) { setJobs([]); return; }
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) { setItens([]); return; }
-      const parsed = JSON.parse(raw) as Array<Omit<Item, "file"> & { fileName?: string; fileType?: string }>;
-      const reidratados: Item[] = parsed.map((p) => ({
-        ...p,
-        // File não persiste: placeholder vazio só para manter o nome após reload.
-        file: new File([], p.fileName ?? "arquivo", { type: p.fileType ?? "application/octet-stream" }),
-      }));
-      setItens(reidratados);
+      const r = await listar({ data: { organizationId: activeOrgId, mesReferencia: mes, limite: 100 } });
+      setJobs((r.jobs ?? []) as Job[]);
     } catch (e) {
-      console.warn("[captura] falha ao carregar itens persistidos", e);
+      console.warn("[captura] listar jobs falhou", e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, [activeOrgId, mes, listar]);
 
-  // Salva itens (sem o File) no localStorage
+  useEffect(() => { void recarregar(); }, [recarregar]);
+
+  // Subscribe realtime → atualiza a lista quando qualquer job da org muda
   useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const serial = itens.map((it) => ({
-        id: it.id,
-        hash: it.hash,
-        status: it.status,
-        mensagem: it.mensagem,
-        dados: it.dados,
-        eventoId: it.eventoId,
-        docId: it.docId,
-        fileName: it.file?.name,
-        fileType: it.file?.type,
-      }));
-      localStorage.setItem(storageKey, JSON.stringify(serial));
-    } catch (e) {
-      console.warn("[captura] falha ao persistir itens", e);
-    }
-  }, [itens, storageKey]);
-
+    if (!activeOrgId) return;
+    const channel = supabase
+      .channel(`captura-jobs-${activeOrgId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "captura_jobs", filter: `organization_id=eq.${activeOrgId}` },
+        (payload) => {
+          setJobs((prev) => {
+            if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as { id?: string })?.id;
+              return oldId ? prev.filter((j) => j.id !== oldId) : prev;
+            }
+            const novo = payload.new as Job;
+            if (novo.mes_referencia !== mes) return prev;
+            const i = prev.findIndex((j) => j.id === novo.id);
+            if (i >= 0) {
+              const cp = prev.slice();
+              cp[i] = { ...cp[i], ...novo };
+              return cp;
+            }
+            return [novo, ...prev];
+          });
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [activeOrgId, mes]);
 
   useEffect(() => {
-    if (!activeOrgId) {
-      setEventos([]);
-      setFornecedores([]);
-      return;
-    }
+    if (!activeOrgId) { setEventos([]); return; }
     (async () => {
-      const [{ data: ev }, { data: fo }, { data: cfg }] = await Promise.all([
-        supabase
-          .from("eventos_financeiros")
-          .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
-          .eq("organization_id", activeOrgId)
-          .eq("mes_referencia", mes),
-        supabase.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", activeOrgId),
-        supabase.from("configuracoes").select("valor").eq("organization_id", activeOrgId).eq("chave", "auto_vinculo").maybeSingle(),
-      ]);
-      setEventos((ev ?? []) as Evento[]);
-      setFornecedores((fo ?? []) as Fornecedor[]);
-      const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
-      if (v) {
-        setTolerancia({
-          valor_centavos: typeof v.valor_centavos === "number" ? v.valor_centavos : TOLERANCIA_PADRAO.valor_centavos,
-          janela_dias: typeof v.janela_dias === "number" ? v.janela_dias : TOLERANCIA_PADRAO.janela_dias,
-        });
-      }
+      const { data } = await supabase
+        .from("eventos_financeiros")
+        .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
+        .eq("organization_id", activeOrgId)
+        .eq("mes_referencia", mes);
+      setEventos((data ?? []) as Evento[]);
     })();
   }, [mes, activeOrgId]);
 
+  const enfileirarArquivo = useCallback(async (file: File) => {
+    if (!activeOrgId) throw new Error("Selecione uma organização ativa");
+    const arquivo = await resizeImage(file);
+    const hash = await sha256(arquivo);
+    const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+    const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
 
-
-
-  const adicionar = useCallback((files: FileList | null) => {
-    if (!files || !files.length) return;
-    const novos: Item[] = Array.from(files).map((f) => ({
-      id: crypto.randomUUID(),
-      file: f,
-      status: "fila",
-    }));
-    setItens((prev) => [...prev, ...novos]);
-  }, []);
-
-  function atualiza(id: string, patch: Partial<Item>) {
-    setItens((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-  }
-
-  function tentarVincular(dados: Item["dados"]): string | null {
-    if (!dados?.valor || !dados.cnpj) return null;
-    const forn = fornecedores.find((f) => f.cnpj.replace(/\D/g, "") === String(dados.cnpj).replace(/\D/g, ""));
-    if (!forn) return null;
-    const tolValor = tolerancia.valor_centavos / 100;
-    const tolMs = tolerancia.janela_dias * 24 * 60 * 60 * 1000;
-    const candidatos = eventos.filter((e) => {
-      if (e.fornecedor_id !== forn.id) return false;
-      if (e.valor_previsto == null) return false;
-      if (Math.abs(Number(e.valor_previsto) - Number(dados.valor)) > tolValor) return false;
-      const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
-      if (dataDoc && e.data_vencimento) {
-        const dDoc = new Date(dataDoc).getTime();
-        const dVen = new Date(e.data_vencimento).getTime();
-        if (Math.abs(dDoc - dVen) > tolMs) return false;
-      }
-      return true;
+    const up = await supabase.storage.from("documentos").upload(path, arquivo, {
+      upsert: true,
+      contentType: arquivo.type || undefined,
     });
-    if (candidatos.length === 1) return candidatos[0].id;
-    return null;
-  }
+    if (up.error) throw up.error;
 
-  async function processar(it: Item) {
-    if (!activeOrgId) {
-      atualiza(it.id, { status: "erro", mensagem: "Selecione uma organização ativa antes de processar" });
-      return;
-    }
-    atualiza(it.id, { status: "processando", mensagem: "calculando hash" });
-    try {
-      const arquivo = await resizeImage(it.file);
-      const hash = await sha256(arquivo);
-
-
-      // Dedup desativado temporariamente — sempre processa.
-      // Apenas marcamos como "duplicata" para revisão manual no painel financeiro
-      // se o hash já existir, mas seguimos o fluxo normalmente.
-      const { data: existentes } = await supabase
-        .from("documentos_anexos")
-        .select("id")
-        .eq("arquivo_hash", hash)
-        .eq("organization_id", activeOrgId)
-        .limit(1);
-      const ehDuplicata = !!(existentes && existentes.length);
-
-      atualiza(it.id, { mensagem: "extraindo conteúdo" });
-      let texto = "";
-      const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
-      const ehImagem = arquivo.type.startsWith("image/");
-      if (ehPdf) {
-        try { texto = await extractPdfText(arquivo); } catch (e) { console.warn("pdf text falhou", e); }
-      }
-
-      // Considera texto útil só quando tem volume e letras/dígitos suficientes
-      const letras = (texto.match(/[A-Za-zÀ-ÿ]/g) || []).length;
-      const digitos = (texto.match(/\d/g) || []).length;
-      const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
-
-      atualiza(it.id, {
-        mensagem: ehPdf && !temTextoUtil
-          ? "lendo PDF como imagem (IA)"
-          : "processando documento (IA)",
-      });
-
-      let dados: Item["dados"] = {};
-      const payload: {
-        texto?: string;
-        imagemBase64?: string;
-        pdfBase64?: string;
-        mimeType?: string;
-        nomeArquivo: string;
-      } = { nomeArquivo: arquivo.name };
-
-      if (ehPdf && !temTextoUtil) {
-        payload.pdfBase64 = await fileToBase64(arquivo);
-        payload.mimeType = "application/pdf";
-        if (texto.trim()) payload.texto = texto;
-      } else if (ehImagem) {
-        payload.imagemBase64 = await fileToBase64(arquivo);
-        payload.mimeType = arquivo.type || "image/jpeg";
-        if (temTextoUtil) payload.texto = texto;
-      } else if (temTextoUtil) {
-        payload.texto = texto;
-      } else if (ehPdf) {
-        // último recurso: manda PDF mesmo sem texto
-        payload.pdfBase64 = await fileToBase64(arquivo);
-        payload.mimeType = "application/pdf";
-      }
-
-      if (payload.texto || payload.imagemBase64 || payload.pdfBase64) {
-        const r = (await extrair({ data: payload })) as
-          | { ok: true; dados: Item["dados"] }
-          | { ok: false; erro: string };
-        if (r.ok) {
-          dados = r.dados ?? {};
-        } else {
-          console.warn("[captura] extrair retornou erro", r.erro);
-          dados = { descricao: arquivo.name, tipo: "outro" };
-        }
-      } else {
-        dados = { descricao: arquivo.name, tipo: "outro" };
-      }
-
-
-
-
-      atualiza(it.id, { mensagem: "enviando arquivo" });
-      if (!activeOrgId) throw new Error("Selecione uma organização ativa antes de processar");
-      const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
-      const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
-      const up = await comRetry(
-        async () => {
-          const r = await supabase.storage.from("documentos").upload(path, arquivo, {
-            upsert: true,
-            contentType: arquivo.type || undefined,
-          });
-          if (r.error) throw r.error;
-          return r;
-        },
-        (tentativa) => atualiza(it.id, { mensagem: `rede instável — tentativa ${tentativa + 1}/4` }),
-      );
-      if (up.error) {
-        console.error("[captura] storage upload error", up.error, { path, activeOrgId });
-        throw up.error;
-      }
-      const { data: signed, error: signedErr } = await supabase
-        .storage
-        .from("documentos")
-        .createSignedUrl(path, 60 * 60 * 24 * 7);
-      if (signedErr) console.warn("[captura] signed url falhou", signedErr);
-
-      let eventoId = tentarVincular(dados);
-      let eventoCriado = false;
-
-      // Sempre cria um evento financeiro novo se não casou com nenhum existente,
-      // mesmo sem valor — vai para o painel para revisão manual.
-      const valorNum = dados?.valor != null ? Number(dados.valor) : null;
-      const valorValido = valorNum != null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null;
-      if (!eventoId) {
-        const cnpjDigits = dados?.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null;
-        let fornEncontrado = cnpjDigits
-          ? fornecedores.find((f) => f.cnpj.replace(/\D/g, "") === cnpjDigits)
-          : null;
-
-        // Auto-cadastro: se a IA extraiu CNPJ + razão social e ainda não existe fornecedor, cria.
-        if (!fornEncontrado && cnpjDigits && dados?.razao_social) {
-          const fIns = await supabase
-            .from("fornecedores")
-            .insert({
-              organization_id: activeOrgId,
-              cnpj: cnpjDigits,
-              razao_social: dados.razao_social,
-            })
-            .select("id, razao_social, cnpj, regras_sit")
-            .single();
-          if (fIns.error) {
-            // pode ser conflito de unicidade — tenta buscar
-            console.warn("[captura] auto-cadastro fornecedor falhou, tentando buscar", fIns.error);
-            const { data: jaExiste } = await supabase
-              .from("fornecedores")
-              .select("id, razao_social, cnpj, regras_sit")
-              .eq("organization_id", activeOrgId)
-              .eq("cnpj", cnpjDigits)
-              .maybeSingle();
-            if (jaExiste) fornEncontrado = jaExiste as Fornecedor;
-          } else if (fIns.data) {
-            fornEncontrado = fIns.data as Fornecedor;
-            setFornecedores((prev) => [...prev, fIns.data as Fornecedor]);
-          }
-        }
-
-        // Sempre lança no mês selecionado na captura para aparecer no painel atual.
-        // As datas extraídas ficam preservadas em colunas/metadata.
-        const mesRef = mes;
-        const categoria = inferirCategoria(dados);
-        const descricaoRaw = (dados?.descricao && dados.descricao.trim())
-          || (dados?.tipo ? `${dados.tipo}` : it.file.name);
-        const descricaoBase = descricaoRaw.slice(0, 200);
-        const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
-        const dataVenc = dados?.data_vencimento ?? dados?.data_emissao ?? null;
-        const dataPag = dados?.data_pagamento ?? null;
-        const temPagamento = !!dataPag;
-
-        // === Campos SIT (regras_sit do fornecedor têm precedência sobre a inferência) ===
-        const cnpjDigitsForFav = fornEncontrado?.cnpj?.replace(/\D/g, "")
-          ?? (dados?.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null);
-        const camposSIT = resolverCamposSIT({
-          regras_sit: fornEncontrado?.regras_sit ?? null,
-          tipo: dados?.tipo ?? null,
-          descricao: dados?.descricao ?? null,
-          forma_pagamento: dados?.forma_pagamento ?? null,
-          cnpj_favorecido: cnpjDigitsForFav,
-          nm_favorecido: fornEncontrado?.razao_social ?? dados?.razao_social ?? null,
-          razao_social_ia: dados?.razao_social ?? null,
-        });
-
-        // id_interno agora é gerado por trigger BEFORE INSERT no banco (formato AAAAMM-XXXX, sequencial por org/competência)
-
-
-        const evIns = await supabase
-          .from("eventos_financeiros")
-          .insert({
-            organization_id: activeOrgId,
-            mes_referencia: mesRef,
-            categoria,
-            descricao,
-            fornecedor_id: fornEncontrado?.id ?? null,
-            valor_previsto: valorValido,
-            valor_efetivo: temPagamento ? valorValido : null,
-            data_vencimento: dataVenc,
-            data_pagamento: dataPag,
-            data_emissao: dados?.data_emissao ?? null,
-            origem: "captura",
-            // id_interno preenchido automaticamente pela trigger fn_eventos_financeiros_set_id_interno
-            tp_documento_despesa: camposSIT.tp_documento_despesa,
-            tp_doc_fav: camposSIT.tp_doc_fav,
-            nr_doc_fav: camposSIT.nr_doc_fav,
-            nm_favorecido: camposSIT.nm_favorecido,
-            nr_documento: dados?.numero ?? null,
-            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
-            nr_documento_pagamento: dados?.numero_pagamento ?? null,
-            tp_despesa: camposSIT.tp_despesa,
-            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
-            status_documental: ehDuplicata
-              ? "revisar"
-              : (valorValido && (temPagamento || dataVenc) ? "completo" : "revisar"),
-            metadata: {
-              tipo: dados?.tipo ?? null,
-              cnpj_extraido: dados?.cnpj ?? null,
-              razao_social_extraida: dados?.razao_social ?? null,
-              numero_extraido: dados?.numero ?? null,
-              data_emissao: dados?.data_emissao ?? null,
-              data_pagamento_extraida: dados?.data_pagamento ?? null,
-              forma_pagamento: dados?.forma_pagamento ?? null,
-              nome_arquivo: it.file.name,
-              criado_via: "captura",
-              duplicata: ehDuplicata,
-              precisa_revisao: ehDuplicata || !valorValido,
-              motivo_revisao: ehDuplicata
-                ? "Arquivo duplicado — revisar manualmente"
-                : (!valorValido ? "Valor não extraído" : null),
-            },
-          })
-          .select("id, descricao, categoria, valor_previsto, data_vencimento, fornecedor_id")
-          .single();
-        if (evIns.error) {
-          console.error("[captura] insert eventos_financeiros error", evIns.error, { activeOrgId });
-          throw evIns.error;
-        }
-        eventoId = evIns.data.id;
-        eventoCriado = true;
-        setEventos((prev) => [
-          ...prev,
-          {
-            id: evIns.data.id,
-            descricao: evIns.data.descricao,
-            categoria: evIns.data.categoria,
-            valor_previsto: evIns.data.valor_previsto,
-            data_vencimento: evIns.data.data_vencimento,
-            fornecedor_id: evIns.data.fornecedor_id,
-          },
-        ]);
-      }
-
-      const insertRes = await supabase
-        .from("documentos_anexos")
-        .insert({
-          organization_id: activeOrgId,
-          tipo: dados?.tipo ?? "outro",
-          arquivo_url: signed?.signedUrl ?? null,
-          arquivo_hash: hash,
-          cnpj_extraido: dados?.cnpj ?? null,
-          valor_extraido: dados?.valor ?? null,
-          numero_extraido: dados?.numero ?? null,
-          data_extraida: dados?.data_emissao ?? dados?.data_vencimento ?? dados?.data_pagamento ?? null,
-          origem: "manual",
-          evento_id: eventoId,
-          metadata: {
-            nome_original: it.file.name,
-            descricao: dados?.descricao ?? null,
-            storage_path: path,
-            bucket: "documentos",
-            duplicata: ehDuplicata,
-          },
-        })
-        .select("id")
-        .single();
-
-      if (insertRes.error) {
-        console.error("[captura] insert documentos_anexos error", insertRes.error, { activeOrgId });
-        throw insertRes.error;
-      }
-
-      if (eventoId && !eventoCriado) {
-        await supabase
-          .from("eventos_financeiros")
-          .update({ status_documental: "completo" })
-          .eq("id", eventoId);
-      }
-
-      atualiza(it.id, {
-        status: ehDuplicata ? "duplicata" : (eventoId ? "vinculado" : "orfao"),
+    const r = await enfileirar({
+      data: {
+        storagePath: path,
         hash,
-        dados,
-        docId: insertRes.data.id,
-        eventoId,
-        mensagem: ehDuplicata
-          ? "Duplicata lançada no painel para revisão manual"
-          : eventoCriado
-            ? "Lançado automaticamente no painel"
-            : "Vinculado a evento existente",
-      });
+        nomeArquivo: arquivo.name,
+        mimeType: arquivo.type || null,
+        tamanhoBytes: arquivo.size,
+        mesReferencia: mes,
+        organizationId: activeOrgId,
+      },
+    });
+    dispararWorker(r.jobId);
+    return r.jobId;
+  }, [activeOrgId, mes, enfileirar]);
 
-    } catch (e) {
-      console.error("[captura] falha ao processar", e);
-      atualiza(it.id, {
-        status: "erro",
-        mensagem: msgErro(e),
-      });
-
+  const adicionar = useCallback(async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
+    setEnviando(true);
+    const arr = Array.from(files);
+    let ok = 0, fail = 0;
+    for (const f of arr) {
+      try { await enfileirarArquivo(f); ok++; }
+      catch (e) {
+        console.error("[captura] enfileirar falhou", e);
+        toast.error(`Falha ao enviar ${f.name}: ${e instanceof Error ? e.message : "erro"}`);
+        fail++;
+      }
     }
-  }
-
-  async function processarTudo() {
-    const pend = itens.filter((i) => i.status === "fila");
-    for (const it of pend) {
-      // eslint-disable-next-line no-await-in-loop
-      await processar(it);
-    }
-    toast.success(`Processados ${pend.length} arquivo(s)`);
-  }
+    setEnviando(false);
+    if (ok) toast.success(`${ok} arquivo(s) enviados. Pode sair da página — o processamento continua em segundo plano.`);
+    if (fail && !ok) toast.error(`${fail} arquivo(s) falharam no envio`);
+  }, [activeOrgId, enfileirarArquivo]);
 
   async function reprocessarErros() {
-    const erros = itens.filter((i) => i.status === "erro");
-    for (const it of erros) {
-      atualiza(it.id, { status: "fila", mensagem: undefined });
-      // eslint-disable-next-line no-await-in-loop
-      await processar({ ...it, status: "fila" });
+    const erros = jobs.filter((j) => j.status === "erro");
+    for (const j of erros) {
+      try {
+        await reprocessar({ data: { jobId: j.id } });
+        dispararWorker(j.id);
+      } catch (e) {
+        console.warn("[captura] reprocessar falhou", e);
+      }
+    }
+    toast.success(`Reagendados ${erros.length} arquivo(s)`);
+  }
+
+  async function reprocessarUm(jobId: string) {
+    try {
+      await reprocessar({ data: { jobId } });
+      dispararWorker(jobId);
+      toast.success("Reagendado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reagendar");
     }
   }
 
-  async function vincularManual(itemId: string, eventoId: string) {
-    const it = itens.find((i) => i.id === itemId);
-    if (!it?.docId) return;
+  async function removerUm(jobId: string) {
+    try {
+      await remover({ data: { jobId } });
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao remover");
+    }
+  }
+
+  async function vincularManual(jobId: string, eventoId: string) {
+    const j = jobs.find((x) => x.id === jobId);
+    if (!j?.documento_id) return;
     const { error } = await supabase
       .from("documentos_anexos")
       .update({ evento_id: eventoId === "none" ? null : eventoId })
-      .eq("id", it.docId);
+      .eq("id", j.documento_id);
     if (error) return toast.error(error.message);
     if (eventoId !== "none") {
       await supabase.from("eventos_financeiros").update({ status_documental: "completo" }).eq("id", eventoId);
     }
-    atualiza(itemId, {
-      eventoId: eventoId === "none" ? null : eventoId,
-      status: eventoId === "none" ? "orfao" : "vinculado",
-      mensagem: eventoId === "none" ? "Desvinculado" : "Vinculado manualmente",
-    });
+    setJobs((prev) => prev.map((x) => x.id === jobId ? { ...x, evento_id: eventoId === "none" ? null : eventoId } : x));
     toast.success("Vínculo atualizado");
   }
 
-  function remover(id: string) {
-    setItens((prev) => prev.filter((i) => i.id !== id));
-  }
-
   function corStatus(s: Status): "default" | "secondary" | "destructive" | "outline" {
-    if (s === "vinculado") return "default";
-    if (s === "duplicata" || s === "erro") return "destructive";
-    if (s === "processando") return "secondary";
+    if (s === "concluido") return "default";
+    if (s === "erro" || s === "cancelado") return "destructive";
+    if (s === "processando" || s === "pendente") return "secondary";
     return "outline";
   }
+
+  const emAndamento = useMemo(
+    () => jobs.filter((j) => j.status === "pendente" || j.status === "processando").length,
+    [jobs],
+  );
 
   return (
     <div className="p-8 space-y-6">
@@ -658,7 +283,7 @@ function CapturaPage() {
         <div>
           <h1 className="text-3xl uppercase">Captura de documentos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload, foto ou scanner. Os dados são reconhecidos automaticamente e vinculados ao evento do mês.
+            Upload, foto ou scanner. Os dados são reconhecidos automaticamente em segundo plano — pode sair da página, o processamento continua.
           </p>
         </div>
         <div className="flex items-end gap-3">
@@ -671,12 +296,18 @@ function CapturaPage() {
 
       {!orgLoading && !activeOrgId && (
         <div className="border border-destructive/50 bg-destructive/10 text-destructive rounded-md px-4 py-3 text-sm">
-          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de processar arquivos.
+          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de enviar arquivos.
         </div>
       )}
       {activeOrg && (
         <div className="text-xs text-muted-foreground">
           Organização ativa: <strong>{activeOrg.nome}</strong>
+          {emAndamento > 0 && (
+            <span className="ml-3 inline-flex items-center gap-1 text-amber-600">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {emAndamento} em processamento — pode sair da página
+            </span>
+          )}
         </div>
       )}
 
@@ -688,7 +319,7 @@ function CapturaPage() {
             multiple
             accept="application/pdf,image/*"
             className="hidden"
-            onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }}
+            onChange={(e) => { void adicionar(e.target.files); e.target.value = ""; }}
           />
           <input
             ref={inputCam}
@@ -696,71 +327,82 @@ function CapturaPage() {
             accept="image/*"
             capture="environment"
             className="hidden"
-            onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }}
+            onChange={(e) => { void adicionar(e.target.files); e.target.value = ""; }}
           />
-          <Button onClick={() => inputFile.current?.click()} variant="outline">
+          <Button onClick={() => inputFile.current?.click()} variant="outline" disabled={!activeOrgId || enviando}>
             <Upload className="mr-2 h-4 w-4" /> Selecionar arquivos
           </Button>
-          <Button onClick={() => inputCam.current?.click()} variant="outline">
+          <Button onClick={() => inputCam.current?.click()} variant="outline" disabled={!activeOrgId || enviando}>
             <Camera className="mr-2 h-4 w-4" /> Tirar foto
           </Button>
-          <Button onClick={processarTudo} disabled={!activeOrgId || !itens.some((i) => i.status === "fila")}>
-            Processar fila
-          </Button>
-          {itens.some((i) => i.status === "erro") && (
+          {enviando && (
+            <span className="self-center text-sm text-muted-foreground inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> enviando...
+            </span>
+          )}
+          {jobs.some((j) => j.status === "erro") && (
             <Button onClick={reprocessarErros} variant="secondary" disabled={!activeOrgId}>
-              Reprocessar {itens.filter((i) => i.status === "erro").length} erro(s)
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reprocessar {jobs.filter((j) => j.status === "erro").length} erro(s)
             </Button>
           )}
-          <div className="ml-auto text-xs text-muted-foreground self-center">
-            {eventos.length} evento(s) candidato(s) em {mes}
-          </div>
+          <Button variant="ghost" size="sm" onClick={() => void recarregar()} className="ml-auto">
+            <RefreshCw className="mr-2 h-4 w-4" /> atualizar
+          </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-sm uppercase tracking-wide">
-          Fila ({itens.length})
+          Fila ({jobs.length})
         </CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {itens.length === 0 && (
+          {jobs.length === 0 && (
             <div className="text-center text-sm text-muted-foreground py-8">
-              Nenhum arquivo. Use os botões acima para adicionar.
+              Nenhum arquivo no mês. Use os botões acima para adicionar.
             </div>
           )}
-          {itens.map((it) => {
-            const evt = it.eventoId ? eventos.find((e) => e.id === it.eventoId) : null;
+          {jobs.map((j) => {
+            const d = j.dados ?? {};
+            const evt = j.evento_id ? eventos.find((e) => e.id === j.evento_id) : null;
             return (
-              <div key={it.id} className="border border-border rounded-md p-4 space-y-3">
+              <div key={j.id} className="border border-border rounded-md p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{it.file.name}</div>
+                    <div className="font-medium truncate">{j.nome_arquivo}</div>
                     <div className="text-xs text-muted-foreground mt-1 flex gap-3 flex-wrap">
-                      <span>{(it.file.size / 1024).toFixed(0)} KB</span>
-                      {it.dados?.tipo && <span>tipo: {it.dados.tipo}</span>}
-                      {it.dados?.cnpj && <span>CNPJ: {it.dados.cnpj}</span>}
-                      {it.dados?.valor != null && <span>R$ {Number(it.dados.valor).toFixed(2)}</span>}
-                      {(it.dados?.data_vencimento || it.dados?.data_emissao || it.dados?.data_pagamento) && (
-                        <span>{it.dados?.data_vencimento ?? it.dados?.data_emissao ?? it.dados?.data_pagamento}</span>
+                      {j.tamanho_bytes != null && <span>{(j.tamanho_bytes / 1024).toFixed(0)} KB</span>}
+                      {d.tipo && <span>tipo: {d.tipo}</span>}
+                      {d.cnpj && <span>CNPJ: {d.cnpj}</span>}
+                      {d.valor != null && <span>R$ {Number(d.valor).toFixed(2)}</span>}
+                      {(d.data_vencimento || d.data_emissao || d.data_pagamento) && (
+                        <span>{d.data_vencimento ?? d.data_emissao ?? d.data_pagamento}</span>
                       )}
                     </div>
-                    {it.mensagem && <div className="text-xs text-muted-foreground mt-1 italic">{it.mensagem}</div>}
+                    {j.mensagem && <div className="text-xs text-muted-foreground mt-1 italic">{j.mensagem}</div>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant={corStatus(it.status)}>
-                      {it.status === "processando" && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                      {it.status}
+                    <Badge variant={corStatus(j.status)}>
+                      {(j.status === "processando" || j.status === "pendente") && (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      )}
+                      {j.status}
                     </Badge>
-                    <Button size="icon" variant="ghost" onClick={() => remover(it.id)}>
+                    {(j.status === "erro" || j.status === "concluido") && (
+                      <Button size="icon" variant="ghost" onClick={() => reprocessarUm(j.id)} title="Reprocessar">
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" onClick={() => removerUm(j.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
-                {(it.status === "orfao" || it.status === "vinculado") && it.docId && (
+                {j.status === "concluido" && j.documento_id && (
                   <div className="flex items-center gap-2">
                     <Link2 className="h-4 w-4 text-muted-foreground" />
-                    <Select value={it.eventoId ?? "none"} onValueChange={(v) => vincularManual(it.id, v)}>
+                    <Select value={j.evento_id ?? "none"} onValueChange={(v) => vincularManual(j.id, v)}>
                       <SelectTrigger className="max-w-md">
                         <SelectValue placeholder="Vincular a evento..." />
                       </SelectTrigger>
