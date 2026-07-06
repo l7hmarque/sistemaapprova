@@ -23,6 +23,8 @@ import {
   CATEGORIAS as CATEGORIAS_REO, CATEGORIA_TO_TPDESPESA,
 } from "@/lib/sit/catalogos";
 import { pendenciasSIT } from "@/lib/sit/inferCaptura";
+import { aplicarRegrasDespesa, type RegraDespesa } from "@/lib/sit/regrasDespesa";
+import { listarRegrasDespesa } from "@/lib/regras-despesa.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/painel")({ component: PainelPage });
 
