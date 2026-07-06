@@ -262,14 +262,15 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const digitos = (texto.match(/\d/g) || []).length;
     const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
 
-    // 5. IA
+    // 5. IA — extrai LISTA de documentos
     await supabaseAdmin.from("captura_jobs").update({ mensagem: "extraindo com IA" }).eq("id", jobId);
 
-    let dados: Dados = {
+    const dadosVazio: Dados = {
       tipo: null, cnpj: null, razao_social: null, valor: null, numero: null,
       data_emissao: null, data_vencimento: null, data_pagamento: null,
       descricao: nomeArquivo, forma_pagamento: null, numero_pagamento: null,
     };
+    let listaDados: Dados[] = [];
     try {
       const ehVisual = ehPdf || ehImagem;
       const modeloPrincipal = ehVisual ? "google/gemini-2.5-flash" : "google/gemini-2.5-flash-lite";
@@ -281,8 +282,9 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         mimeType: mime,
         nomeArquivo,
       });
-      dados = primeiro;
-      if (pareceVazio(primeiro) && (ehVisual || temTextoUtil)) {
+      listaDados = primeiro;
+      const todosVazios = listaDados.length === 0 || listaDados.every(pareceVazio);
+      if (todosVazios && (ehVisual || temTextoUtil)) {
         try {
           const segundo = await chamarIA({
             apiKey,
@@ -292,7 +294,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             mimeType: mime,
             nomeArquivo,
           });
-          if (!pareceVazio(segundo)) dados = segundo;
+          if (segundo.length && segundo.some((d) => !pareceVazio(d))) listaDados = segundo;
         } catch (e) {
           console.warn("[captura-worker] fallback Pro falhou", e);
         }
@@ -300,184 +302,220 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     } catch (e) {
       console.warn("[captura-worker] IA falhou, seguindo com dados vazios", e);
     }
+    if (listaDados.length === 0) listaDados = [dadosVazio];
 
-    // 6. Vínculo / fornecedor / evento
-    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando evento" }).eq("id", jobId);
+    // 6. Vínculo / fornecedor / evento — carrega config e caches uma vez
+    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando eventos" }).eq("id", jobId);
 
-    // Carrega config de tolerância e listas
-    const [{ data: cfg }, { data: forns }, { data: eventos }] = await Promise.all([
+    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }] = await Promise.all([
       supabaseAdmin.from("configuracoes").select("valor").eq("organization_id", orgId).eq("chave", "auto_vinculo").maybeSingle(),
       supabaseAdmin.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", orgId),
       supabaseAdmin
         .from("eventos_financeiros")
         .select("id, valor_previsto, data_vencimento, fornecedor_id")
         .eq("organization_id", orgId)
-        .eq("mes_referencia", mesRef),
+        .eq("mes_referencia", mesRef)
+        .is("excluido_em", null),
     ]);
     const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
     const tolValor = ((typeof v?.valor_centavos === "number" ? v.valor_centavos : 50)) / 100;
     const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
 
-    const cnpjDigits = dados.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null;
     type Forn = { id: string; razao_social: string; cnpj: string; regras_sit?: unknown };
-    let fornEncontrado: Forn | null = null;
-    if (cnpjDigits && forns) {
-      const achou = forns.find((f) => f.cnpj.replace(/\D/g, "") === cnpjDigits);
-      if (achou) fornEncontrado = achou as unknown as Forn;
-    }
-    if (!fornEncontrado && cnpjDigits && dados.razao_social) {
-      const fIns = await supabaseAdmin
-        .from("fornecedores")
-        .insert({ organization_id: orgId, cnpj: cnpjDigits, razao_social: dados.razao_social })
-        .select("id, razao_social, cnpj, regras_sit")
-        .single();
-      if (fIns.data) {
-        fornEncontrado = fIns.data as unknown as Forn;
-      } else if (fIns.error) {
-        const { data: ja } = await supabaseAdmin
-          .from("fornecedores")
-          .select("id, razao_social, cnpj, regras_sit")
-          .eq("organization_id", orgId)
-          .eq("cnpj", cnpjDigits)
-          .maybeSingle();
-        if (ja) fornEncontrado = ja as unknown as Forn;
+    const fornCache = new Map<string, Forn>();
+    (fornsRaw ?? []).forEach((f) => {
+      const key = f.cnpj.replace(/\D/g, "");
+      if (key) fornCache.set(key, f as unknown as Forn);
+    });
+    const eventosVinculados = new Set<string>();
+
+    let ultimoEventoId: string | null = null;
+    let ultimoAnexoId: string | null = null;
+    let contadorCriados = 0;
+    let contadorVinculados = 0;
+
+    // Processa cada documento individualmente
+    for (let idx = 0; idx < listaDados.length; idx++) {
+      const dados = listaDados[idx];
+      const primeiroDoLote = idx === 0;
+      const cnpjDigits = dados.cnpj ? String(dados.cnpj).replace(/\D/g, "") : null;
+
+      let fornEncontrado: Forn | null = null;
+      if (cnpjDigits && fornCache.has(cnpjDigits)) {
+        fornEncontrado = fornCache.get(cnpjDigits) ?? null;
       }
-    }
-
-    // Tenta vincular a evento existente
-    let eventoId: string | null = null;
-    const valorNum = dados.valor != null && Number.isFinite(Number(dados.valor)) && Number(dados.valor) > 0
-      ? Number(dados.valor) : null;
-    if (fornEncontrado && valorNum != null && eventos) {
-      const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
-      const cand = eventos.filter((e) => {
-        if (e.fornecedor_id !== fornEncontrado!.id) return false;
-        if (e.valor_previsto == null) return false;
-        if (Math.abs(Number(e.valor_previsto) - valorNum) > tolValor) return false;
-        if (dataDoc && e.data_vencimento) {
-          const d1 = new Date(dataDoc).getTime();
-          const d2 = new Date(e.data_vencimento).getTime();
-          if (Math.abs(d1 - d2) > tolMs) return false;
+      if (!fornEncontrado && cnpjDigits && dados.razao_social) {
+        const fIns = await supabaseAdmin
+          .from("fornecedores")
+          .insert({ organization_id: orgId, cnpj: cnpjDigits, razao_social: dados.razao_social })
+          .select("id, razao_social, cnpj, regras_sit")
+          .single();
+        if (fIns.data) {
+          fornEncontrado = fIns.data as unknown as Forn;
+        } else if (fIns.error) {
+          const { data: ja } = await supabaseAdmin
+            .from("fornecedores")
+            .select("id, razao_social, cnpj, regras_sit")
+            .eq("organization_id", orgId)
+            .eq("cnpj", cnpjDigits)
+            .maybeSingle();
+          if (ja) fornEncontrado = ja as unknown as Forn;
         }
-        return true;
-      });
-      if (cand.length === 1) eventoId = cand[0].id;
-    }
+        if (fornEncontrado) fornCache.set(cnpjDigits, fornEncontrado);
+      }
 
-    let eventoCriado = false;
-    if (!eventoId) {
-      const categoria = inferirCategoria(dados);
-      const descricaoRaw = (dados.descricao && dados.descricao.trim()) || (dados.tipo ?? nomeArquivo);
-      const descricaoBase = descricaoRaw.slice(0, 200);
-      const descricao = ehDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
-      const dataVenc = dados.data_vencimento ?? dados.data_emissao ?? null;
-      const dataPag = dados.data_pagamento ?? null;
-      const temPagamento = !!dataPag;
-      const cnpjForFav = fornEncontrado?.cnpj?.replace(/\D/g, "") ?? cnpjDigits;
-      const camposSIT = resolverCamposSIT({
-        regras_sit: (fornEncontrado?.regras_sit as Record<string, unknown> | null | undefined) ?? null,
-        tipo: dados.tipo ?? null,
-        descricao: dados.descricao ?? null,
-        forma_pagamento: dados.forma_pagamento ?? null,
-        cnpj_favorecido: cnpjForFav,
-        nm_favorecido: fornEncontrado?.razao_social ?? dados.razao_social ?? null,
-        razao_social_ia: dados.razao_social ?? null,
-      });
+      // Tenta vincular a evento existente
+      let eventoId: string | null = null;
+      const valorNum = dados.valor != null && Number.isFinite(Number(dados.valor)) && Number(dados.valor) > 0
+        ? Number(dados.valor) : null;
+      if (fornEncontrado && valorNum != null && eventos) {
+        const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
+        const cand = eventos.filter((e) => {
+          if (eventosVinculados.has(e.id)) return false;
+          if (e.fornecedor_id !== fornEncontrado!.id) return false;
+          if (e.valor_previsto == null) return false;
+          if (Math.abs(Number(e.valor_previsto) - valorNum) > tolValor) return false;
+          if (dataDoc && e.data_vencimento) {
+            const d1 = new Date(dataDoc).getTime();
+            const d2 = new Date(e.data_vencimento).getTime();
+            if (Math.abs(d1 - d2) > tolMs) return false;
+          }
+          return true;
+        });
+        if (cand.length === 1) {
+          eventoId = cand[0].id;
+          eventosVinculados.add(eventoId);
+        }
+      }
 
-      const evIns = await supabaseAdmin
-        .from("eventos_financeiros")
+      // Só o primeiro item do lote pode ser marcado como duplicata (do arquivo inteiro)
+      const marcarDuplicata = primeiroDoLote && ehDuplicata;
+
+      let eventoCriado = false;
+      if (!eventoId) {
+        const categoria = inferirCategoria(dados);
+        const descricaoRaw = (dados.descricao && dados.descricao.trim()) || (dados.tipo ?? nomeArquivo);
+        const descricaoBase = descricaoRaw.slice(0, 200);
+        const descricao = marcarDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
+        const dataVenc = dados.data_vencimento ?? dados.data_emissao ?? null;
+        const dataPag = dados.data_pagamento ?? null;
+        const temPagamento = !!dataPag;
+        const cnpjForFav = fornEncontrado?.cnpj?.replace(/\D/g, "") ?? cnpjDigits;
+        const camposSIT = resolverCamposSIT({
+          regras_sit: (fornEncontrado?.regras_sit as Record<string, unknown> | null | undefined) ?? null,
+          tipo: dados.tipo ?? null,
+          descricao: dados.descricao ?? null,
+          forma_pagamento: dados.forma_pagamento ?? null,
+          cnpj_favorecido: cnpjForFav,
+          nm_favorecido: fornEncontrado?.razao_social ?? dados.razao_social ?? null,
+          razao_social_ia: dados.razao_social ?? null,
+        });
+
+        const evIns = await supabaseAdmin
+          .from("eventos_financeiros")
+          .insert({
+            organization_id: orgId,
+            mes_referencia: mesRef,
+            categoria,
+            descricao,
+            fornecedor_id: fornEncontrado?.id ?? null,
+            valor_previsto: valorNum,
+            valor_efetivo: temPagamento ? valorNum : null,
+            data_vencimento: dataVenc,
+            data_pagamento: dataPag,
+            data_emissao: dados.data_emissao ?? null,
+            origem: "captura",
+            tp_documento_despesa: camposSIT.tp_documento_despesa,
+            tp_doc_fav: camposSIT.tp_doc_fav,
+            nr_doc_fav: camposSIT.nr_doc_fav,
+            nm_favorecido: camposSIT.nm_favorecido,
+            nr_documento: dados.numero ?? null,
+            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
+            nr_documento_pagamento: dados.numero_pagamento ?? null,
+            tp_despesa: camposSIT.tp_despesa,
+            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
+            status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
+            metadata: {
+              tipo: dados.tipo,
+              cnpj_extraido: dados.cnpj,
+              razao_social_extraida: dados.razao_social,
+              numero_extraido: dados.numero,
+              data_emissao: dados.data_emissao,
+              data_pagamento_extraida: dados.data_pagamento,
+              forma_pagamento: dados.forma_pagamento,
+              nome_arquivo: nomeArquivo,
+              criado_via: "captura",
+              duplicata: marcarDuplicata,
+              multi_doc_index: listaDados.length > 1 ? idx + 1 : null,
+              multi_doc_total: listaDados.length > 1 ? listaDados.length : null,
+              precisa_revisao: marcarDuplicata || !valorNum,
+              motivo_revisao: marcarDuplicata ? "Arquivo duplicado — revisar manualmente"
+                : (!valorNum ? "Valor não extraído" : null),
+            },
+          })
+          .select("id")
+          .single();
+        if (evIns.error) throw evIns.error;
+        eventoId = evIns.data.id;
+        eventoCriado = true;
+        contadorCriados++;
+      } else {
+        contadorVinculados++;
+      }
+
+      // Anexo (o mesmo arquivo do Storage é anexado a cada evento do lote)
+      const anexo = await supabaseAdmin
+        .from("documentos_anexos")
         .insert({
           organization_id: orgId,
-          mes_referencia: mesRef,
-          categoria,
-          descricao,
-          fornecedor_id: fornEncontrado?.id ?? null,
-          valor_previsto: valorNum,
-          valor_efetivo: temPagamento ? valorNum : null,
-          data_vencimento: dataVenc,
-          data_pagamento: dataPag,
-          data_emissao: dados.data_emissao ?? null,
-          origem: "captura",
-          tp_documento_despesa: camposSIT.tp_documento_despesa,
-          tp_doc_fav: camposSIT.tp_doc_fav,
-          nr_doc_fav: camposSIT.nr_doc_fav,
-          nm_favorecido: camposSIT.nm_favorecido,
-          nr_documento: dados.numero ?? null,
-          tp_documento_pagamento: camposSIT.tp_documento_pagamento,
-          nr_documento_pagamento: dados.numero_pagamento ?? null,
-          tp_despesa: camposSIT.tp_despesa,
-          cd_modalidade_compra: camposSIT.cd_modalidade_compra,
-          status_documental: ehDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
+          tipo: dados.tipo ?? "outro",
+          arquivo_url: signed?.signedUrl ?? null,
+          arquivo_hash: hash,
+          cnpj_extraido: dados.cnpj,
+          valor_extraido: dados.valor,
+          numero_extraido: dados.numero,
+          data_extraida: dados.data_emissao ?? dados.data_vencimento ?? dados.data_pagamento ?? null,
+          origem: "manual",
+          evento_id: eventoId,
           metadata: {
-            tipo: dados.tipo,
-            cnpj_extraido: dados.cnpj,
-            razao_social_extraida: dados.razao_social,
-            numero_extraido: dados.numero,
-            data_emissao: dados.data_emissao,
-            data_pagamento_extraida: dados.data_pagamento,
-            forma_pagamento: dados.forma_pagamento,
-            nome_arquivo: nomeArquivo,
-            criado_via: "captura",
-            duplicata: ehDuplicata,
-            precisa_revisao: ehDuplicata || !valorNum,
-            motivo_revisao: ehDuplicata ? "Arquivo duplicado — revisar manualmente"
-              : (!valorNum ? "Valor não extraído" : null),
+            nome_original: nomeArquivo,
+            descricao: dados.descricao,
+            storage_path: path,
+            bucket: "documentos",
+            duplicata: marcarDuplicata,
+            multi_doc_index: listaDados.length > 1 ? idx + 1 : null,
+            multi_doc_total: listaDados.length > 1 ? listaDados.length : null,
           },
         })
         .select("id")
         .single();
-      if (evIns.error) throw evIns.error;
-      eventoId = evIns.data.id;
-      eventoCriado = true;
+      if (anexo.error) throw anexo.error;
+
+      if (eventoId && !eventoCriado) {
+        await supabaseAdmin
+          .from("eventos_financeiros")
+          .update({ status_documental: "completo" })
+          .eq("id", eventoId);
+      }
+
+      ultimoEventoId = eventoId;
+      ultimoAnexoId = anexo.data.id;
     }
 
-    // Anexo
-    const anexo = await supabaseAdmin
-      .from("documentos_anexos")
-      .insert({
-        organization_id: orgId,
-        tipo: dados.tipo ?? "outro",
-        arquivo_url: signed?.signedUrl ?? null,
-        arquivo_hash: hash,
-        cnpj_extraido: dados.cnpj,
-        valor_extraido: dados.valor,
-        numero_extraido: dados.numero,
-        data_extraida: dados.data_emissao ?? dados.data_vencimento ?? dados.data_pagamento ?? null,
-        origem: "manual",
-        evento_id: eventoId,
-        metadata: {
-          nome_original: nomeArquivo,
-          descricao: dados.descricao,
-          storage_path: path,
-          bucket: "documentos",
-          duplicata: ehDuplicata,
-        },
-      })
-      .select("id")
-      .single();
-    if (anexo.error) throw anexo.error;
-
-    if (eventoId && !eventoCriado) {
-      await supabaseAdmin
-        .from("eventos_financeiros")
-        .update({ status_documental: "completo" })
-        .eq("id", eventoId);
-    }
-
-    const mensagemFinal = ehDuplicata
-      ? "Duplicata lançada para revisão manual"
-      : eventoCriado
-        ? "Lançado automaticamente no painel"
-        : "Vinculado a evento existente";
+    const partes: string[] = [];
+    if (contadorCriados > 0) partes.push(`${contadorCriados} evento(s) criado(s)`);
+    if (contadorVinculados > 0) partes.push(`${contadorVinculados} vinculado(s)`);
+    if (ehDuplicata) partes.push("arquivo duplicado");
+    const mensagemFinal = partes.join(" · ") || "Concluído";
 
     await supabaseAdmin
       .from("captura_jobs")
       .update({
         status: "concluido",
         mensagem: mensagemFinal,
-        evento_id: eventoId,
-        documento_id: anexo.data.id,
-        dados: dados as unknown as never,
+        evento_id: ultimoEventoId,
+        documento_id: ultimoAnexoId,
+        dados: { documentos: listaDados } as unknown as never,
         finalizado_em: new Date().toISOString(),
       })
       .eq("id", jobId);
@@ -486,6 +524,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     await marcarErro(jobId, msgErro(e));
   }
 }
+
 
 /** Reivindica todos os `pendente` mais antigos e processa em paralelo (limite N). */
 export async function processarPendentes(limite = 5): Promise<{ processados: number }> {
