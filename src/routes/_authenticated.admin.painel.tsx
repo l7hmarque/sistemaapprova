@@ -638,9 +638,11 @@ function PainelPage() {
                 </div>
               </div>
               <div>
-                <Label>ID interno (≤30)</Label>
-                <Input value={editing.id_interno ?? ""} maxLength={30}
-                  onChange={(e) => setEditing({ ...editing, id_interno: e.target.value.slice(0, 30) || null })} />
+                <Label>ID interno</Label>
+                <Input value={editing.id_interno ?? "(será gerado ao salvar)"} readOnly disabled />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Gerado automaticamente pelo sistema (sequencial mensal 0001, 0002…).
+                </p>
               </div>
               <div>
                 <Label>Tipo despesa (REO)</Label>
