@@ -673,6 +673,7 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
       totalPaginas: result.totalPaginas,
       totalDocs: result.totalDocs,
       totalComprovantes: result.totalComprovantes,
+      totalEventos: result.totalEventos,
     };
   });
 
