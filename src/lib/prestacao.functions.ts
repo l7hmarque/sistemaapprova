@@ -478,7 +478,8 @@ export async function montarPdfBytes(args: {
         : await fetchAsBytes(job.url!);
       return { label: job.label, ok: true, bytes: got.bytes, mime: got.mimeType };
     } catch (err) {
-      return { label: job.label, ok: false, error: String((err as Error).message ?? err) };
+      const lbl = job.kind === "template" ? "Template" : job.label;
+      return { label: lbl, ok: false, error: String((err as Error).message ?? err) };
     }
   });
   console.timeEnd("[prestacao] download");
