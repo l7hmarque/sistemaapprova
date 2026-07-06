@@ -1,106 +1,56 @@
-## Objetivo
+## Objetivos
 
-Três melhorias em `/admin/prestacao`:
-
-1. **Documentos com vigência** que atravessam vários meses.
-2. **Preview em iframe** do PDF antes de finalizar/salvar no Drive.
-3. **Ajustes de organização** dos anexos das despesas (sem separadores).
+1. **Remover a feature de Pré-visualização** (era lenta demais e agrega pouco valor)
+2. **Acelerar a geração do PDF de Prestação de Contas** (hoje sequencial)
+3. **Mitigar o erro `ERR_BLOCKED_BY_RESPONSE` ao abrir o PDF gerado** (`drive.usercontent.google.com`)
 
 ---
 
-## 1. Documentos com vigência plurianual
+## 1. Remover Pré-visualização
 
-### Modelo de dados (migração)
+- Deletar `src/routes/api/prestacao.preview.ts`
+- Em `src/routes/_authenticated.admin.prestacao.tsx`: remover estado `previewUrl / previewMeta / previewLoading`, função `abrirPreview / fecharPreview`, botão "Pré-visualizar" e o `<Dialog>` do iframe (linhas ~65-67, 207-230, 273, 370-390)
+- Manter apenas o botão "Gerar relatório"
 
-Adicionar em `prestacao_documentos`:
+## 2. Otimizar geração do PDF
 
-- `valido_de date` — início da vigência (default = `data_emissao` ou 1º dia de `mes_referencia`).
-- `valido_ate date` — fim da vigência (default = `data_vencimento`).
-- `mes_referencia_fim text NULL` — quando o usuário exclui "só até este mês", grava aqui o corte.
-- Índice `(organization_id, valido_de, valido_ate)`.
+**Diagnóstico da lentidão** em `montarPdfBytes` (`src/lib/prestacao.functions.ts`):
+- Todo download do Drive (template + cada documento + cada anexo) é feito **um por vez** dentro de `for...of` — se há 20 arquivos, são 20 round-trips sequenciais ao Google.
+- Para cada arquivo faz 2 requests: `files.get` (metadata) + `?alt=media` (bytes). Dá pra fazer só 1 com `alt=media` + header e ler `Content-Type` da resposta.
+- `PDFDocument.load` + `copyPages` é feito estritamente em ordem, bloqueando o merge enquanto espera IO.
 
-### Regra de exibição no mês filtrado
+**Mudanças:**
+- Introduzir helper `mapPool(items, concurrency, fn)` (concorrência ~6) e baixar **todos os bytes em paralelo** antes do merge (uma "fase de download", outra "fase de merge").
+- Encurtar `downloadDriveMedia`: fazer só `?alt=media&fields=...` numa chamada; pegar `content-type` e `content-disposition` do header de resposta; fallback para `files.get` só se der 4xx específico de Google Doc nativo.
+- Fazer download do template em paralelo com a query de documentos/anexos (já disparado com `Promise.all`).
+- Log de timing por fase (download vs merge vs upload) via `console.time` para futura observabilidade.
 
-Ao abrir o mês `AAAA-MM`, um documento aparece quando:
+Expectativa: reduções de 5-10× em relatórios com >10 anexos.
 
-```text
-mes_referencia <= AAAA-MM
-AND (mes_referencia_fim IS NULL OR AAAA-MM <= mes_referencia_fim)
-AND (valido_ate IS NULL OR valido_ate >= <primeiro dia de AAAA-MM>)
-```
+## 3. Mitigar `ERR_BLOCKED_BY_RESPONSE`
 
-Ou seja: cadastrado num mês anterior + vigência ainda cobrindo o mês atual + não cortado manualmente.
+**Causa provável:** hoje devolvemos `webViewLink` do Drive, e o navegador é redirecionado para `drive.usercontent.google.com` para servir o binário. Esse subdomínio frequentemente é bloqueado por extensões, políticas COOP/COEP ou pelo próprio Google quando a sessão do usuário no Drive não corresponde.
 
-Cada card mostra badge:
+**Solução:** subir o PDF final **também no bucket `prestacoes` do Lovable Cloud** e devolver uma **signed URL** dessa cópia como link primário. O upload no Drive continua para o arquivo institucional/backup.
 
-- **Vigente** (verde discreto) quando `valido_ate > hoje+30`.
-- **Vence em X dias** (amarelo) quando `valido_ate` entre hoje e hoje+30.
-- **Vencido** (vermelho) quando `valido_ate < hoje` — com CTA "Cadastrar novo em substituição" (abre modal já preenchido com nome e sugerindo nova `valido_de = hoje`).
+Detalhes:
+- Em `gerarPrestacaoContas`, após `montarPdfBytes`:
+  - Upload para bucket `prestacoes` em `${orgId}/${mes}/${timestamp}.pdf` via `sb.storage.from('prestacoes').upload(...)` (RLS já limitada por org).
+  - `createSignedUrl(path, 60*60*24*7)` (7 dias).
+  - Upload no Drive **em paralelo** (`Promise.all`), tolerante a falha (se Drive falhar, o link do Storage ainda funciona).
+- Retornar: `{ url (signed URL do Storage), driveUrl (webViewLink, opcional), fileId, nome, totalPaginas, totalDocs, totalComprovantes }`.
+- Frontend abre `url` (Storage) em nova aba — link direto ao PDF, sem redirect para `drive.usercontent.google.com`.
+- Se o botão "Abrir no Drive" fizer sentido, mostrar como secundário quando `driveUrl` existir.
 
-### Exclusão com 3 opções
+## Arquivos afetados
 
-Ao clicar em excluir, abre modal com radio (preselecionado no meio):
-
-- Excluir só neste mês → grava um registro em nova tabela `prestacao_documentos_excecoes(documento_id, mes_referencia)` (pula esse mês na exibição/PDF).
-- **Excluir só neste mês e todos os seguintes (preset)** → `UPDATE ... SET mes_referencia_fim = <mês anterior ao atual>`.
-- Excluir tudo (todos os meses) → `DELETE` físico.
-
-### PDF
-
-O `gerarPrestacaoContas` passa a usar a mesma regra de exibição em vez de `eq("mes_referencia", mes)`.
-
----
-
-## 2. Preview em iframe do PDF antes de salvar
-
-### Fluxo
-
-1. Novo botão "Pré-visualizar" ao lado de "Gerar relatório".
-2. Chama nova server fn `gerarPrestacaoContasRascunho` — mesmo pipeline, mas **não sobe pro Drive**; retorna os bytes como base64 (ou usa `URL.createObjectURL` a partir de um Blob devolvido via fetch).
-3. Abre `Dialog` fullscreen com `<iframe src={blobUrl}>` ocupando a tela + rodapé com:
-   - Metadados (X páginas, Y documentos, Z comprovantes).
-   - Botão "Fechar" (descarta).
-   - Botão "Gerar oficial e salvar no Drive" (chama `gerarPrestacaoContas` atual e abre o resultado).
-
-### Implementação técnica
-
-- Refatorar `gerarPrestacaoContas` extraindo o pipeline (`montarPdfBytes(orgId, mes, titulo)`) em helper server-only.
-- `gerarPrestacaoContasRascunho` chama o helper e retorna `{ base64, totalPaginas, totalDocs, totalComprovantes }`.
-- `gerarPrestacaoContas` chama o helper + upload Drive (comportamento atual).
-- Frontend: `atob → Uint8Array → new Blob([...], { type: 'application/pdf' }) → URL.createObjectURL`.
-
-Nota: PDF de rascunho pode ficar grande (>5MB). Se ultrapassar limite prático de RPC, alternativa é criar server route `POST /api/prestacao/preview` que devolve `Response(pdfBytes, { headers: { 'Content-Type': 'application/pdf' } })` — mais eficiente. **Vou por essa rota** desde o início.
-
----
-
-## 3. Ajustes nos comprovantes (sem separadores)
-
-Confirmado: **não** adicionar página separadora por evento. Apenas garantir:
-
-- Ordenação estável: `data_pagamento asc`, depois `id_interno`.
-- No sumário, cada evento com anexo continua listado com ID interno + favorecido + valor (para navegação).
-- Anexos de um mesmo evento entram em sequência, na ordem: `tipo = 'nf'` → `'boleto'` → `'comprovante'` → outros.
-
----
-
-## Arquivos
-
-**Migração (nova):**
-- `prestacao_documentos`: colunas `valido_de`, `valido_ate`, `mes_referencia_fim` + índice.
-- Nova tabela `prestacao_documentos_excecoes` com GRANTs + RLS por org.
-- Backfill: `valido_de = COALESCE(data_emissao, to_date(mes_referencia||'-01','YYYY-MM-DD'))`, `valido_ate = data_vencimento`.
-
-**Editados:**
-- `src/lib/prestacao.functions.ts` — extrair `montarPdfBytes`, atualizar query com regra de vigência, ordenar anexos por tipo.
-- `src/routes/_authenticated.admin.prestacao.tsx` — nova query com regra de vigência, badges (vigente/vence/vencido), modal de exclusão com 3 opções, botão "Pré-visualizar", modal fullscreen com iframe.
-- Novo `src/routes/api/prestacao.preview.ts` (server route autenticada) que devolve `application/pdf` direto — chamada com bearer via fetch autenticado.
-
-**Sem alteração:** snapshot / bucket `prestacoes` / template.
-
----
+- **Deletar:** `src/routes/api/prestacao.preview.ts`
+- **Editar:** `src/lib/prestacao.functions.ts` (paralelização, download simplificado, dupla persistência)
+- **Editar:** `src/routes/_authenticated.admin.prestacao.tsx` (remover preview, ajustar handler ao novo retorno)
+- **Sem migração:** bucket `prestacoes` já existe.
 
 ## Fora de escopo
 
-- Notificação por email de "documento vai vencer" (só badge visual no card).
-- Auto-substituição do documento vencido (só sugere via CTA).
-- Assinatura digital / marca d'água.
+- Fila assíncrona / background worker (só entra se, mesmo paralelizado, estourar o timeout do runtime).
+- Cache de PDFs já gerados por (org, mês).
+- Watermark/assinatura no PDF final.
