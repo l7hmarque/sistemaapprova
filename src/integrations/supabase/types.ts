@@ -1328,6 +1328,7 @@ export type Database = {
           extracao_id: string | null
           id: string
           mes_referencia: string | null
+          mes_referencia_fim: string | null
           mime_type: string | null
           nome: string
           observacao_aprovacao: string | null
@@ -1335,6 +1336,8 @@ export type Database = {
           organization_id: string
           status_aprovacao: string
           tamanho_bytes: number | null
+          valido_ate: string | null
+          valido_de: string | null
         }
         Insert: {
           aprovado_em?: string | null
@@ -1350,6 +1353,7 @@ export type Database = {
           extracao_id?: string | null
           id?: string
           mes_referencia?: string | null
+          mes_referencia_fim?: string | null
           mime_type?: string | null
           nome: string
           observacao_aprovacao?: string | null
@@ -1357,6 +1361,8 @@ export type Database = {
           organization_id?: string
           status_aprovacao?: string
           tamanho_bytes?: number | null
+          valido_ate?: string | null
+          valido_de?: string | null
         }
         Update: {
           aprovado_em?: string | null
@@ -1372,6 +1378,7 @@ export type Database = {
           extracao_id?: string | null
           id?: string
           mes_referencia?: string | null
+          mes_referencia_fim?: string | null
           mime_type?: string | null
           nome?: string
           observacao_aprovacao?: string | null
@@ -1379,6 +1386,8 @@ export type Database = {
           organization_id?: string
           status_aprovacao?: string
           tamanho_bytes?: number | null
+          valido_ate?: string | null
+          valido_de?: string | null
         }
         Relationships: [
           {
@@ -1390,6 +1399,48 @@ export type Database = {
           },
           {
             foreignKeyName: "prestacao_documentos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prestacao_documentos_excecoes: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          documento_id: string
+          id: string
+          mes_referencia: string
+          organization_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          documento_id: string
+          id?: string
+          mes_referencia: string
+          organization_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          documento_id?: string
+          id?: string
+          mes_referencia?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prestacao_documentos_excecoes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "prestacao_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestacao_documentos_excecoes_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
