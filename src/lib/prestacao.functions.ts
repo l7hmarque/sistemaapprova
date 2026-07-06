@@ -44,8 +44,19 @@ async function exportGoogleFileAsPdf(fileId: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-/** Baixa mídia binária pela API do Drive (arquivo comum, não-Google). */
+/** Baixa mídia binária pela API do Drive (arquivo comum ou Google Doc nativo). */
 async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
+  // Tenta direto ?alt=media (arquivos comuns). Uma única requisição, sem metadata prévia.
+  const r = await fetch(`${DRIVE}/files/${fileId}?alt=media&supportsAllDrives=true`, {
+    headers: driveHeaders(),
+  });
+  if (r.ok) {
+    const mt = r.headers.get("content-type") ?? "application/octet-stream";
+    const cd = r.headers.get("content-disposition") ?? "";
+    const name = cd.match(/filename="?([^"]+)"?/)?.[1] ?? fileId;
+    return { bytes: new Uint8Array(await r.arrayBuffer()), mimeType: mt, name };
+  }
+  // Fallback: Google Doc/Sheet/Slide nativo → precisa export
   const metaRes = await fetch(
     `${DRIVE}/files/${fileId}?fields=id,name,mimeType&supportsAllDrives=true`,
     { headers: driveHeaders() },
@@ -56,14 +67,23 @@ async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; 
     const bytes = await exportGoogleFileAsPdf(fileId);
     return { bytes, mimeType: "application/pdf", name: meta.name };
   }
-  const r = await fetch(`${DRIVE}/files/${fileId}?alt=media&supportsAllDrives=true`, {
-    headers: driveHeaders(),
+  const t = await r.text().catch(() => "");
+  throw new Error(`Drive download falhou [${r.status}]: ${t.slice(0, 300)}`);
+}
+
+/** Executa `fn` sobre `items` com no máximo `concurrency` promessas em paralelo. */
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, idx: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let i = 0;
+  const workers = Array.from({ length: Math.min(concurrency, Math.max(items.length, 1)) }, async () => {
+    while (true) {
+      const idx = i++;
+      if (idx >= items.length) return;
+      results[idx] = await fn(items[idx], idx);
+    }
   });
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`Drive download falhou [${r.status}]: ${t.slice(0, 300)}`);
-  }
-  return { bytes: new Uint8Array(await r.arrayBuffer()), mimeType: mt, name: meta.name };
+  await Promise.all(workers);
+  return results;
 }
 
 /** Upload multipart de bytes para o Drive. */
