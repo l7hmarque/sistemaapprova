@@ -308,7 +308,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     // 6. Vínculo / fornecedor / evento — carrega config e caches uma vez
     await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando eventos" }).eq("id", jobId);
 
-    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }] = await Promise.all([
+    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }, { data: regrasRaw }] = await Promise.all([
       supabaseAdmin.from("configuracoes").select("valor").eq("organization_id", orgId).eq("chave", "auto_vinculo").maybeSingle(),
       supabaseAdmin.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", orgId),
       supabaseAdmin
@@ -317,7 +317,9 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         .eq("organization_id", orgId)
         .eq("mes_referencia", mesRef)
         .is("excluido_em", null),
+      supabaseAdmin.from("regras_despesa").select("*").eq("organization_id", orgId),
     ]);
+    const regrasOrg = (regrasRaw ?? []) as RegraDespesa[];
     const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
     const tolValor = ((typeof v?.valor_centavos === "number" ? v.valor_centavos : 50)) / 100;
     const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
