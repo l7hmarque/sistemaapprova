@@ -336,7 +336,7 @@ export async function montarPdfBytes(args: {
   orgId: string;
   mes: string;
   titulo?: string;
-}): Promise<{ bytes: Uint8Array; totalPaginas: number; totalDocs: number; totalComprovantes: number }> {
+}): Promise<{ bytes: Uint8Array; totalPaginas: number; totalDocs: number; totalComprovantes: number; totalEventos: number }> {
   const { sb, orgId, mes } = args;
 
   // 1) Template
