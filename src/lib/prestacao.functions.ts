@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { driveCopyFile } from "./orcamentos.server";
 import { ensureMesFolder } from "./drive-org.server";
+import { extrairSheetId } from "./modelos";
 
 const GDOCS = "https://connector-gateway.lovable.dev/google_docs/v1";
 
@@ -64,20 +65,28 @@ function fmtDate(iso?: string | null): string {
 export const gerarPrestacaoContas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
-  .handler(async ({ data }) => {
-    // 1) buscar template ID das configurações
-    const { data: cfg } = await supabase
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    // 0) organização atual do usuário
+    const { data: orgIdRaw } = await sb.rpc("current_user_org");
+    const orgId = orgIdRaw as string | null;
+    if (!orgId) throw new Error("Organização não encontrada para o usuário atual.");
+
+    // 1) buscar template ID das configurações da org
+    const { data: cfg } = await sb
       .from("configuracoes")
       .select("valor")
+      .eq("organization_id", orgId)
       .eq("chave", "prestacao_template")
       .maybeSingle();
-    const templateId = (cfg?.valor as any)?.template_id as string | undefined;
-    if (!templateId) {
+    const templateIdRaw = (cfg?.valor as any)?.template_id as string | undefined;
+    if (!templateIdRaw) {
       throw new Error("Template de Prestação de Contas não configurado em Admin → Configurações.");
     }
+    const templateId = extrairSheetId(templateIdRaw);
 
     // 2) buscar documentos do mês ordenados
-    const { data: docs, error } = await supabase
+    const { data: docs, error } = await sb
       .from("prestacao_documentos")
       .select("*")
       .eq("mes_referencia", data.mesReferencia)
@@ -86,11 +95,10 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
     if (!docs || docs.length === 0) throw new Error(`Nenhum documento cadastrado para ${data.mesReferencia}.`);
 
     // 3) copiar template para a pasta da org/Prestações/{mes}
-    const { data: orgIdRaw } = await supabase.rpc("current_user_org");
-    const orgId = orgIdRaw as string | null;
-    const parents = orgId
-      ? await ensureMesFolder(orgId, "Prestações", data.mesReferencia).then((id) => [id]).catch(() => undefined)
-      : undefined;
+    const parents = await ensureMesFolder(orgId, "Prestações", data.mesReferencia)
+      .then((id) => [id])
+      .catch(() => undefined);
+
     const nome = `Prestacao de Contas — ${data.mesReferencia}${data.titulo ? ` — ${data.titulo}` : ""}`;
     const copy = await driveCopyFile({
       templateId,
