@@ -579,11 +579,7 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
           .from("prestacoes")
           .upload(storagePath, result.bytes, { contentType: "application/pdf", upsert: true });
         if (up.error) throw up.error;
-        const signed = await supabaseAdmin.storage
-          .from("prestacoes")
-          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
-        if (signed.error || !signed.data) throw signed.error ?? new Error("sem signed url");
-        return signed.data.signedUrl;
+        return storagePath;
       })(),
       (async () => {
         const parents = await ensureMesFolder(orgId, "Prestações", mes)
@@ -598,12 +594,13 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
       throw new Error("Falha ao salvar o PDF (Storage e Drive): " + String(storageRes.reason));
     }
 
-    const signedUrl = storageRes.status === "fulfilled" ? storageRes.value : null;
+    const path = storageRes.status === "fulfilled" ? storageRes.value : null;
     const drive = driveRes.status === "fulfilled" ? driveRes.value : null;
 
     return {
-      // Link primário — abre direto no navegador sem passar por drive.usercontent.google.com
-      url: signedUrl ?? drive!.webViewLink,
+      // Path relativo do Storage. O frontend baixa via /api/prestacao/download
+      // (proxy no mesmo domínio), evitando ad-blockers que barram *.supabase.co.
+      storagePath: path,
       driveUrl: drive?.webViewLink ?? null,
       fileId: drive?.id ?? null,
       nome,
