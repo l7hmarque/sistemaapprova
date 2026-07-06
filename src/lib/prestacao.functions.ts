@@ -141,8 +141,22 @@ function driveIdFromUrl(url: string | null | undefined): string | null {
   return m ? m[1] : null;
 }
 
-/** Baixa qualquer URL. Prefere Drive quando reconhecido. */
+/** Baixa qualquer URL. Prefere Drive quando reconhecido; suporta scheme storage://<bucket>/<path>. */
 async function fetchAsBytes(url: string): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
+  if (url.startsWith("storage://")) {
+    const rest = url.slice("storage://".length);
+    const slash = rest.indexOf("/");
+    if (slash <= 0) throw new Error("storage URL inválida");
+    const bucket = rest.slice(0, slash);
+    const path = rest.slice(slash + 1);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const dl = await supabaseAdmin.storage.from(bucket).download(path);
+    if (dl.error || !dl.data) throw new Error(`Storage download falhou: ${dl.error?.message ?? "erro"}`);
+    const buf = new Uint8Array(await dl.data.arrayBuffer());
+    const nome = path.split("/").pop() ?? "arquivo";
+    const mt = (dl.data as any).type || "application/octet-stream";
+    return { bytes: buf, mimeType: mt, name: nome };
+  }
   const driveId = driveIdFromUrl(url);
   if (driveId) return downloadDriveMedia(driveId);
   const r = await fetch(url);
