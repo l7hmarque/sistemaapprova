@@ -217,7 +217,7 @@ function PrestacaoPage() {
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
       toast.success(
-        `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
+        `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs cadastrados · ${r.totalEventos} despesa(s) do mês (${r.totalComprovantes} comprovante(s) único(s))`,
         { id: t },
       );
       // Baixa via proxy no mesmo domínio (evita ad-blockers que barram *.supabase.co)
