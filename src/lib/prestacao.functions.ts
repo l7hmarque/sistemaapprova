@@ -606,6 +606,7 @@ export async function montarPdfBytes(args: {
     totalPaginas: merged.getPageCount(),
     totalDocs: docs.length,
     totalComprovantes: totalComprovantesUnicos,
+    totalEventos: (eventos ?? []).length,
   };
 }
 
