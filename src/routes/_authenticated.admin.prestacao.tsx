@@ -229,9 +229,9 @@ function PrestacaoPage() {
             <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-44" />
           </div>
           <Button onClick={() => novo()} variant="outline"><Plus className="h-4 w-4 mr-1" />Documento</Button>
-          <Button onClick={abrirPreview} variant="outline" disabled={previewLoading}>
-            <Eye className="h-4 w-4 mr-1" />
-            {previewLoading ? "Gerando preview…" : "Pré-visualizar"}
+          <Button onClick={gerarOficial} disabled={gerando}>
+            <FileDown className="h-4 w-4 mr-1" />
+            {gerando ? "Gerando…" : "Gerar relatório"}
           </Button>
         </div>
       </header>
