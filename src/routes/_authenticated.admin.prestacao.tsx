@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, Eye, RotateCcw,
+  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, RotateCcw,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
@@ -62,9 +62,6 @@ function PrestacaoPage() {
   const [excluindo, setExcluindo] = useState<Doc | null>(null);
   const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewMeta, setPreviewMeta] = useState<{ paginas: number; docs: number; comprovantes: number } | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
@@ -195,53 +192,15 @@ function PrestacaoPage() {
     void carregar();
   };
 
-  const abrirPreview = async () => {
-    setPreviewLoading(true);
-    setPreviewUrl(null);
-    setPreviewMeta(null);
-    const t = toast.loading("Montando pré-visualização…");
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) throw new Error("Sessão expirada, faça login novamente.");
-      const res = await fetch(`/api/prestacao/preview?mes=${mes}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || `Erro ${res.status}`);
-      }
-      const paginas = Number(res.headers.get("x-total-paginas") ?? 0);
-      const nDocs = Number(res.headers.get("x-total-docs") ?? 0);
-      const nComp = Number(res.headers.get("x-total-comprovantes") ?? 0);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewMeta({ paginas, docs: nDocs, comprovantes: nComp });
-      toast.success("Preview pronto", { id: t });
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao gerar preview", { id: t });
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
-
-  const fecharPreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setPreviewMeta(null);
-  };
-
   const gerarOficial = async () => {
     setGerando(true);
-    const t = toast.loading("Gerando PDF oficial e salvando no Drive…");
+    const t = toast.loading("Gerando PDF e salvando…");
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
       toast.success(
         `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
         { id: t },
       );
-      fecharPreview();
       window.open(r.url, "_blank");
       void carregar();
     } catch (e: any) {
@@ -270,9 +229,9 @@ function PrestacaoPage() {
             <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-44" />
           </div>
           <Button onClick={() => novo()} variant="outline"><Plus className="h-4 w-4 mr-1" />Documento</Button>
-          <Button onClick={abrirPreview} variant="outline" disabled={previewLoading}>
-            <Eye className="h-4 w-4 mr-1" />
-            {previewLoading ? "Gerando preview…" : "Pré-visualizar"}
+          <Button onClick={gerarOficial} disabled={gerando}>
+            <FileDown className="h-4 w-4 mr-1" />
+            {gerando ? "Gerando…" : "Gerar relatório"}
           </Button>
         </div>
       </header>
@@ -367,30 +326,8 @@ function PrestacaoPage() {
         </div>
       )}
 
-      {/* Preview em iframe */}
-      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && fecharPreview()}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Pré-visualização · {mes}</DialogTitle>
-            <DialogDescription>
-              {previewMeta && `${previewMeta.paginas} páginas · ${previewMeta.docs} documentos · ${previewMeta.comprovantes} comprovantes`}
-              {" — este PDF ainda não foi salvo no Drive."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 bg-muted">
-            {previewUrl && (
-              <iframe src={previewUrl} className="w-full h-full" title="Preview da prestação de contas" />
-            )}
-          </div>
-          <DialogFooter className="p-4 border-t">
-            <Button variant="outline" onClick={fecharPreview}>Fechar</Button>
-            <Button onClick={gerarOficial} disabled={gerando}>
-              <FileDown className="h-4 w-4 mr-1" />
-              {gerando ? "Salvando…" : "Gerar oficial e salvar no Drive"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Modal de edição */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>

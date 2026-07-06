@@ -44,8 +44,19 @@ async function exportGoogleFileAsPdf(fileId: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-/** Baixa mídia binária pela API do Drive (arquivo comum, não-Google). */
+/** Baixa mídia binária pela API do Drive (arquivo comum ou Google Doc nativo). */
 async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
+  // Tenta direto ?alt=media (arquivos comuns). Uma única requisição, sem metadata prévia.
+  const r = await fetch(`${DRIVE}/files/${fileId}?alt=media&supportsAllDrives=true`, {
+    headers: driveHeaders(),
+  });
+  if (r.ok) {
+    const mt = r.headers.get("content-type") ?? "application/octet-stream";
+    const cd = r.headers.get("content-disposition") ?? "";
+    const name = cd.match(/filename="?([^"]+)"?/)?.[1] ?? fileId;
+    return { bytes: new Uint8Array(await r.arrayBuffer()), mimeType: mt, name };
+  }
+  // Fallback: Google Doc/Sheet/Slide nativo → precisa export
   const metaRes = await fetch(
     `${DRIVE}/files/${fileId}?fields=id,name,mimeType&supportsAllDrives=true`,
     { headers: driveHeaders() },
@@ -56,14 +67,23 @@ async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; 
     const bytes = await exportGoogleFileAsPdf(fileId);
     return { bytes, mimeType: "application/pdf", name: meta.name };
   }
-  const r = await fetch(`${DRIVE}/files/${fileId}?alt=media&supportsAllDrives=true`, {
-    headers: driveHeaders(),
+  const t = await r.text().catch(() => "");
+  throw new Error(`Drive download falhou [${r.status}]: ${t.slice(0, 300)}`);
+}
+
+/** Executa `fn` sobre `items` com no máximo `concurrency` promessas em paralelo. */
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, idx: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let i = 0;
+  const workers = Array.from({ length: Math.min(concurrency, Math.max(items.length, 1)) }, async () => {
+    while (true) {
+      const idx = i++;
+      if (idx >= items.length) return;
+      results[idx] = await fn(items[idx], idx);
+    }
   });
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`Drive download falhou [${r.status}]: ${t.slice(0, 300)}`);
-  }
-  return { bytes: new Uint8Array(await r.arrayBuffer()), mimeType: mt, name: meta.name };
+  await Promise.all(workers);
+  return results;
 }
 
 /** Upload multipart de bytes para o Drive. */
@@ -407,19 +427,72 @@ export async function montarPdfBytes(args: {
     }
   };
 
-  // 5a) template
-  let templateBytes: Uint8Array;
-  try {
-    templateBytes = await exportGoogleFileAsPdf(templateId);
-  } catch (err) {
-    const meta = await downloadDriveMedia(templateId).catch(() => null);
-    if (meta && isPdfBytes(meta.bytes)) {
-      templateBytes = meta.bytes;
-    } else {
-      throw err;
+  // ============ FASE DE DOWNLOAD (paralela) ============
+  // Prepara jobs para: template, cada documento cadastrado, cada anexo de evento.
+  type Job =
+    | { kind: "template" }
+    | { kind: "doc"; label: string; driveId: string | null; url: string | null; mime: string }
+    | { kind: "anexo"; label: string; driveId: string | null; url: string | null };
+
+  const jobs: Job[] = [];
+  jobs.push({ kind: "template" });
+  for (const d of docs) {
+    jobs.push({
+      kind: "doc",
+      label: d.nome,
+      driveId: d.drive_file_id ?? null,
+      url: d.arquivo_url ?? null,
+      mime: d.mime_type ?? "",
+    });
+  }
+  for (const e of eventos ?? []) {
+    for (const a of anexosPorEvento.get(e.id) ?? []) {
+      jobs.push({
+        kind: "anexo",
+        label: `Anexo ${a.tipo} (${e.id_interno ?? ""})`,
+        driveId: a.drive_file_id ?? null,
+        url: a.arquivo_url ?? null,
+      });
     }
   }
-  await addPdf(templateBytes, "Template");
+
+  console.time("[prestacao] download");
+  type Downloaded = { label: string; ok: boolean; bytes?: Uint8Array; mime?: string; error?: string };
+  const downloaded = await mapPool(jobs, 6, async (job): Promise<Downloaded> => {
+    try {
+      if (job.kind === "template") {
+        try {
+          const bytes = await exportGoogleFileAsPdf(templateId);
+          return { label: "Template", ok: true, bytes, mime: "application/pdf" };
+        } catch (err) {
+          const got = await downloadDriveMedia(templateId);
+          if (!isPdfBytes(got.bytes)) throw err;
+          return { label: "Template", ok: true, bytes: got.bytes, mime: got.mimeType };
+        }
+      }
+      if (!job.driveId && !job.url) {
+        return { label: job.label, ok: false, error: "Sem URL nem drive_file_id" };
+      }
+      const got = job.driveId
+        ? await downloadDriveMedia(job.driveId)
+        : await fetchAsBytes(job.url!);
+      return { label: job.label, ok: true, bytes: got.bytes, mime: got.mimeType };
+    } catch (err) {
+      const lbl = job.kind === "template" ? "Template" : job.label;
+      return { label: lbl, ok: false, error: String((err as Error).message ?? err) };
+    }
+  });
+  console.timeEnd("[prestacao] download");
+
+  // ============ FASE DE MERGE (sequencial, mas sem IO) ============
+  console.time("[prestacao] merge");
+
+  // 5a) template
+  const tpl = downloaded[0];
+  if (!tpl.ok || !tpl.bytes) {
+    throw new Error(`Falha ao baixar template: ${tpl.error ?? "desconhecido"}`);
+  }
+  await addPdf(tpl.bytes, "Template");
 
   // 5b) sumário
   const sumarioBytes = await montarSumario({
@@ -431,36 +504,27 @@ export async function montarPdfBytes(args: {
   });
   await addPdf(sumarioBytes, "Sumário");
 
-  // 5c) documentos cadastrados
-  for (const d of docs) {
-    const label = d.nome;
+  // 5c/5d) resto na ordem original (docs + anexos)
+  for (let i = 1; i < downloaded.length; i++) {
+    const item = downloaded[i];
+    const label = item.label;
+    if (!item.ok || !item.bytes) {
+      await addPdf(await paginaErro(label, item.error ?? "erro"), label);
+      continue;
+    }
+    const bytes = item.bytes;
+    const mime = item.mime ?? "";
     try {
-      let bytes: Uint8Array;
-      let mime = d.mime_type ?? "";
-      if (d.drive_file_id) {
-        const got = await downloadDriveMedia(d.drive_file_id);
-        bytes = got.bytes; mime = got.mimeType;
-      } else if (d.arquivo_url) {
-        const got = await fetchAsBytes(d.arquivo_url);
-        bytes = got.bytes; mime = got.mimeType;
-      } else {
-        await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-        continue;
-      }
       if (isPdfBytes(bytes)) {
         await addPdf(bytes, label);
       } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
         const pdfBytes = await imageToPdf(bytes, mime);
         await addPdf(pdfBytes, label);
       } else {
-        const linkOrig = d.arquivo_url ? `Link original: ${d.arquivo_url}` : "";
         await addPdf(
           await paginaSeparadora({
-            titulo: `Documento: ${label}`,
-            linhas: [
-              `Tipo: ${mime || "desconhecido"} — não pode ser convertido automaticamente para PDF.`,
-              linkOrig,
-            ].filter(Boolean),
+            titulo: label,
+            linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
           }),
           label,
         );
@@ -469,45 +533,7 @@ export async function montarPdfBytes(args: {
       await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
     }
   }
-
-  // 5d) comprovantes por evento (sem página separadora — modo compacto)
-  for (const e of eventos ?? []) {
-    const anexos = anexosPorEvento.get(e.id) ?? [];
-    if (!anexos.length) continue;
-    for (const a of anexos) {
-      const label = `Anexo ${a.tipo} (${e.id_interno ?? ""})`;
-      try {
-        let bytes: Uint8Array;
-        let mime = "";
-        if (a.drive_file_id) {
-          const got = await downloadDriveMedia(a.drive_file_id);
-          bytes = got.bytes; mime = got.mimeType;
-        } else if (a.arquivo_url) {
-          const got = await fetchAsBytes(a.arquivo_url);
-          bytes = got.bytes; mime = got.mimeType;
-        } else {
-          await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-          continue;
-        }
-        if (isPdfBytes(bytes)) {
-          await addPdf(bytes, label);
-        } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
-          const pdfBytes = await imageToPdf(bytes, mime);
-          await addPdf(pdfBytes, label);
-        } else {
-          await addPdf(
-            await paginaSeparadora({
-              titulo: label,
-              linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
-            }),
-            label,
-          );
-        }
-      } catch (err) {
-        await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
-      }
-    }
-  }
+  console.timeEnd("[prestacao] merge");
 
   const finalBytes = await merged.save();
   return {
@@ -537,18 +563,50 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
     if (!orgId) throw new Error("Organização não encontrada para o usuário atual.");
 
     const result = await montarPdfBytes({ sb, orgId, mes, titulo: data.titulo });
-
-    // Upload no Drive na pasta Prestações/{mes}
-    const parents = await ensureMesFolder(orgId, "Prestações", mes)
-      .then((id) => [id])
-      .catch(() => undefined);
     const nome = `Prestacao de Contas — ${mes}${data.titulo ? ` — ${data.titulo}` : ""}.pdf`;
-    const uploaded = await driveUploadPdf({ name: nome, parents, bytes: result.bytes });
+
+    // Upload paralelo: Storage (primário, para viewer direto) + Drive (backup institucional).
+    // Servir do Storage evita o redirect para drive.usercontent.google.com, que costuma
+    // ser bloqueado por navegadores/extensões (ERR_BLOCKED_BY_RESPONSE).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const storagePath = `${orgId}/${mes}/${stamp}.pdf`;
+
+    console.time("[prestacao] upload");
+    const [storageRes, driveRes] = await Promise.allSettled([
+      (async () => {
+        const up = await supabaseAdmin.storage
+          .from("prestacoes")
+          .upload(storagePath, result.bytes, { contentType: "application/pdf", upsert: true });
+        if (up.error) throw up.error;
+        const signed = await supabaseAdmin.storage
+          .from("prestacoes")
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+        if (signed.error || !signed.data) throw signed.error ?? new Error("sem signed url");
+        return signed.data.signedUrl;
+      })(),
+      (async () => {
+        const parents = await ensureMesFolder(orgId, "Prestações", mes)
+          .then((id) => [id])
+          .catch(() => undefined);
+        return driveUploadPdf({ name: nome, parents, bytes: result.bytes });
+      })(),
+    ]);
+    console.timeEnd("[prestacao] upload");
+
+    if (storageRes.status === "rejected" && driveRes.status === "rejected") {
+      throw new Error("Falha ao salvar o PDF (Storage e Drive): " + String(storageRes.reason));
+    }
+
+    const signedUrl = storageRes.status === "fulfilled" ? storageRes.value : null;
+    const drive = driveRes.status === "fulfilled" ? driveRes.value : null;
 
     return {
-      fileId: uploaded.id,
-      url: uploaded.webViewLink,
-      nome: uploaded.name,
+      // Link primário — abre direto no navegador sem passar por drive.usercontent.google.com
+      url: signedUrl ?? drive!.webViewLink,
+      driveUrl: drive?.webViewLink ?? null,
+      fileId: drive?.id ?? null,
+      nome,
       totalPaginas: result.totalPaginas,
       totalDocs: result.totalDocs,
       totalComprovantes: result.totalComprovantes,
