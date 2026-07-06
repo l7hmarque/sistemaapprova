@@ -54,11 +54,23 @@ function mesAnterior(mes: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function isStorageUrl(u: string | null | undefined): boolean {
+  return !!u && u.startsWith("storage://");
+}
+function storagePathFromUrl(u: string): { bucket: string; path: string } | null {
+  if (!isStorageUrl(u)) return null;
+  const rest = u.slice("storage://".length);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return null;
+  return { bucket: rest.slice(0, slash), path: rest.slice(slash + 1) };
+}
+
 function PrestacaoPage() {
   const [mes, setMes] = useState(mesAtual);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<Doc> | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [excluindo, setExcluindo] = useState<Doc | null>(null);
   const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
