@@ -154,7 +154,7 @@ function AjudaModelos() {
               "Tamanho do arquivo abaixo de 5 MB",
               "Confira a linha do primeiro item e linha de totais antes de salvar",
             ]} />
-            <Link to="/_authenticated/admin/modelos" className="mt-6 inline-flex items-center text-sm text-primary hover:underline">
+            <Link to="/admin/modelos" className="mt-6 inline-flex items-center text-sm text-primary hover:underline">
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar para Modelos
             </Link>
           </CardContent>

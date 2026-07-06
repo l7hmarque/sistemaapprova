@@ -288,7 +288,7 @@ function CotacaoDetalhePage() {
 
           <Card>
             <CardContent className="pt-6">
-              <Link to="/_authenticated/admin/fornecedores" className="text-xs text-primary hover:underline">
+              <Link to="/admin/fornecedores" className="text-xs text-primary hover:underline">
                 Gerenciar fornecedores →
               </Link>
             </CardContent>
@@ -317,7 +317,7 @@ function CotacaoDetalhePage() {
               </select>
               {(fornecedores ?? []).length === 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Nenhum fornecedor cadastrado. <Link to="/_authenticated/admin/fornecedores" className="text-primary hover:underline">Cadastrar</Link>
+                  Nenhum fornecedor cadastrado. <Link to="/admin/fornecedores" className="text-primary hover:underline">Cadastrar</Link>
                 </p>
               )}
             </div>
