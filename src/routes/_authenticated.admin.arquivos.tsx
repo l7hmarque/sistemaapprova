@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/arquivos")({
 
 const SECTIONS = ["Orçamentos", "Cotações", "Prestações", "Documentos"] as const;
 type Section = (typeof SECTIONS)[number];
+type SectionFilter = "todas" | Section;
 
 function formatBytes(n: number): string {
   if (!n) return "0";
@@ -29,13 +30,13 @@ function formatBytes(n: number): string {
   return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
-function iconForMime(mt: string) {
+function iconForMime(_mt: string) {
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
 function ArquivosPage() {
   const { activeOrgId } = useActiveOrg();
-  const [section, setSection] = useState<Section>("Documentos");
+  const [section, setSection] = useState<SectionFilter>("todas");
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
   const [baixando, setBaixando] = useState<string | null>(null);
@@ -66,7 +67,7 @@ function ArquivosPage() {
   });
 
   const filtered = useMemo(() => {
-    const list = filesQ.data?.files ?? [];
+    const list = (filesQ.data?.files ?? []) as any[];
     if (!search.trim()) return list;
     const s = search.toLowerCase();
     return list.filter((f) => f.name.toLowerCase().includes(s));
@@ -79,7 +80,14 @@ function ArquivosPage() {
       const token = sess.session?.access_token;
       if (!token) throw new Error("Sessão expirada, faça login novamente.");
       const res = await fetch(`/api/files/${id}/preview?t=${encodeURIComponent(token)}`);
-      if (!res.ok) throw new Error(`Falha ao baixar (${res.status})`);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        if (res.status === 403) {
+          throw new Error("Sem permissão para baixar este arquivo (fora da sua organização).");
+        }
+        if (res.status === 401) throw new Error("Sessão expirada.");
+        throw new Error(`Falha ao baixar (${res.status}) ${txt.slice(0, 120)}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -164,9 +172,10 @@ function ArquivosPage() {
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-[180px]">
               <label className="text-xs text-muted-foreground">Seção</label>
-              <Select value={section} onValueChange={(v) => setSection(v as Section)}>
+              <Select value={section} onValueChange={(v) => setSection(v as SectionFilter)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="todas">Todas as seções</SelectItem>
                   {SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -204,34 +213,52 @@ function ArquivosPage() {
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
-              {filtered.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40">
-                  {iconForMime(f.mimeType)}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{f.name}</div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {f.mimeType.split("/").pop()?.split(".").pop() ?? "arquivo"}
-                      </Badge>
-                      <span>{new Date(f.modifiedTime).toLocaleString("pt-BR")}</span>
-                      {f.size && <span>· {formatBytes(Number(f.size))}</span>}
+              {filtered.map((f) => {
+                const ext = (f.name.split(".").pop() || f.mimeType.split("/").pop() || "arquivo").toLowerCase();
+                return (
+                  <li key={f.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40">
+                    {iconForMime(f.mimeType)}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{f.name}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
+                        {f.section && (
+                          <Badge variant="secondary" className="text-[10px]">{f.section}</Badge>
+                        )}
+                        {f.mes && (
+                          <Badge variant="outline" className="text-[10px]">{f.mes}</Badge>
+                        )}
+                        <Badge variant="outline" className="text-[10px] uppercase">{ext}</Badge>
+                        {f.linkedEventoInterno && (
+                          <Badge className="text-[10px] bg-primary/10 text-primary hover:bg-primary/10">
+                            despesa #{f.linkedEventoInterno}
+                          </Badge>
+                        )}
+                        {f.linkedPrestacao && (
+                          <Badge className="text-[10px] bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/10">
+                            doc. cadastrado
+                          </Badge>
+                        )}
+                        <span>·</span>
+                        <span>{new Date(f.modifiedTime).toLocaleString("pt-BR")}</span>
+                        {f.size && <span>· {formatBytes(Number(f.size))}</span>}
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={baixando === f.id}
-                    onClick={() => baixarArquivo(f.id, f.name)}
-                    title="Baixar"
-                  >
-                    {baixando === f.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                  </Button>
-                </li>
-              ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={baixando === f.id}
+                      onClick={() => baixarArquivo(f.id, f.name)}
+                      title="Baixar"
+                    >
+                      {baixando === f.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, RotateCcw,
+  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, RotateCcw, Upload, Download, Loader2,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
@@ -54,11 +54,23 @@ function mesAnterior(mes: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function isStorageUrl(u: string | null | undefined): boolean {
+  return !!u && u.startsWith("storage://");
+}
+function storagePathFromUrl(u: string): { bucket: string; path: string } | null {
+  if (!isStorageUrl(u)) return null;
+  const rest = u.slice("storage://".length);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return null;
+  return { bucket: rest.slice(0, slash), path: rest.slice(slash + 1) };
+}
+
 function PrestacaoPage() {
   const [mes, setMes] = useState(mesAtual);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<Doc> | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [excluindo, setExcluindo] = useState<Doc | null>(null);
   const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
@@ -122,6 +134,39 @@ function PrestacaoPage() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const baixarDocStorage = async (arquivoUrl: string, filename: string) => {
+    const info = storagePathFromUrl(arquivoUrl);
+    if (!info || info.bucket !== "prestacoes") {
+      window.open(arquivoUrl, "_blank");
+      return;
+    }
+    try {
+      await baixarPdfDoStorage(info.path, filename);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao baixar");
+    }
+  };
+
+  const uploadDoComputador = async (file: File) => {
+    if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
+    setUploadingDoc(true);
+    try {
+      const clean = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${activeOrgId}/documentos-cadastrados/${Date.now()}-${clean}`;
+      const up = await supabase.storage.from("prestacoes").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      setEdit((prev) => prev ? { ...prev, arquivo_url: `storage://prestacoes/${path}` } : prev);
+      toast.success("Arquivo enviado");
+    } catch (e: any) {
+      toast.error("Falha no upload: " + (e?.message || "erro"));
+    } finally {
+      setUploadingDoc(false);
+    }
   };
 
   const abrirSnapshot = async (s: Snapshot) => {
@@ -217,7 +262,7 @@ function PrestacaoPage() {
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
       toast.success(
-        `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
+        `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs cadastrados · ${r.totalEventos} despesa(s) do mês (${r.totalComprovantes} comprovante(s) único(s))`,
         { id: t },
       );
       // Baixa via proxy no mesmo domínio (evita ad-blockers que barram *.supabase.co)
@@ -337,9 +382,16 @@ function PrestacaoPage() {
                     <Button size="icon" variant="ghost" onClick={() => mover(i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => mover(i, 1)} disabled={i === docs.length - 1}><ArrowDown className="h-4 w-4" /></Button>
                     {d.arquivo_url && (
-                      <Button size="icon" variant="ghost" asChild>
-                        <a href={d.arquivo_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                      </Button>
+                      isStorageUrl(d.arquivo_url) ? (
+                        <Button size="icon" variant="ghost" title="Baixar"
+                          onClick={() => baixarDocStorage(d.arquivo_url!, d.nome || "documento")}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button size="icon" variant="ghost" asChild title="Abrir">
+                          <a href={d.arquivo_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                        </Button>
+                      )
                     )}
                     <Button size="icon" variant="ghost" onClick={() => setEdit(d)}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => { setExcluindo(d); setOpcaoExclusao("so-mes"); }}><Trash2 className="h-4 w-4" /></Button>
@@ -366,8 +418,42 @@ function PrestacaoPage() {
               <Field label="Descrição (opcional)">
                 <Textarea rows={2} value={edit.descricao ?? ""} onChange={(e) => setEdit({ ...edit, descricao: e.target.value })} />
               </Field>
-              <Field label="URL do arquivo (Drive ou link)">
-                <Input value={edit.arquivo_url ?? ""} onChange={(e) => setEdit({ ...edit, arquivo_url: e.target.value })} placeholder="https://drive.google.com/…" />
+              <Field label="Arquivo (Drive/URL ou upload do computador)">
+                <div className="space-y-2">
+                  <Input
+                    value={edit.arquivo_url ?? ""}
+                    onChange={(e) => setEdit({ ...edit, arquivo_url: e.target.value })}
+                    placeholder="https://drive.google.com/…  ou envie um arquivo abaixo"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="upload-doc-prestacao"
+                      type="file"
+                      accept="application/pdf,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadDoComputador(f);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingDoc}
+                      onClick={() => document.getElementById("upload-doc-prestacao")?.click()}
+                    >
+                      {uploadingDoc ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                      {uploadingDoc ? "Enviando…" : "Enviar do computador"}
+                    </Button>
+                    {isStorageUrl(edit.arquivo_url) && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        Arquivo enviado: {(storagePathFromUrl(edit.arquivo_url!)?.path ?? "").split("/").pop()}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Data de emissão">

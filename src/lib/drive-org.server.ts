@@ -112,6 +112,27 @@ export async function ensureMesFolder(
 
 /** Garante que fileId pertença (transitivamente) à pasta raiz da org. Para o proxy de preview. */
 export async function fileBelongsToOrg(orgId: string, fileId: string): Promise<boolean> {
+  // 1) Atalho via banco: se o file id já está registrado como anexo ou
+  // documento da prestação da org, autoriza sem consultar o Drive.
+  const [anx, prd] = await Promise.all([
+    supabaseAdmin
+      .from("documentos_anexos")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("drive_file_id", fileId)
+      .limit(1)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("prestacao_documentos")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("drive_file_id", fileId)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (anx.data || prd.data) return true;
+
+  // 2) Walk BFS pela árvore de pastas do Drive.
   const { data } = await supabaseAdmin
     .from("organization_drive_folders")
     .select("root_folder_id")
@@ -120,19 +141,23 @@ export async function fileBelongsToOrg(orgId: string, fileId: string): Promise<b
   if (!data?.root_folder_id) return false;
   const orgRoot = data.root_folder_id;
 
-  let current: string | null = fileId;
+  const queue: string[] = [fileId];
   const seen = new Set<string>();
-  for (let i = 0; i < 8 && current; i++) {
-    if (seen.has(current)) break;
+  let checks = 0;
+  while (queue.length && checks < 40) {
+    const current = queue.shift()!;
+    if (seen.has(current)) continue;
     seen.add(current);
+    if (current === orgRoot) return true;
+    checks++;
     const res = await fetch(`${DRIVE}/files/${current}?fields=id,parents&supportsAllDrives=true`, {
       headers: driveHeaders(),
     });
-    if (!res.ok) return false;
+    if (!res.ok) continue;
     const meta = await res.json();
     const parents: string[] = meta.parents ?? [];
     if (parents.includes(orgRoot)) return true;
-    current = parents[0] ?? null;
+    for (const p of parents) if (!seen.has(p)) queue.push(p);
   }
   return false;
 }
@@ -158,6 +183,37 @@ export async function listOrgFolderFiles(args: {
   const data = await jsonOrThrow(res, "drive.files.list");
   return data.files ?? [];
 }
+
+/** Lista recursiva: arquivos direto na pasta + arquivos nas subpastas mês (AAAA-MM).
+ *  Retorna também a origem (`section`) e o mês inferido pelo nome da subpasta. */
+export async function listSectionFilesRecursive(args: {
+  folderId: string;
+  section: string;
+}): Promise<Array<DriveFileEntry & { section: string; mes?: string }>> {
+  const direct = await listOrgFolderFiles({ folderId: args.folderId });
+  const out: Array<DriveFileEntry & { section: string; mes?: string }> = [];
+  const subFolders: Array<{ id: string; mes?: string }> = [];
+  for (const f of direct) {
+    if (f.mimeType === "application/vnd.google-apps.folder") {
+      const mes = /^\d{4}-\d{2}$/.test(f.name) ? f.name : undefined;
+      subFolders.push({ id: f.id, mes });
+    } else {
+      out.push({ ...f, section: args.section });
+    }
+  }
+  // Busca em paralelo em cada subpasta mês; não desce mais um nível.
+  await Promise.all(
+    subFolders.map(async (sf) => {
+      const files = await listOrgFolderFiles({ folderId: sf.id }).catch(() => []);
+      for (const f of files) {
+        if (f.mimeType === "application/vnd.google-apps.folder") continue;
+        out.push({ ...f, section: args.section, mes: sf.mes });
+      }
+    }),
+  );
+  return out;
+}
+
 
 /** Stream binário do arquivo (proxy de preview). */
 export async function fetchDriveFileMedia(fileId: string): Promise<Response> {

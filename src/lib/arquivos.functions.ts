@@ -5,6 +5,7 @@ import {
   ensureOrgFolders,
   ensureMesFolder,
   listOrgFolderFiles,
+  listSectionFilesRecursive,
   fetchStorageQuota,
   SUBFOLDERS,
   type SubfolderName,
@@ -16,27 +17,104 @@ async function orgId(supabase: any): Promise<string> {
   return data as string;
 }
 
+export interface ArquivoListado {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
+  size?: string;
+  section?: string;
+  mes?: string;
+  linkedEventoInterno?: string | null;
+  linkedPrestacao?: boolean;
+}
+
 export const listarArquivosDaOrg = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({
-      section: z.enum(SUBFOLDERS as unknown as [SubfolderName, ...SubfolderName[]]).optional(),
+      // "todas" (padrão) lista as 4 subpastas + subpastas de mês agregadas
+      section: z
+        .union([z.literal("todas"), z.enum(SUBFOLDERS as unknown as [SubfolderName, ...SubfolderName[]])])
+        .optional(),
       mes: z.string().regex(/^\d{4}-\d{2}$/).optional(),
     }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     const folders = await ensureOrgFolders(id);
-    let target: string;
-    if (data.section && data.mes) {
-      target = await ensureMesFolder(id, data.section, data.mes);
-    } else if (data.section) {
-      target = folders.subfolders[data.section];
+
+    let files: ArquivoListado[];
+    let folderId: string;
+
+    if (!data.section || data.section === "todas") {
+      folderId = folders.rootFolderId;
+      const grouped = await Promise.all(
+        SUBFOLDERS.map((s) =>
+          listSectionFilesRecursive({ folderId: folders.subfolders[s], section: s }),
+        ),
+      );
+      files = grouped.flat();
+      // ordena por data desc
+      files.sort((a, b) => (a.modifiedTime < b.modifiedTime ? 1 : -1));
+      // aplica filtro de mês, se veio
+      if (data.mes) files = files.filter((f) => f.mes === data.mes);
+    } else if (data.mes) {
+      folderId = await ensureMesFolder(id, data.section, data.mes);
+      const raw = await listOrgFolderFiles({ folderId });
+      files = raw.map((f) => ({ ...f, section: data.section, mes: data.mes }));
     } else {
-      target = folders.rootFolderId;
+      folderId = folders.subfolders[data.section];
+      const raw = await listSectionFilesRecursive({
+        folderId: folders.subfolders[data.section],
+        section: data.section,
+      });
+      files = raw;
     }
-    const files = await listOrgFolderFiles({ folderId: target });
-    return { folderId: target, files };
+
+    // Enriquecimento: identifica arquivos vinculados a eventos/prestação
+    const ids = files.map((f) => f.id);
+    if (ids.length) {
+      const [{ data: anx }, { data: prd }] = await Promise.all([
+        (context.supabase as any)
+          .from("documentos_anexos")
+          .select("drive_file_id, evento_id")
+          .in("drive_file_id", ids)
+          .eq("organization_id", id),
+        (context.supabase as any)
+          .from("prestacao_documentos")
+          .select("drive_file_id")
+          .in("drive_file_id", ids)
+          .eq("organization_id", id),
+      ]);
+      const anxByFile = new Map<string, string>(); // drive_file_id -> evento_id
+      for (const row of (anx ?? []) as any[]) {
+        if (row.drive_file_id && row.evento_id) anxByFile.set(row.drive_file_id, row.evento_id);
+      }
+      const prdSet = new Set<string>(
+        (prd ?? []).map((r: any) => r.drive_file_id).filter(Boolean),
+      );
+      const eventoIds = Array.from(new Set(anxByFile.values()));
+      let idInternoByEvento = new Map<string, string>();
+      if (eventoIds.length) {
+        const { data: evs } = await (context.supabase as any)
+          .from("eventos_financeiros")
+          .select("id, id_interno")
+          .in("id", eventoIds);
+        for (const e of (evs ?? []) as any[]) {
+          idInternoByEvento.set(e.id, e.id_interno ?? "");
+        }
+      }
+      files = files.map((f) => ({
+        ...f,
+        linkedEventoInterno: anxByFile.get(f.id)
+          ? idInternoByEvento.get(anxByFile.get(f.id)!) ?? null
+          : undefined,
+        linkedPrestacao: prdSet.has(f.id) || undefined,
+      }));
+    }
+
+    return { folderId, files };
   });
 
 export const garantirEstruturaDrive = createServerFn({ method: "POST" })
