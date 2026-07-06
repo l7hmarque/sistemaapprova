@@ -551,7 +551,7 @@ export async function montarPdfBytes(args: {
     titulo: args.titulo ?? `Prestação de Contas — ${mes}`,
     itens: sumarioItens,
     totalDocs: docs.length,
-    totalComprovantes,
+    totalComprovantes: totalComprovantesUnicos,
   });
   await addPdf(sumarioBytes, "Sumário");
 
@@ -591,7 +591,7 @@ export async function montarPdfBytes(args: {
     bytes: finalBytes,
     totalPaginas: merged.getPageCount(),
     totalDocs: docs.length,
-    totalComprovantes,
+    totalComprovantes: totalComprovantesUnicos,
   };
 }
 
