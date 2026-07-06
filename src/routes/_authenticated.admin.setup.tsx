@@ -49,11 +49,27 @@ function WizardPage() {
   const fnValidarDocs = useServerFn(validarDocs);
   const fnValidarSheets = useServerFn(validarSheets);
 
+  const [orgId, setOrgId] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      if (!uid) { setLoading(false); return; }
+      const { data: mem } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", uid)
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const oid = mem?.organization_id ?? null;
+      setOrgId(oid);
+      if (!oid) { setLoading(false); return; }
       const { data } = await supabase
         .from("configuracoes")
         .select("chave, valor")
+        .eq("organization_id", oid)
         .in("chave", ["prestacao_template", "painel_template"]);
       const presta = data?.find((d) => d.chave === "prestacao_template")?.valor as
         | { template_id?: string; nome?: string }
@@ -68,12 +84,14 @@ function WizardPage() {
   }, []);
 
   const salvar = async (chave: string, valor: Record<string, unknown>) => {
+    if (!orgId) { toast.error("Organização não encontrada"); return false; }
     const { error } = await supabase
       .from("configuracoes")
-      .upsert({ chave, valor } as any, { onConflict: "chave" });
+      .upsert({ organization_id: orgId, chave, valor } as any, { onConflict: "organization_id,chave" });
     if (error) toast.error("Erro ao salvar: " + error.message);
     return !error;
   };
+
 
   const criarEstrutura = async () => {
     setCreatingStructure(true);

@@ -19,12 +19,27 @@ function ConfigGeralPage() {
   const [janelaDias, setJanelaDias] = useState(3);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      if (!uid) { setLoading(false); return; }
+      const { data: mem } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", uid)
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const oid = mem?.organization_id ?? null;
+      setOrgId(oid);
+      if (!oid) { setLoading(false); return; }
       const { data } = await supabase
         .from("configuracoes")
         .select("chave, valor")
+        .eq("organization_id", oid)
         .in("chave", ["prestacao_template", "alertas_destinatarios", "auto_vinculo"]);
       const t = data?.find((d) => d.chave === "prestacao_template")?.valor as { template_id?: string } | undefined;
       const a = data?.find((d) => d.chave === "alertas_destinatarios")?.valor as { emails?: string[] } | undefined;
@@ -38,31 +53,35 @@ function ConfigGeralPage() {
   }, []);
 
   const salvar = async () => {
+    if (!orgId) return toast.error("Organização não encontrada");
     setSalvando(true);
     const id = extrairSheetId(templateId);
     const lista = emails.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
     const { error: e1 } = await supabase
       .from("configuracoes")
-      .upsert({ chave: "prestacao_template", valor: { template_id: id } }, { onConflict: "chave" });
+      .upsert({ organization_id: orgId, chave: "prestacao_template", valor: { template_id: id } }, { onConflict: "organization_id,chave" });
     const { error: e2 } = await supabase
       .from("configuracoes")
-      .upsert({ chave: "alertas_destinatarios", valor: { emails: lista } }, { onConflict: "chave" });
+      .upsert({ organization_id: orgId, chave: "alertas_destinatarios", valor: { emails: lista } }, { onConflict: "organization_id,chave" });
     const { error: e3 } = await supabase
       .from("configuracoes")
       .upsert(
         {
+          organization_id: orgId,
           chave: "auto_vinculo",
           valor: {
             valor_centavos: Math.max(0, Math.min(10000, Math.round(valorCentavos))),
             janela_dias: Math.max(0, Math.min(60, Math.round(janelaDias))),
           },
         },
-        { onConflict: "chave" }
+        { onConflict: "organization_id,chave" }
       );
     setSalvando(false);
-    if (e1 || e2 || e3) return toast.error("Erro ao salvar");
+    const err = e1 || e2 || e3;
+    if (err) return toast.error("Erro ao salvar: " + err.message);
     toast.success("Configurações salvas");
   };
+
 
   const limparLocalStorage = () => {
     const chaves = Object.keys(localStorage).filter((k) => k.startsWith("synsit:"));
