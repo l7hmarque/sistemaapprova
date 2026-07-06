@@ -263,6 +263,261 @@ async function paginaErro(nome: string, motivo: string): Promise<Uint8Array> {
   });
 }
 
+/* ============================== PIPELINE ============================== */
+
+const TIPO_ORDEM: Record<string, number> = { nf: 0, boleto: 1, comprovante: 2 };
+
+/** Retorna documentos que devem entrar no PDF do mês, considerando vigência e exceções. */
+async function buscarDocumentosVigentes(sb: any, orgId: string, mes: string): Promise<any[]> {
+  const primeiroDia = `${mes}-01`;
+  const { data, error } = await sb
+    .from("prestacao_documentos")
+    .select("id, ordem, nome, descricao, arquivo_url, drive_file_id, data_emissao, data_vencimento, mime_type, mes_referencia, mes_referencia_fim, valido_de, valido_ate")
+    .eq("organization_id", orgId)
+    .lte("mes_referencia", mes)
+    .or(`mes_referencia_fim.is.null,mes_referencia_fim.gte.${mes}`)
+    .or(`valido_ate.is.null,valido_ate.gte.${primeiroDia}`)
+    .order("ordem", { ascending: true });
+  if (error) throw new Error("Erro ao buscar documentos: " + error.message);
+  const docs = (data ?? []) as any[];
+  if (docs.length === 0) return docs;
+
+  // Filtra exceções: documentos marcados como "pular neste mês"
+  const ids = docs.map((d) => d.id);
+  const { data: exc } = await sb
+    .from("prestacao_documentos_excecoes")
+    .select("documento_id")
+    .in("documento_id", ids)
+    .eq("mes_referencia", mes);
+  const excluidos = new Set((exc ?? []).map((e: any) => e.documento_id));
+  return docs.filter((d) => !excluidos.has(d.id));
+}
+
+/**
+ * Monta o PDF único (template + sumário + documentos + comprovantes) e devolve os bytes.
+ * Usado tanto pelo endpoint oficial quanto pelo preview.
+ */
+export async function montarPdfBytes(args: {
+  sb: any;
+  orgId: string;
+  mes: string;
+  titulo?: string;
+}): Promise<{ bytes: Uint8Array; totalPaginas: number; totalDocs: number; totalComprovantes: number }> {
+  const { sb, orgId, mes } = args;
+
+  // 1) Template
+  const { data: cfg } = await sb
+    .from("configuracoes")
+    .select("valor")
+    .eq("organization_id", orgId)
+    .eq("chave", "prestacao_template")
+    .maybeSingle();
+  const templateIdRaw = (cfg?.valor as any)?.template_id as string | undefined;
+  if (!templateIdRaw) {
+    throw new Error("Template de Prestação de Contas não configurado em Admin → Configurações.");
+  }
+  const templateId = extrairSheetId(templateIdRaw);
+
+  // 2) Documentos (com regra de vigência)
+  const docs = await buscarDocumentosVigentes(sb, orgId, mes);
+
+  // 3) Eventos + anexos do mês
+  const { data: eventos, error: eEv } = await sb
+    .from("eventos_financeiros")
+    .select("id, id_interno, categoria, descricao, nm_favorecido, valor_efetivo, valor_previsto, data_pagamento, data_vencimento")
+    .eq("organization_id", orgId)
+    .eq("mes_referencia", mes)
+    .is("excluido_em", null)
+    .order("data_pagamento", { ascending: true, nullsFirst: false })
+    .order("id_interno", { ascending: true });
+  if (eEv) throw new Error("Erro ao buscar eventos: " + eEv.message);
+
+  const eventoIds = (eventos ?? []).map((e: any) => e.id);
+  const anexosPorEvento = new Map<string, Array<{ id: string; tipo: string; arquivo_url: string | null; drive_file_id: string | null }>>();
+  if (eventoIds.length) {
+    const { data: anexos, error: eAn } = await sb
+      .from("documentos_anexos")
+      .select("id, evento_id, tipo, arquivo_url, drive_file_id")
+      .in("evento_id", eventoIds);
+    if (eAn) throw new Error("Erro ao buscar anexos: " + eAn.message);
+    for (const a of (anexos ?? []) as any[]) {
+      if (!a.evento_id) continue;
+      const arr = anexosPorEvento.get(a.evento_id) ?? [];
+      arr.push(a);
+      anexosPorEvento.set(a.evento_id, arr);
+    }
+    // Ordena anexos por tipo dentro de cada evento
+    for (const arr of anexosPorEvento.values()) {
+      arr.sort((a, b) => (TIPO_ORDEM[a.tipo] ?? 99) - (TIPO_ORDEM[b.tipo] ?? 99));
+    }
+  }
+
+  const totalComprovantes = Array.from(anexosPorEvento.values()).reduce((s, a) => s + a.length, 0);
+  if ((docs?.length ?? 0) === 0 && totalComprovantes === 0) {
+    throw new Error(`Nenhum documento nem comprovante encontrado para ${mes}.`);
+  }
+
+  // 4) Sumário
+  const sumarioItens: SumarioItem[] = [];
+  sumarioItens.push({ numero: "0.", titulo: "Capa / Template", subtitulo: "Modelo institucional configurado" });
+  let n = 1;
+  for (const d of docs) {
+    const partes: string[] = [];
+    if (d.data_emissao) partes.push(`Emissão: ${fmtDate(d.data_emissao)}`);
+    if (d.valido_ate) partes.push(`Válido até: ${fmtDate(d.valido_ate)}`);
+    else if (d.data_vencimento) partes.push(`Vencimento: ${fmtDate(d.data_vencimento)}`);
+    sumarioItens.push({
+      numero: `${n}.`,
+      titulo: d.nome,
+      subtitulo: [d.descricao ?? "", partes.join(" · ")].filter(Boolean).join(" — "),
+    });
+    n++;
+  }
+  for (const e of eventos ?? []) {
+    const anexos = anexosPorEvento.get(e.id) ?? [];
+    if (!anexos.length) continue;
+    const val = fmtBRL(e.valor_efetivo ?? e.valor_previsto);
+    const fav = e.nm_favorecido ?? "—";
+    const dt = fmtDate(e.data_pagamento ?? e.data_vencimento);
+    sumarioItens.push({
+      numero: `${n}.`,
+      titulo: `Comprovante #${e.id_interno ?? ""} — ${e.descricao ?? e.categoria}`,
+      subtitulo: `${fav} · ${val} · ${dt} · ${anexos.length} anexo(s)`,
+    });
+    n++;
+  }
+
+  // 5) Merge
+  const merged = await PDFDocument.create();
+  const addPdf = async (bytes: Uint8Array, label: string): Promise<boolean> => {
+    try {
+      const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      const pages = await merged.copyPages(src, src.getPageIndices());
+      pages.forEach((p) => merged.addPage(p));
+      return true;
+    } catch (err) {
+      console.warn(`[prestacao] falha ao mesclar ${label}:`, err);
+      const errBytes = await paginaErro(label, String((err as Error).message ?? err));
+      try {
+        const src = await PDFDocument.load(errBytes);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach((p) => merged.addPage(p));
+      } catch {}
+      return false;
+    }
+  };
+
+  // 5a) template
+  let templateBytes: Uint8Array;
+  try {
+    templateBytes = await exportGoogleFileAsPdf(templateId);
+  } catch (err) {
+    const meta = await downloadDriveMedia(templateId).catch(() => null);
+    if (meta && isPdfBytes(meta.bytes)) {
+      templateBytes = meta.bytes;
+    } else {
+      throw err;
+    }
+  }
+  await addPdf(templateBytes, "Template");
+
+  // 5b) sumário
+  const sumarioBytes = await montarSumario({
+    mes,
+    titulo: args.titulo ?? `Prestação de Contas — ${mes}`,
+    itens: sumarioItens,
+    totalDocs: docs.length,
+    totalComprovantes,
+  });
+  await addPdf(sumarioBytes, "Sumário");
+
+  // 5c) documentos cadastrados
+  for (const d of docs) {
+    const label = d.nome;
+    try {
+      let bytes: Uint8Array;
+      let mime = d.mime_type ?? "";
+      if (d.drive_file_id) {
+        const got = await downloadDriveMedia(d.drive_file_id);
+        bytes = got.bytes; mime = got.mimeType;
+      } else if (d.arquivo_url) {
+        const got = await fetchAsBytes(d.arquivo_url);
+        bytes = got.bytes; mime = got.mimeType;
+      } else {
+        await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
+        continue;
+      }
+      if (isPdfBytes(bytes)) {
+        await addPdf(bytes, label);
+      } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
+        const pdfBytes = await imageToPdf(bytes, mime);
+        await addPdf(pdfBytes, label);
+      } else {
+        const linkOrig = d.arquivo_url ? `Link original: ${d.arquivo_url}` : "";
+        await addPdf(
+          await paginaSeparadora({
+            titulo: `Documento: ${label}`,
+            linhas: [
+              `Tipo: ${mime || "desconhecido"} — não pode ser convertido automaticamente para PDF.`,
+              linkOrig,
+            ].filter(Boolean),
+          }),
+          label,
+        );
+      }
+    } catch (err) {
+      await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
+    }
+  }
+
+  // 5d) comprovantes por evento (sem página separadora — modo compacto)
+  for (const e of eventos ?? []) {
+    const anexos = anexosPorEvento.get(e.id) ?? [];
+    if (!anexos.length) continue;
+    for (const a of anexos) {
+      const label = `Anexo ${a.tipo} (${e.id_interno ?? ""})`;
+      try {
+        let bytes: Uint8Array;
+        let mime = "";
+        if (a.drive_file_id) {
+          const got = await downloadDriveMedia(a.drive_file_id);
+          bytes = got.bytes; mime = got.mimeType;
+        } else if (a.arquivo_url) {
+          const got = await fetchAsBytes(a.arquivo_url);
+          bytes = got.bytes; mime = got.mimeType;
+        } else {
+          await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
+          continue;
+        }
+        if (isPdfBytes(bytes)) {
+          await addPdf(bytes, label);
+        } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
+          const pdfBytes = await imageToPdf(bytes, mime);
+          await addPdf(pdfBytes, label);
+        } else {
+          await addPdf(
+            await paginaSeparadora({
+              titulo: label,
+              linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
+            }),
+            label,
+          );
+        }
+      } catch (err) {
+        await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
+      }
+    }
+  }
+
+  const finalBytes = await merged.save();
+  return {
+    bytes: finalBytes,
+    totalPaginas: merged.getPageCount(),
+    totalDocs: docs.length,
+    totalComprovantes,
+  };
+}
+
 /* ============================== SERVER FN ============================== */
 
 const Input = z.object({
@@ -277,243 +532,26 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
     const sb = context.supabase;
     const mes = data.mesReferencia;
 
-    // 0) organização atual
     const { data: orgIdRaw } = await sb.rpc("current_user_org");
     const orgId = orgIdRaw as string | null;
     if (!orgId) throw new Error("Organização não encontrada para o usuário atual.");
 
-    // 1) Template ID
-    const { data: cfg } = await sb
-      .from("configuracoes")
-      .select("valor")
-      .eq("organization_id", orgId)
-      .eq("chave", "prestacao_template")
-      .maybeSingle();
-    const templateIdRaw = (cfg?.valor as any)?.template_id as string | undefined;
-    if (!templateIdRaw) {
-      throw new Error("Template de Prestação de Contas não configurado em Admin → Configurações.");
-    }
-    const templateId = extrairSheetId(templateIdRaw);
+    const result = await montarPdfBytes({ sb, orgId, mes, titulo: data.titulo });
 
-    // 2) Documentos cadastrados
-    const { data: docs, error: eDocs } = await sb
-      .from("prestacao_documentos")
-      .select("id, ordem, nome, descricao, arquivo_url, drive_file_id, data_emissao, data_vencimento, mime_type")
-      .eq("organization_id", orgId)
-      .eq("mes_referencia", mes)
-      .order("ordem", { ascending: true });
-    if (eDocs) throw new Error("Erro ao buscar documentos: " + eDocs.message);
-
-    // 3) Eventos financeiros do mês + anexos
-    const { data: eventos, error: eEv } = await sb
-      .from("eventos_financeiros")
-      .select("id, id_interno, categoria, descricao, nm_favorecido, valor_efetivo, valor_previsto, data_pagamento, data_vencimento")
-      .eq("organization_id", orgId)
-      .eq("mes_referencia", mes)
-      .is("excluido_em", null)
-      .order("data_pagamento", { ascending: true, nullsFirst: false })
-      .order("id_interno", { ascending: true });
-    if (eEv) throw new Error("Erro ao buscar eventos: " + eEv.message);
-
-    const eventoIds = (eventos ?? []).map((e) => e.id);
-    let anexosPorEvento = new Map<string, Array<{ id: string; tipo: string; arquivo_url: string | null; drive_file_id: string | null }>>();
-    if (eventoIds.length) {
-      const { data: anexos, error: eAn } = await sb
-        .from("documentos_anexos")
-        .select("id, evento_id, tipo, arquivo_url, drive_file_id")
-        .in("evento_id", eventoIds);
-      if (eAn) throw new Error("Erro ao buscar anexos: " + eAn.message);
-      for (const a of anexos ?? []) {
-        if (!a.evento_id) continue;
-        const arr = anexosPorEvento.get(a.evento_id) ?? [];
-        arr.push(a as any);
-        anexosPorEvento.set(a.evento_id, arr);
-      }
-    }
-
-    const totalComprovantes = Array.from(anexosPorEvento.values()).reduce((s, a) => s + a.length, 0);
-    if ((docs?.length ?? 0) === 0 && totalComprovantes === 0) {
-      throw new Error(`Nenhum documento nem comprovante encontrado para ${mes}.`);
-    }
-
-    // 4) Monta lista do sumário (na mesma ordem em que serão anexados)
-    const sumarioItens: SumarioItem[] = [];
-    sumarioItens.push({ numero: "0.", titulo: "Capa / Template", subtitulo: "Modelo institucional configurado" });
-    let n = 1;
-    for (const d of docs ?? []) {
-      const partes: string[] = [];
-      if (d.data_emissao) partes.push(`Emissão: ${fmtDate(d.data_emissao)}`);
-      if (d.data_vencimento) partes.push(`Vencimento: ${fmtDate(d.data_vencimento)}`);
-      sumarioItens.push({
-        numero: `${n}.`,
-        titulo: d.nome,
-        subtitulo: [d.descricao ?? "", partes.join(" · ")].filter(Boolean).join(" — "),
-      });
-      n++;
-    }
-    for (const e of eventos ?? []) {
-      const anexos = anexosPorEvento.get(e.id) ?? [];
-      if (!anexos.length) continue;
-      const val = fmtBRL(e.valor_efetivo ?? e.valor_previsto);
-      const fav = e.nm_favorecido ?? "—";
-      const dt = fmtDate(e.data_pagamento ?? e.data_vencimento);
-      sumarioItens.push({
-        numero: `${n}.`,
-        titulo: `Comprovante #${e.id_interno ?? ""} — ${e.descricao ?? e.categoria}`,
-        subtitulo: `${fav} · ${val} · ${dt} · ${anexos.length} anexo(s)`,
-      });
-      n++;
-    }
-
-    // 5) Merge
-    const merged = await PDFDocument.create();
-    const addPdf = async (bytes: Uint8Array, label: string): Promise<boolean> => {
-      try {
-        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-        const pages = await merged.copyPages(src, src.getPageIndices());
-        pages.forEach((p) => merged.addPage(p));
-        return true;
-      } catch (err) {
-        console.warn(`[prestacao] falha ao mesclar ${label}:`, err);
-        const errBytes = await paginaErro(label, String((err as Error).message ?? err));
-        try {
-          const src = await PDFDocument.load(errBytes);
-          const pages = await merged.copyPages(src, src.getPageIndices());
-          pages.forEach((p) => merged.addPage(p));
-        } catch {}
-        return false;
-      }
-    };
-
-    // 5a) template
-    let templateBytes: Uint8Array;
-    try {
-      templateBytes = await exportGoogleFileAsPdf(templateId);
-    } catch (err) {
-      // se não for Google-native, tenta download direto (pode ser um PDF no Drive)
-      const meta = await downloadDriveMedia(templateId).catch(() => null);
-      if (meta && isPdfBytes(meta.bytes)) {
-        templateBytes = meta.bytes;
-      } else {
-        throw err;
-      }
-    }
-    await addPdf(templateBytes, "Template");
-
-    // 5b) sumário
-    const sumarioBytes = await montarSumario({
-      mes,
-      titulo: data.titulo ?? `Prestação de Contas — ${mes}`,
-      itens: sumarioItens,
-      totalDocs: docs?.length ?? 0,
-      totalComprovantes,
-    });
-    await addPdf(sumarioBytes, "Sumário");
-
-    // 5c) documentos cadastrados
-    for (const d of docs ?? []) {
-      const label = d.nome;
-      try {
-        let bytes: Uint8Array;
-        let mime = d.mime_type ?? "";
-        if (d.drive_file_id) {
-          const got = await downloadDriveMedia(d.drive_file_id);
-          bytes = got.bytes; mime = got.mimeType;
-        } else if (d.arquivo_url) {
-          const got = await fetchAsBytes(d.arquivo_url);
-          bytes = got.bytes; mime = got.mimeType;
-        } else {
-          await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-          continue;
-        }
-        if (isPdfBytes(bytes)) {
-          await addPdf(bytes, label);
-        } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
-          const pdfBytes = await imageToPdf(bytes, mime);
-          await addPdf(pdfBytes, label);
-        } else {
-          const linkOrig = d.arquivo_url ? `Link original: ${d.arquivo_url}` : "";
-          await addPdf(
-            await paginaSeparadora({
-              titulo: `Documento: ${label}`,
-              linhas: [
-                `Tipo: ${mime || "desconhecido"} — não pode ser convertido automaticamente para PDF.`,
-                linkOrig,
-              ].filter(Boolean),
-            }),
-            label,
-          );
-        }
-      } catch (err) {
-        await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
-      }
-    }
-
-    // 5d) comprovantes por evento
-    for (const e of eventos ?? []) {
-      const anexos = anexosPorEvento.get(e.id) ?? [];
-      if (!anexos.length) continue;
-      const sepBytes = await paginaSeparadora({
-        titulo: `Comprovante #${e.id_interno ?? ""} — ${e.descricao ?? e.categoria}`,
-        linhas: [
-          `Favorecido: ${e.nm_favorecido ?? "—"}`,
-          `Valor: ${fmtBRL(e.valor_efetivo ?? e.valor_previsto)}`,
-          `Vencimento: ${fmtDate(e.data_vencimento)}   Pagamento: ${fmtDate(e.data_pagamento)}`,
-          `Anexos: ${anexos.length}`,
-        ],
-      });
-      await addPdf(sepBytes, `Separador ${e.id_interno}`);
-
-      for (const a of anexos) {
-        const label = `Anexo ${a.tipo} (${e.id_interno ?? ""})`;
-        try {
-          let bytes: Uint8Array;
-          let mime = "";
-          if (a.drive_file_id) {
-            const got = await downloadDriveMedia(a.drive_file_id);
-            bytes = got.bytes; mime = got.mimeType;
-          } else if (a.arquivo_url) {
-            const got = await fetchAsBytes(a.arquivo_url);
-            bytes = got.bytes; mime = got.mimeType;
-          } else {
-            await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-            continue;
-          }
-          if (isPdfBytes(bytes)) {
-            await addPdf(bytes, label);
-          } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
-            const pdfBytes = await imageToPdf(bytes, mime);
-            await addPdf(pdfBytes, label);
-          } else {
-            await addPdf(
-              await paginaSeparadora({
-                titulo: label,
-                linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
-              }),
-              label,
-            );
-          }
-        } catch (err) {
-          await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
-        }
-      }
-    }
-
-    const finalBytes = await merged.save();
-
-    // 6) Upload no Drive na pasta Prestações/{mes}
+    // Upload no Drive na pasta Prestações/{mes}
     const parents = await ensureMesFolder(orgId, "Prestações", mes)
       .then((id) => [id])
       .catch(() => undefined);
     const nome = `Prestacao de Contas — ${mes}${data.titulo ? ` — ${data.titulo}` : ""}.pdf`;
-    const uploaded = await driveUploadPdf({ name: nome, parents, bytes: finalBytes });
+    const uploaded = await driveUploadPdf({ name: nome, parents, bytes: result.bytes });
 
     return {
       fileId: uploaded.id,
       url: uploaded.webViewLink,
       nome: uploaded.name,
-      totalPaginas: merged.getPageCount(),
-      totalDocs: docs?.length ?? 0,
-      totalComprovantes,
+      totalPaginas: result.totalPaginas,
+      totalDocs: result.totalDocs,
+      totalComprovantes: result.totalComprovantes,
     };
   });
+
