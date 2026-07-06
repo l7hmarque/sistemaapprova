@@ -136,6 +136,39 @@ function PrestacaoPage() {
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
+  const baixarDocStorage = async (arquivoUrl: string, filename: string) => {
+    const info = storagePathFromUrl(arquivoUrl);
+    if (!info || info.bucket !== "prestacoes") {
+      window.open(arquivoUrl, "_blank");
+      return;
+    }
+    try {
+      await baixarPdfDoStorage(info.path, filename);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao baixar");
+    }
+  };
+
+  const uploadDoComputador = async (file: File) => {
+    if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
+    setUploadingDoc(true);
+    try {
+      const clean = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${activeOrgId}/documentos-cadastrados/${Date.now()}-${clean}`;
+      const up = await supabase.storage.from("prestacoes").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      setEdit((prev) => prev ? { ...prev, arquivo_url: `storage://prestacoes/${path}` } : prev);
+      toast.success("Arquivo enviado");
+    } catch (e: any) {
+      toast.error("Falha no upload: " + (e?.message || "erro"));
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
   const abrirSnapshot = async (s: Snapshot) => {
     try {
       if (!s.pdf_path) throw new Error("Snapshot sem arquivo salvo");
