@@ -1,43 +1,40 @@
-# Parte B — Polimento técnico
+## Problema
 
-Segue o encerramento do milestone de polimento, sem novas features.
+Depois da padronização das boundaries, todas as navegações internas caíram em 404 (a nova `RouteNotFound`). Causa: os `<Link to="...">` estão usando o **ID do arquivo de rota** (`/_authenticated/admin/...`) em vez do **caminho URL** (`/admin/...`). No TanStack Router, segmentos prefixados com `_` são apenas de layout e são removidos da URL — logo `/_authenticated/admin` não corresponde a rota nenhuma no navegador.
 
-## 1. Auditoria do gate `_authenticated/`
-- Varrer `src/routes/` e listar toda rota que consome dados do usuário logado ou chama serverFn com `requireSupabaseAuth`.
-- Garantir que todas estejam sob `src/routes/_authenticated/…`. Mover as que estiverem soltas (renomear arquivo, atualizar `<Link>` afetados).
-- Confirmar que nenhuma rota pública tem `loader` chamando serverFn protegida (evita 401 em prerender/SSR).
+Servidor responde 200 em `/`, `/contadores` etc.; o 404 só aparece quando o usuário clica em algo no menu lateral ou em CTAs internos.
 
-## 2. Boundaries padronizados
-- Toda rota com `loader` deve declarar `errorComponent` **e** `notFoundComponent`.
-- `__root.tsx` mantém `notFoundComponent` global; `router.tsx` mantém `defaultErrorComponent`.
-- Criar dois helpers reutilizáveis em `src/components/route-boundaries/` (`RouteError`, `RouteNotFound`) usando tokens da marca e botão de retry com `router.invalidate() + reset()`.
-- Aplicar nos loaders existentes que hoje não definem esses componentes.
+## Correção
 
-## 3. Mensagens humanizadas no reprocessamento
-- Revisar handlers de reprocessar documento / fila Drive: mapear erros técnicos (`PGRST…`, `storage/…`, `unenv…`) para mensagens em PT-BR acionáveis (ex.: "Arquivo não encontrado no Drive — reenvie ou reconecte a pasta.").
-- Log técnico continua indo pro console/servidor; usuário vê texto amigável no toast.
+Substituir, em todos os arquivos abaixo, o prefixo `"/_authenticated"` por `""` no atributo `to` de `<Link>` e nas chamadas `navigate({ to: "..." })` / `redirect({ to: "..." })`. Nenhum outro comportamento muda — os arquivos de rota continuam com o mesmo nome, o gate `_authenticated` continua ativo, apenas as URLs voltam a ser as reais (`/admin`, `/admin/arquivos`, `/owner`, `/owner/clientes/$id`, etc.).
 
-## 4. Alertas da fila Drive no painel `/owner`
-- Adicionar card "Fila Drive (todas as organizações)" em `/_authenticated/owner`.
-- ServerFn com `requireSupabaseAuth` + checagem `has_role(auth.uid(),'super_admin')`; dentro do handler carrega `supabaseAdmin` via `await import('@/integrations/supabase/client.server')` e agrega `drive_sync_queue` por status (pendente, em_andamento, falhou_retry, concluído nas últimas 24h).
-- UI: contagens + destaque quando `falhou_retry > 0` + link para logs.
-- Sem cron novo, sem mudança de schema.
+Arquivos a ajustar:
 
-## 5. Security scan
-- Rodar `security--run_security_scan` ao final para validar M3 (`drive_sync_queue`) + tabelas recentes.
-- Corrigir apenas findings acionáveis (RLS/GRANT/policy). Ignorar com justificativa em `@security-memory` o que não se aplica.
+- `src/components/admin/sidebar.tsx` — link para `/owner`
+- `src/components/admin/EscritorioDashboard.tsx` — link para `/admin`
+- `src/components/admin/PlanoGuard.tsx` — link para `/admin/configuracoes/organizacao`
+- `src/components/owner/OwnerSidebar.tsx` — link para `/admin`
+- `src/routes/_authenticated.admin.configuracoes.index.tsx` — `/admin/setup`
+- `src/routes/_authenticated.admin.cotacoes.$id.tsx` — 2 links para `/admin/fornecedores`
+- `src/routes/_authenticated.admin.orcamentos.tsx` — `/admin/cotacoes/$id`
+- `src/routes/_authenticated.admin.modelos.tsx` — `/admin/modelos/ajuda`
+- `src/routes/_authenticated.admin.modelos.ajuda.tsx` — `/admin/modelos`
+- `src/routes/_authenticated.admin.setup.tsx` — 4 links (`/admin/configuracoes`, `/admin/arquivos` x2, `/admin`)
+- `src/routes/_authenticated.owner.clientes.tsx` — `/owner/clientes/$id`
+- `src/routes/_authenticated.owner.clientes.$id.tsx` — `/owner/clientes`
+- `src/routes/convite.$token.tsx` — `/admin`
+- `src/routes/_authenticated.owner.tsx` — `navigate({ to: "/_authenticated/admin" })` → `/admin`
 
-## Ordem de execução
-1. Auditoria de rotas → mover o que estiver fora do gate.
-2. Boundaries reutilizáveis + aplicação.
-3. Mensagens humanizadas de reprocessamento.
-4. Card de fila Drive no `/owner`.
-5. Security scan + tratamento dos findings.
+Também varrer `navigate({ to: "/_authenticated/...` e `redirect({ to: "/_authenticated/...` em todo `src/` (rg) para pegar qualquer chamada equivalente escondida em handlers.
+
+## Verificação
+
+1. `curl` em `/`, `/contadores`, `/login` — devem seguir retornando 200 (sanity).
+2. Playwright headless: fazer login com sessão injetada, clicar em cada item do menu lateral admin e do menu owner, checar que a URL final é `/admin/...` / `/owner/...` e que `<h1>` da página carrega (não o "404 Página não encontrada").
+3. Rodar build para garantir que o typecheck de rotas do TanStack aceita os novos `to` (ele valida contra `routeTree.gen.ts`).
 
 ## Fora de escopo
-- Redesign visual, novas features, cobrança automática, mudanças no schema, novos cron jobs.
 
-## Notas técnicas
-- Nenhum arquivo autogerado é editado (`client.ts`, `types.ts`, `routeTree.gen.ts`, `.env`, `config.toml`).
-- ServerFns protegidas nunca são chamadas em `loader` de rota pública.
-- `supabaseAdmin` só é usado dentro de handler autorizado (`super_admin`), nunca no bundle cliente.
+- Redesign das páginas.
+- Mudanças no gate `_authenticated` ou em RLS.
+- Alterações em rotas públicas (`/`, `/contadores`, `/gestores`, `/blog`, etc.) — elas já respondem 200.
