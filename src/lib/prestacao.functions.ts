@@ -563,18 +563,50 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
     if (!orgId) throw new Error("Organização não encontrada para o usuário atual.");
 
     const result = await montarPdfBytes({ sb, orgId, mes, titulo: data.titulo });
-
-    // Upload no Drive na pasta Prestações/{mes}
-    const parents = await ensureMesFolder(orgId, "Prestações", mes)
-      .then((id) => [id])
-      .catch(() => undefined);
     const nome = `Prestacao de Contas — ${mes}${data.titulo ? ` — ${data.titulo}` : ""}.pdf`;
-    const uploaded = await driveUploadPdf({ name: nome, parents, bytes: result.bytes });
+
+    // Upload paralelo: Storage (primário, para viewer direto) + Drive (backup institucional).
+    // Servir do Storage evita o redirect para drive.usercontent.google.com, que costuma
+    // ser bloqueado por navegadores/extensões (ERR_BLOCKED_BY_RESPONSE).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const storagePath = `${orgId}/${mes}/${stamp}.pdf`;
+
+    console.time("[prestacao] upload");
+    const [storageRes, driveRes] = await Promise.allSettled([
+      (async () => {
+        const up = await supabaseAdmin.storage
+          .from("prestacoes")
+          .upload(storagePath, result.bytes, { contentType: "application/pdf", upsert: true });
+        if (up.error) throw up.error;
+        const signed = await supabaseAdmin.storage
+          .from("prestacoes")
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+        if (signed.error || !signed.data) throw signed.error ?? new Error("sem signed url");
+        return signed.data.signedUrl;
+      })(),
+      (async () => {
+        const parents = await ensureMesFolder(orgId, "Prestações", mes)
+          .then((id) => [id])
+          .catch(() => undefined);
+        return driveUploadPdf({ name: nome, parents, bytes: result.bytes });
+      })(),
+    ]);
+    console.timeEnd("[prestacao] upload");
+
+    if (storageRes.status === "rejected" && driveRes.status === "rejected") {
+      throw new Error("Falha ao salvar o PDF (Storage e Drive): " + String(storageRes.reason));
+    }
+
+    const signedUrl = storageRes.status === "fulfilled" ? storageRes.value : null;
+    const drive = driveRes.status === "fulfilled" ? driveRes.value : null;
 
     return {
-      fileId: uploaded.id,
-      url: uploaded.webViewLink,
-      nome: uploaded.name,
+      // Link primário — abre direto no navegador sem passar por drive.usercontent.google.com
+      url: signedUrl ?? drive!.webViewLink,
+      driveUrl: drive?.webViewLink ?? null,
+      fileId: drive?.id ?? null,
+      nome,
       totalPaginas: result.totalPaginas,
       totalDocs: result.totalDocs,
       totalComprovantes: result.totalComprovantes,
