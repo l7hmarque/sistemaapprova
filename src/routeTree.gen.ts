@@ -49,6 +49,7 @@ import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminAgendaRouteImport } from './routes/_authenticated.admin.agenda'
 import { Route as AuthenticatedAdminConfiguracoesIndexRouteImport } from './routes/_authenticated.admin.configuracoes.index'
 import { Route as ApiPublicHooksDriveSyncTickRouteImport } from './routes/api/public/hooks/drive-sync-tick'
+import { Route as ApiPublicHooksCapturaWorkerRouteImport } from './routes/api/public/hooks/captura-worker'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
 import { Route as ApiFilesIdPreviewRouteImport } from './routes/api/files.$id.preview'
 import { Route as AuthenticatedOwnerClientesIdRouteImport } from './routes/_authenticated.owner.clientes.$id'
@@ -274,6 +275,12 @@ const ApiPublicHooksDriveSyncTickRoute =
     path: '/api/public/hooks/drive-sync-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCapturaWorkerRoute =
+  ApiPublicHooksCapturaWorkerRouteImport.update({
+    id: '/api/public/hooks/captura-worker',
+    path: '/api/public/hooks/captura-worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCotacaoTokenRoute = ApiPublicCotacaoTokenRouteImport.update({
   id: '/api/public/cotacao/$token',
   path: '/api/public/cotacao/$token',
@@ -366,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -412,6 +420,7 @@ export interface FileRoutesByTo {
   '/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -463,6 +472,7 @@ export interface FileRoutesById {
   '/_authenticated/owner/clientes/$id': typeof AuthenticatedOwnerClientesIdRoute
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
+  '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/_authenticated/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/captura-worker'
     | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/captura-worker'
     | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes'
     | '/api/public/cotacao/$token/pdf'
@@ -610,6 +622,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner/clientes/$id'
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
+    | '/api/public/hooks/captura-worker'
     | '/api/public/hooks/drive-sync-tick'
     | '/_authenticated/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
@@ -635,6 +648,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
+  ApiPublicHooksCapturaWorkerRoute: typeof ApiPublicHooksCapturaWorkerRoute
   ApiPublicHooksDriveSyncTickRoute: typeof ApiPublicHooksDriveSyncTickRoute
 }
 
@@ -920,6 +934,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDriveSyncTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/captura-worker': {
+      id: '/api/public/hooks/captura-worker'
+      path: '/api/public/hooks/captura-worker'
+      fullPath: '/api/public/hooks/captura-worker'
+      preLoaderRoute: typeof ApiPublicHooksCapturaWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cotacao/$token': {
       id: '/api/public/cotacao/$token'
       path: '/api/public/cotacao/$token'
@@ -1134,6 +1155,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
+  ApiPublicHooksCapturaWorkerRoute: ApiPublicHooksCapturaWorkerRoute,
   ApiPublicHooksDriveSyncTickRoute: ApiPublicHooksDriveSyncTickRoute,
 }
 export const routeTree = rootRouteImport
