@@ -326,30 +326,8 @@ function PrestacaoPage() {
         </div>
       )}
 
-      {/* Preview em iframe */}
-      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && fecharPreview()}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Pré-visualização · {mes}</DialogTitle>
-            <DialogDescription>
-              {previewMeta && `${previewMeta.paginas} páginas · ${previewMeta.docs} documentos · ${previewMeta.comprovantes} comprovantes`}
-              {" — este PDF ainda não foi salvo no Drive."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 bg-muted">
-            {previewUrl && (
-              <iframe src={previewUrl} className="w-full h-full" title="Preview da prestação de contas" />
-            )}
-          </div>
-          <DialogFooter className="p-4 border-t">
-            <Button variant="outline" onClick={fecharPreview}>Fechar</Button>
-            <Button onClick={gerarOficial} disabled={gerando}>
-              <FileDown className="h-4 w-4 mr-1" />
-              {gerando ? "Salvando…" : "Gerar oficial e salvar no Drive"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Modal de edição */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
