@@ -220,9 +220,15 @@ function ArquivosPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setPreviewFile({ id: f.id, name: f.name, mimeType: f.mimeType })}
+                    disabled={baixando === f.id}
+                    onClick={() => baixarArquivo(f.id, f.name)}
+                    title="Baixar"
                   >
-                    <Eye className="h-4 w-4" />
+                    {baixando === f.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                 </li>
               ))}
@@ -231,38 +237,6 @@ function ArquivosPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between gap-3 pr-8">
-              <span className="truncate">{previewFile?.name}</span>
-              {previewUrl && (
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> abrir em nova aba
-                </a>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 bg-muted rounded">
-            {previewUrl ? (
-              <iframe
-                src={previewUrl}
-                title={previewFile?.name}
-                className="w-full h-full rounded"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
