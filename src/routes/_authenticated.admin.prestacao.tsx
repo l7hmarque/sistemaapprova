@@ -63,7 +63,6 @@ function PrestacaoPage() {
   const [opcaoExclusao, setOpcaoExclusao] = useState<"so-mes" | "seguintes" | "tudo">("so-mes");
   const [gerando, setGerando] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const gerar = useServerFn(gerarPrestacaoContas);
   const abrirSnap = useServerFn(obterUrlSnapshot);
   const { activeOrgId } = useActiveOrg();
