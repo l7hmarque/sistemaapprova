@@ -126,6 +126,7 @@ function PainelPage() {
       .select("*")
       .eq("organization_id", activeOrgId)
       .eq("mes_referencia", mes)
+      .is("excluido_em", null)
       .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (error) toast.error("Falha ao carregar eventos: " + error.message);
     else setEventos((data ?? []) as Evento[]);
