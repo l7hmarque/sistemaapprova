@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/arquivos")({
 
 const SECTIONS = ["Orçamentos", "Cotações", "Prestações", "Documentos"] as const;
 type Section = (typeof SECTIONS)[number];
+type SectionFilter = "todas" | Section;
 
 function formatBytes(n: number): string {
   if (!n) return "0";
@@ -29,13 +30,13 @@ function formatBytes(n: number): string {
   return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
-function iconForMime(mt: string) {
+function iconForMime(_mt: string) {
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
 function ArquivosPage() {
   const { activeOrgId } = useActiveOrg();
-  const [section, setSection] = useState<Section>("Documentos");
+  const [section, setSection] = useState<SectionFilter>("todas");
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
   const [baixando, setBaixando] = useState<string | null>(null);
@@ -66,7 +67,7 @@ function ArquivosPage() {
   });
 
   const filtered = useMemo(() => {
-    const list = filesQ.data?.files ?? [];
+    const list = (filesQ.data?.files ?? []) as any[];
     if (!search.trim()) return list;
     const s = search.toLowerCase();
     return list.filter((f) => f.name.toLowerCase().includes(s));
