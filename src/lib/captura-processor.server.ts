@@ -414,6 +414,26 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
           razao_social_ia: dados.razao_social ?? null,
         });
 
+        // Aplica regras da organização + defaults determinísticos.
+        const { evento: camposFinal } = aplicarRegrasDespesa(
+          {
+            tp_despesa: camposSIT.tp_despesa,
+            tp_documento_despesa: camposSIT.tp_documento_despesa,
+            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
+            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
+            tp_doc_fav: camposSIT.tp_doc_fav,
+            nr_doc_fav: camposSIT.nr_doc_fav,
+            nm_favorecido: camposSIT.nm_favorecido,
+          },
+          regrasOrg,
+        );
+        // Default: REO 271 (3.3.90.39.99) → Pesquisa de Preços quando ainda vazio.
+        if (camposFinal.tp_despesa === 271 && camposFinal.cd_modalidade_compra == null) {
+          camposFinal.cd_modalidade_compra = 101;
+        }
+        // Nº doc pagamento espelha Nº do documento quando a IA não trouxe valor específico.
+        const nrDocPagamento = dados.numero_pagamento ?? dados.numero ?? null;
+
         const evIns = await supabaseAdmin
           .from("eventos_financeiros")
           .insert({
@@ -428,15 +448,15 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             data_pagamento: dataPag,
             data_emissao: dados.data_emissao ?? null,
             origem: "captura",
-            tp_documento_despesa: camposSIT.tp_documento_despesa,
-            tp_doc_fav: camposSIT.tp_doc_fav,
-            nr_doc_fav: camposSIT.nr_doc_fav,
-            nm_favorecido: camposSIT.nm_favorecido,
+            tp_documento_despesa: camposFinal.tp_documento_despesa,
+            tp_doc_fav: camposFinal.tp_doc_fav,
+            nr_doc_fav: camposFinal.nr_doc_fav,
+            nm_favorecido: camposFinal.nm_favorecido,
             nr_documento: dados.numero ?? null,
-            tp_documento_pagamento: camposSIT.tp_documento_pagamento,
-            nr_documento_pagamento: dados.numero_pagamento ?? null,
-            tp_despesa: camposSIT.tp_despesa,
-            cd_modalidade_compra: camposSIT.cd_modalidade_compra,
+            tp_documento_pagamento: camposFinal.tp_documento_pagamento,
+            nr_documento_pagamento: nrDocPagamento,
+            tp_despesa: camposFinal.tp_despesa,
+            cd_modalidade_compra: camposFinal.cd_modalidade_compra,
             status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados.tipo,
