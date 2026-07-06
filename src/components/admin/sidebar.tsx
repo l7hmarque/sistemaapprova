@@ -66,7 +66,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
       <nav className="p-3 flex flex-col gap-0.5 flex-1 overflow-y-auto">
-        {ITEMS.filter((it) => !it.superAdminOnly || showAnalytics).map((it) => {
+        {ITEMS.map((it) => {
           const active = it.exact ? pathname === it.to : pathname.startsWith(it.to);
           const Icon = it.icon;
           return (
