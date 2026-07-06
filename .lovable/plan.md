@@ -1,56 +1,45 @@
-## Objetivos
+## Diagnóstico
 
-1. **Remover a feature de Pré-visualização** (era lenta demais e agrega pouco valor)
-2. **Acelerar a geração do PDF de Prestação de Contas** (hoje sequencial)
-3. **Mitigar o erro `ERR_BLOCKED_BY_RESPONSE` ao abrir o PDF gerado** (`drive.usercontent.google.com`)
+`ERR_BLOCKED_BY_CLIENT` = **bloqueador de anúncios/privacidade do navegador** (uBlock, AdBlock, Brave Shields, Kaspersky, etc.) barrando o domínio `*.supabase.co`. Várias listas populares (EasyPrivacy, Fanboy) tratam subdomínios de PaaS como `supabase.co` como tracker de terceiros. Como agora servimos o PDF via signed URL do Storage direto em `afikxcuergsyygytmgub.supabase.co`, o clique cai nessa lista.
 
----
+Não dá pra "consertar" no cliente. A saída é servir o PDF do **mesmo domínio da aplicação** (`*.lovable.app` / domínio custom), que não está nas listas.
 
-## 1. Remover Pré-visualização
+## Solução
 
-- Deletar `src/routes/api/prestacao.preview.ts`
-- Em `src/routes/_authenticated.admin.prestacao.tsx`: remover estado `previewUrl / previewMeta / previewLoading`, função `abrirPreview / fecharPreview`, botão "Pré-visualizar" e o `<Dialog>` do iframe (linhas ~65-67, 207-230, 273, 370-390)
-- Manter apenas o botão "Gerar relatório"
+Criar uma rota de servidor autenticada que faz proxy do PDF a partir do Storage, e devolver essa URL como link primário no lugar do signed URL do Supabase.
 
-## 2. Otimizar geração do PDF
+### 1. Nova rota `src/routes/api/prestacao.download.ts`
+- `GET /api/prestacao/download?path=<storage-path>`
+- Auth: valida bearer token via `SUPABASE_URL/auth/v1/user` (mesmo padrão da rota `prestacao.preview.ts` deletada). Se não tiver sessão → 401.
+- Confere que `path` começa com `${orgId}/` do usuário atual (via `current_user_org`) — impede baixar PDF de outra org.
+- Faz `supabaseAdmin.storage.from('prestacoes').download(path)` e devolve os bytes com:
+  - `Content-Type: application/pdf`
+  - `Content-Disposition: inline; filename="Prestacao ${mes}.pdf"`
+  - `Cache-Control: private, max-age=300`
 
-**Diagnóstico da lentidão** em `montarPdfBytes` (`src/lib/prestacao.functions.ts`):
-- Todo download do Drive (template + cada documento + cada anexo) é feito **um por vez** dentro de `for...of` — se há 20 arquivos, são 20 round-trips sequenciais ao Google.
-- Para cada arquivo faz 2 requests: `files.get` (metadata) + `?alt=media` (bytes). Dá pra fazer só 1 com `alt=media` + header e ler `Content-Type` da resposta.
-- `PDFDocument.load` + `copyPages` é feito estritamente em ordem, bloqueando o merge enquanto espera IO.
+### 2. Ajuste em `gerarPrestacaoContas` (`src/lib/prestacao.functions.ts`)
+- Depois do upload, montar a URL primária como caminho relativo `/api/prestacao/download?path=<encoded>` em vez de `signed url` do Supabase.
+- Manter `driveUrl` como secundário para o caso de o proxy falhar.
+- Não precisa mais gerar signed URL do Storage (economiza chamada).
 
-**Mudanças:**
-- Introduzir helper `mapPool(items, concurrency, fn)` (concorrência ~6) e baixar **todos os bytes em paralelo** antes do merge (uma "fase de download", outra "fase de merge").
-- Encurtar `downloadDriveMedia`: fazer só `?alt=media&fields=...` numa chamada; pegar `content-type` e `content-disposition` do header de resposta; fallback para `files.get` só se der 4xx específico de Google Doc nativo.
-- Fazer download do template em paralelo com a query de documentos/anexos (já disparado com `Promise.all`).
-- Log de timing por fase (download vs merge vs upload) via `console.time` para futura observabilidade.
+### 3. Frontend
+- Como a rota exige bearer, `window.open(r.url)` numa nova aba não manda o header. Duas opções:
+  - **A (escolhida):** rota autentica por bearer no header **ou** por query token de curta duração (`?t=<jwt>`). Servidor aceita ambos e valida.
+  - Frontend anexa `?t=${session.access_token}` no href antes de abrir.
+- Alternativa mais simples e sem token na URL: fazer `fetch` com bearer → `blob()` → `URL.createObjectURL` → `window.open`. Objeto blob é local ao navegador, ad-blocker não vê domínio externo. Vou adotar essa (evita expor JWT em query/logs).
 
-Expectativa: reduções de 5-10× em relatórios com >10 anexos.
+### Fluxo final no botão "Gerar relatório"
+1. `gerar()` → retorna `{ url: "/api/prestacao/download?path=...", driveUrl, nome, ... }`
+2. Frontend: `fetch(url, { headers: { Authorization: Bearer <token> } })` → `blob` → `window.open(URL.createObjectURL(blob))`
+3. Aba abre `blob:` — nenhum domínio externo → nenhum ad-blocker envolvido.
 
-## 3. Mitigar `ERR_BLOCKED_BY_RESPONSE`
+## Arquivos
 
-**Causa provável:** hoje devolvemos `webViewLink` do Drive, e o navegador é redirecionado para `drive.usercontent.google.com` para servir o binário. Esse subdomínio frequentemente é bloqueado por extensões, políticas COOP/COEP ou pelo próprio Google quando a sessão do usuário no Drive não corresponde.
-
-**Solução:** subir o PDF final **também no bucket `prestacoes` do Lovable Cloud** e devolver uma **signed URL** dessa cópia como link primário. O upload no Drive continua para o arquivo institucional/backup.
-
-Detalhes:
-- Em `gerarPrestacaoContas`, após `montarPdfBytes`:
-  - Upload para bucket `prestacoes` em `${orgId}/${mes}/${timestamp}.pdf` via `sb.storage.from('prestacoes').upload(...)` (RLS já limitada por org).
-  - `createSignedUrl(path, 60*60*24*7)` (7 dias).
-  - Upload no Drive **em paralelo** (`Promise.all`), tolerante a falha (se Drive falhar, o link do Storage ainda funciona).
-- Retornar: `{ url (signed URL do Storage), driveUrl (webViewLink, opcional), fileId, nome, totalPaginas, totalDocs, totalComprovantes }`.
-- Frontend abre `url` (Storage) em nova aba — link direto ao PDF, sem redirect para `drive.usercontent.google.com`.
-- Se o botão "Abrir no Drive" fizer sentido, mostrar como secundário quando `driveUrl` existir.
-
-## Arquivos afetados
-
-- **Deletar:** `src/routes/api/prestacao.preview.ts`
-- **Editar:** `src/lib/prestacao.functions.ts` (paralelização, download simplificado, dupla persistência)
-- **Editar:** `src/routes/_authenticated.admin.prestacao.tsx` (remover preview, ajustar handler ao novo retorno)
-- **Sem migração:** bucket `prestacoes` já existe.
+- **Criar:** `src/routes/api/prestacao.download.ts`
+- **Editar:** `src/lib/prestacao.functions.ts` (retornar path relativo)
+- **Editar:** `src/routes/_authenticated.admin.prestacao.tsx` (fetch com bearer → blob → open)
 
 ## Fora de escopo
 
-- Fila assíncrona / background worker (só entra se, mesmo paralelizado, estourar o timeout do runtime).
-- Cache de PDFs já gerados por (org, mês).
-- Watermark/assinatura no PDF final.
+- Adicionar botão "abrir no Drive" — se quiser, faço numa próxima.
+- Fila assíncrona.

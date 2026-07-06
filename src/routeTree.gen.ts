@@ -31,6 +31,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedOwnerIndexRouteImport } from './routes/_authenticated.owner.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as ApiPrestacaoDownloadRouteImport } from './routes/api/prestacao.download'
 import { Route as AuthenticatedOwnerSuporteRouteImport } from './routes/_authenticated.owner.suporte'
 import { Route as AuthenticatedOwnerFinanceiroRouteImport } from './routes/_authenticated.owner.financeiro'
 import { Route as AuthenticatedOwnerClientesRouteImport } from './routes/_authenticated.owner.clientes'
@@ -168,6 +169,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const ApiPrestacaoDownloadRoute = ApiPrestacaoDownloadRouteImport.update({
+  id: '/api/prestacao/download',
+  path: '/api/prestacao/download',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedOwnerSuporteRoute =
   AuthenticatedOwnerSuporteRouteImport.update({
@@ -371,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
   '/owner/suporte': typeof AuthenticatedOwnerSuporteRoute
+  '/api/prestacao/download': typeof ApiPrestacaoDownloadRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/owner/': typeof AuthenticatedOwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
@@ -419,6 +426,7 @@ export interface FileRoutesByTo {
   '/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
   '/owner/suporte': typeof AuthenticatedOwnerSuporteRoute
+  '/api/prestacao/download': typeof ApiPrestacaoDownloadRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/owner': typeof AuthenticatedOwnerIndexRoute
   '/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
@@ -472,6 +480,7 @@ export interface FileRoutesById {
   '/_authenticated/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/_authenticated/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
   '/_authenticated/owner/suporte': typeof AuthenticatedOwnerSuporteRoute
+  '/api/prestacao/download': typeof ApiPrestacaoDownloadRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/owner/': typeof AuthenticatedOwnerIndexRoute
   '/_authenticated/admin/configuracoes/equipe': typeof AuthenticatedAdminConfiguracoesEquipeRoute
@@ -525,6 +534,7 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/api/prestacao/download'
     | '/admin/'
     | '/owner/'
     | '/admin/configuracoes/equipe'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/owner/clientes'
     | '/owner/financeiro'
     | '/owner/suporte'
+    | '/api/prestacao/download'
     | '/admin'
     | '/owner'
     | '/admin/configuracoes/equipe'
@@ -625,6 +636,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner/clientes'
     | '/_authenticated/owner/financeiro'
     | '/_authenticated/owner/suporte'
+    | '/api/prestacao/download'
     | '/_authenticated/admin/'
     | '/_authenticated/owner/'
     | '/_authenticated/admin/configuracoes/equipe'
@@ -659,6 +671,7 @@ export interface RootRouteChildren {
   ConviteTokenRoute: typeof ConviteTokenRoute
   CotacaoTokenRoute: typeof CotacaoTokenRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiPrestacaoDownloadRoute: typeof ApiPrestacaoDownloadRoute
   ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
   ApiPublicHooksCapturaWorkerRoute: typeof ApiPublicHooksCapturaWorkerRoute
@@ -820,6 +833,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/api/prestacao/download': {
+      id: '/api/prestacao/download'
+      path: '/api/prestacao/download'
+      fullPath: '/api/prestacao/download'
+      preLoaderRoute: typeof ApiPrestacaoDownloadRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/owner/suporte': {
       id: '/_authenticated/owner/suporte'
@@ -1176,6 +1196,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConviteTokenRoute: ConviteTokenRoute,
   CotacaoTokenRoute: CotacaoTokenRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiPrestacaoDownloadRoute: ApiPrestacaoDownloadRoute,
   ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
   ApiPublicHooksCapturaWorkerRoute: ApiPublicHooksCapturaWorkerRoute,
