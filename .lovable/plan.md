@@ -1,72 +1,106 @@
-
 ## Objetivo
 
-Ao clicar em **"Gerar relatório"** em `/admin/prestacao`, o sistema deve produzir **um único PDF** contendo, na ordem:
+Três melhorias em `/admin/prestacao`:
 
-1. **Capa/Template** — o Google Docs configurado em `configuracoes.prestacao_template`, exportado para PDF.
-2. **Sumário/Relação de documentos** — página gerada automaticamente listando tudo que vem em seguida (nº, nome, data, origem).
-3. **Documentos cadastrados** em `prestacao_documentos` do mês, na ordem definida, cada um na íntegra.
-4. **Comprovantes das despesas** do mês — anexos de `documentos_anexos` vinculados a `eventos_financeiros` cuja `mes_referencia = mesReferencia`, agrupados por evento (ID interno + favorecido + valor).
+1. **Documentos com vigência** que atravessam vários meses.
+2. **Preview em iframe** do PDF antes de finalizar/salvar no Drive.
+3. **Ajustes de organização** dos anexos das despesas (sem separadores).
 
-O PDF final é salvo no Drive (pasta da org → `Prestações/{mes}`) **e** anexado ao snapshot no bucket `prestacoes` para download imutável.
+---
 
-## Como funciona
+## 1. Documentos com vigência plurianual
 
-### 1. Coleta das fontes
-- Buscar `configuracoes.prestacao_template` → exportar Google Docs como PDF via Drive API: `GET /files/{id}/export?mimeType=application/pdf`.
-- Buscar `prestacao_documentos` do mês (já existe).
-- Buscar `eventos_financeiros` do mês + `documentos_anexos` associados (com `storage_bucket`, `storage_path`, `nome`, `mime_type`).
+### Modelo de dados (migração)
 
-### 2. Download dos anexos
-Para cada anexo:
-- **Drive** (URL `drive.google.com/file/d/...`): `GET /files/{id}?alt=media`.
-- **Storage interno** (`documentos` bucket): `supabaseAdmin.storage.from(...).download(path)` — só invocado do servidor após auth.
-- **URL externa**: `fetch()` direto.
+Adicionar em `prestacao_documentos`:
 
-### 3. Normalização para PDF
-- **PDF**: usa como está.
-- **Imagem** (jpg/png/webp): embute como página PDF única usando `pdf-lib` (`embedJpg` / `embedPng`).
-- **DOCX/outros**: exporta via Google Drive (upload temporário → export PDF → apaga) **ou** marca como "não convertível" com uma página de aviso. **Decisão:** MVP converte apenas PDF+imagem; para DOCX gera página de aviso com link do original. (Simples e suficiente — usuário indicou que anexos hoje são PDF.)
+- `valido_de date` — início da vigência (default = `data_emissao` ou 1º dia de `mes_referencia`).
+- `valido_ate date` — fim da vigência (default = `data_vencimento`).
+- `mes_referencia_fim text NULL` — quando o usuário exclui "só até este mês", grava aqui o corte.
+- Índice `(organization_id, valido_de, valido_ate)`.
 
-### 4. Geração do sumário
-Página PDF gerada com `pdf-lib` listando: `#`, nome do documento, data, e nº da página onde começa dentro do PDF final.
+### Regra de exibição no mês filtrado
 
-### 5. Merge final
-`pdf-lib`: `PDFDocument.create()` + `copyPages()` de cada fonte na ordem: template → sumário → docs cadastrados → comprovantes agrupados por evento (com página separadora por evento contendo ID interno, favorecido, valor, data).
+Ao abrir o mês `AAAA-MM`, um documento aparece quando:
 
-### 6. Persistência
-- Upload no Storage `prestacoes/{org_id}/{mes}/{timestamp}-prestacao.pdf`.
-- Upload cópia no Drive via `drive.files.create` (multipart) na pasta `Prestações/{mes}`.
-- Retorna `{ driveUrl, storageSignedUrl, fileName, totalPaginas }` para o front abrir em nova aba.
+```text
+mes_referencia <= AAAA-MM
+AND (mes_referencia_fim IS NULL OR AAAA-MM <= mes_referencia_fim)
+AND (valido_ate IS NULL OR valido_ate >= <primeiro dia de AAAA-MM>)
+```
 
-### 7. UI
-- Botão "Gerar relatório" mantém comportamento; toast passa a mostrar "Montando PDF (X documentos, Y comprovantes)…".
-- Adiciona indicador de progresso simples (spinner + texto).
+Ou seja: cadastrado num mês anterior + vigência ainda cobrindo o mês atual + não cortado manualmente.
+
+Cada card mostra badge:
+
+- **Vigente** (verde discreto) quando `valido_ate > hoje+30`.
+- **Vence em X dias** (amarelo) quando `valido_ate` entre hoje e hoje+30.
+- **Vencido** (vermelho) quando `valido_ate < hoje` — com CTA "Cadastrar novo em substituição" (abre modal já preenchido com nome e sugerindo nova `valido_de = hoje`).
+
+### Exclusão com 3 opções
+
+Ao clicar em excluir, abre modal com radio (preselecionado no meio):
+
+- Excluir só neste mês → grava um registro em nova tabela `prestacao_documentos_excecoes(documento_id, mes_referencia)` (pula esse mês na exibição/PDF).
+- **Excluir só neste mês e todos os seguintes (preset)** → `UPDATE ... SET mes_referencia_fim = <mês anterior ao atual>`.
+- Excluir tudo (todos os meses) → `DELETE` físico.
+
+### PDF
+
+O `gerarPrestacaoContas` passa a usar a mesma regra de exibição em vez de `eq("mes_referencia", mes)`.
+
+---
+
+## 2. Preview em iframe do PDF antes de salvar
+
+### Fluxo
+
+1. Novo botão "Pré-visualizar" ao lado de "Gerar relatório".
+2. Chama nova server fn `gerarPrestacaoContasRascunho` — mesmo pipeline, mas **não sobe pro Drive**; retorna os bytes como base64 (ou usa `URL.createObjectURL` a partir de um Blob devolvido via fetch).
+3. Abre `Dialog` fullscreen com `<iframe src={blobUrl}>` ocupando a tela + rodapé com:
+   - Metadados (X páginas, Y documentos, Z comprovantes).
+   - Botão "Fechar" (descarta).
+   - Botão "Gerar oficial e salvar no Drive" (chama `gerarPrestacaoContas` atual e abre o resultado).
+
+### Implementação técnica
+
+- Refatorar `gerarPrestacaoContas` extraindo o pipeline (`montarPdfBytes(orgId, mes, titulo)`) em helper server-only.
+- `gerarPrestacaoContasRascunho` chama o helper e retorna `{ base64, totalPaginas, totalDocs, totalComprovantes }`.
+- `gerarPrestacaoContas` chama o helper + upload Drive (comportamento atual).
+- Frontend: `atob → Uint8Array → new Blob([...], { type: 'application/pdf' }) → URL.createObjectURL`.
+
+Nota: PDF de rascunho pode ficar grande (>5MB). Se ultrapassar limite prático de RPC, alternativa é criar server route `POST /api/prestacao/preview` que devolve `Response(pdfBytes, { headers: { 'Content-Type': 'application/pdf' } })` — mais eficiente. **Vou por essa rota** desde o início.
+
+---
+
+## 3. Ajustes nos comprovantes (sem separadores)
+
+Confirmado: **não** adicionar página separadora por evento. Apenas garantir:
+
+- Ordenação estável: `data_pagamento asc`, depois `id_interno`.
+- No sumário, cada evento com anexo continua listado com ID interno + favorecido + valor (para navegação).
+- Anexos de um mesmo evento entram em sequência, na ordem: `tipo = 'nf'` → `'boleto'` → `'comprovante'` → outros.
+
+---
 
 ## Arquivos
 
-**Novos:**
-- `src/lib/prestacao-pdf.server.ts` — funções server-only: `exportarDocsComoPdf(fileId)`, `baixarDrivePdf(url)`, `imagemParaPdf(bytes, mime)`, `montarSumario(items)`, `paginaSeparadora(evento)`.
-- Nova server function `gerarPrestacaoPdfUnico` em `src/lib/prestacao.functions.ts` (ou substitui a atual `gerarPrestacaoContas` — **substitui**, pois a saída antiga não é mais desejada).
+**Migração (nova):**
+- `prestacao_documentos`: colunas `valido_de`, `valido_ate`, `mes_referencia_fim` + índice.
+- Nova tabela `prestacao_documentos_excecoes` com GRANTs + RLS por org.
+- Backfill: `valido_de = COALESCE(data_emissao, to_date(mes_referencia||'-01','YYYY-MM-DD'))`, `valido_ate = data_vencimento`.
 
 **Editados:**
-- `src/lib/prestacao.functions.ts` — reescrever handler para produzir PDF único.
-- `src/routes/_authenticated.admin.prestacao.tsx` — ajustar toast/texto do botão; a chamada permanece.
-- `package.json` — adicionar `pdf-lib`.
+- `src/lib/prestacao.functions.ts` — extrair `montarPdfBytes`, atualizar query com regra de vigência, ordenar anexos por tipo.
+- `src/routes/_authenticated.admin.prestacao.tsx` — nova query com regra de vigência, badges (vigente/vence/vencido), modal de exclusão com 3 opções, botão "Pré-visualizar", modal fullscreen com iframe.
+- Novo `src/routes/api/prestacao.preview.ts` (server route autenticada) que devolve `application/pdf` direto — chamada com bearer via fetch autenticado.
 
-**Migração:** nenhuma (bucket `prestacoes` já existe; snapshot já tem campo `pdf_path`).
+**Sem alteração:** snapshot / bucket `prestacoes` / template.
 
-## Detalhes técnicos
+---
 
-- **Runtime:** Cloudflare Workers via nodejs_compat. `pdf-lib` é pure-JS e funciona no Worker.
-- **Tamanho:** um mês típico com 20 comprovantes de 200 KB gera ~5 MB — dentro do limite do Worker (128 MB memory).
-- **Auth Drive:** usa gateway `google_drive` já configurado (`GOOGLE_DRIVE_API_KEY` + `LOVABLE_API_KEY`).
-- **Ordem dos comprovantes:** por `data_pagamento` asc, depois `id_interno`.
-- **Anexos de despesas excluídas** (`excluido_em IS NOT NULL`): ignorados.
-- **Falha em um anexo específico:** insere página de erro (nome + motivo) e segue — não aborta o PDF inteiro.
+## Fora de escopo
 
-## Fora de escopo (não faremos agora)
-
-- Conversão automática de DOCX/XLSX (fica página de aviso com link).
-- Assinatura digital do PDF (ICP-Brasil).
-- Marca d'água ou numeração global "página X de Y" — pode entrar depois.
+- Notificação por email de "documento vai vencer" (só badge visual no card).
+- Auto-substituição do documento vencido (só sugere via CTA).
+- Assinatura digital / marca d'água.
