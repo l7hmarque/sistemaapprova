@@ -1,40 +1,19 @@
-## Problema
+## Objetivo
 
-Depois da padronização das boundaries, todas as navegações internas caíram em 404 (a nova `RouteNotFound`). Causa: os `<Link to="...">` estão usando o **ID do arquivo de rota** (`/_authenticated/admin/...`) em vez do **caminho URL** (`/admin/...`). No TanStack Router, segmentos prefixados com `_` são apenas de layout e são removidos da URL — logo `/_authenticated/admin` não corresponde a rota nenhuma no navegador.
+Criar sua conta `l7hmarque@gmail.com` (senha `leop60506924`), já confirmada, e conceder a role `super_admin` (acesso total à área `/owner` e permissões máximas).
 
-Servidor responde 200 em `/`, `/contadores` etc.; o 404 só aparece quando o usuário clica em algo no menu lateral ou em CTAs internos.
+## Passos
 
-## Correção
+1. **Criar o usuário via Admin API** — usar `supabase.auth.admin.createUser` (com `SUPABASE_SERVICE_ROLE_KEY`, dentro de um script one-off executado no sandbox) passando `email_confirm: true` para pular verificação. O trigger `handle_new_user` já cria automaticamente uma organização e adiciona você como `owner` dela.
+2. **Conceder role de super_admin** — inserir em `public.user_roles` o par `(user_id, 'super_admin')` via `supabase--insert`, usando o `id` retornado no passo 1. Isso libera o gate de `/owner` (`useCurrentUser.isSuperAdmin`) e o card "Fila Drive" que exige `has_role(_, 'super_admin')`.
+3. **Verificação** — consultar `public.user_roles` e `public.organization_members` do seu `user_id` para confirmar que a role `super_admin` está presente e que existe uma organização com você como `owner`. Confirmar que consegue logar em `/login` com as credenciais fornecidas.
 
-Substituir, em todos os arquivos abaixo, o prefixo `"/_authenticated"` por `""` no atributo `to` de `<Link>` e nas chamadas `navigate({ to: "..." })` / `redirect({ to: "..." })`. Nenhum outro comportamento muda — os arquivos de rota continuam com o mesmo nome, o gate `_authenticated` continua ativo, apenas as URLs voltam a ser as reais (`/admin`, `/admin/arquivos`, `/owner`, `/owner/clientes/$id`, etc.).
+## Segurança
 
-Arquivos a ajustar:
-
-- `src/components/admin/sidebar.tsx` — link para `/owner`
-- `src/components/admin/EscritorioDashboard.tsx` — link para `/admin`
-- `src/components/admin/PlanoGuard.tsx` — link para `/admin/configuracoes/organizacao`
-- `src/components/owner/OwnerSidebar.tsx` — link para `/admin`
-- `src/routes/_authenticated.admin.configuracoes.index.tsx` — `/admin/setup`
-- `src/routes/_authenticated.admin.cotacoes.$id.tsx` — 2 links para `/admin/fornecedores`
-- `src/routes/_authenticated.admin.orcamentos.tsx` — `/admin/cotacoes/$id`
-- `src/routes/_authenticated.admin.modelos.tsx` — `/admin/modelos/ajuda`
-- `src/routes/_authenticated.admin.modelos.ajuda.tsx` — `/admin/modelos`
-- `src/routes/_authenticated.admin.setup.tsx` — 4 links (`/admin/configuracoes`, `/admin/arquivos` x2, `/admin`)
-- `src/routes/_authenticated.owner.clientes.tsx` — `/owner/clientes/$id`
-- `src/routes/_authenticated.owner.clientes.$id.tsx` — `/owner/clientes`
-- `src/routes/convite.$token.tsx` — `/admin`
-- `src/routes/_authenticated.owner.tsx` — `navigate({ to: "/_authenticated/admin" })` → `/admin`
-
-Também varrer `navigate({ to: "/_authenticated/...` e `redirect({ to: "/_authenticated/...` em todo `src/` (rg) para pegar qualquer chamada equivalente escondida em handlers.
-
-## Verificação
-
-1. `curl` em `/`, `/contadores`, `/login` — devem seguir retornando 200 (sanity).
-2. Playwright headless: fazer login com sessão injetada, clicar em cada item do menu lateral admin e do menu owner, checar que a URL final é `/admin/...` / `/owner/...` e que `<h1>` da página carrega (não o "404 Página não encontrada").
-3. Rodar build para garantir que o typecheck de rotas do TanStack aceita os novos `to` (ele valida contra `routeTree.gen.ts`).
+- A senha ficará apenas no comando one-off no sandbox; não será commitada em código nem em migração.
+- Nenhuma alteração de schema, RLS ou trigger — apenas dados (um usuário + uma linha em `user_roles`).
+- Depois de logar, você pode trocar a senha em Configurações / "Esqueci minha senha" se quiser.
 
 ## Fora de escopo
 
-- Redesign das páginas.
-- Mudanças no gate `_authenticated` ou em RLS.
-- Alterações em rotas públicas (`/`, `/contadores`, `/gestores`, `/blog`, etc.) — elas já respondem 200.
+- Convidar outros usuários, mudar planos, alterar RLS ou modificar organizações existentes.
