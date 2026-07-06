@@ -46,7 +46,6 @@ import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCapturaRouteImport } from './routes/_authenticated.admin.captura'
 import { Route as AuthenticatedAdminArquivosRouteImport } from './routes/_authenticated.admin.arquivos'
 import { Route as AuthenticatedAdminAprovacoesRouteImport } from './routes/_authenticated.admin.aprovacoes'
-import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAgendaRouteImport } from './routes/_authenticated.admin.agenda'
 import { Route as AuthenticatedAdminConfiguracoesIndexRouteImport } from './routes/_authenticated.admin.configuracoes.index'
 import { Route as ApiPublicHooksDriveSyncTickRouteImport } from './routes/api/public/hooks/drive-sync-tick'
@@ -258,12 +257,6 @@ const AuthenticatedAdminAprovacoesRoute =
     path: '/aprovacoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminAnalyticsRoute =
-  AuthenticatedAdminAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminAgendaRoute =
   AuthenticatedAdminAgendaRouteImport.update({
     id: '/agenda',
@@ -362,7 +355,6 @@ export interface FileRoutesByFullPath {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/agenda': typeof AuthenticatedAdminAgendaRoute
-  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/aprovacoes': typeof AuthenticatedAdminAprovacoesRoute
   '/admin/arquivos': typeof AuthenticatedAdminArquivosRoute
   '/admin/captura': typeof AuthenticatedAdminCapturaRoute
@@ -412,7 +404,6 @@ export interface FileRoutesByTo {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/blog': typeof BlogIndexRoute
   '/admin/agenda': typeof AuthenticatedAdminAgendaRoute
-  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/aprovacoes': typeof AuthenticatedAdminAprovacoesRoute
   '/admin/arquivos': typeof AuthenticatedAdminArquivosRoute
   '/admin/captura': typeof AuthenticatedAdminCapturaRoute
@@ -465,7 +456,6 @@ export interface FileRoutesById {
   '/cotacao/$token': typeof CotacaoTokenRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/agenda': typeof AuthenticatedAdminAgendaRoute
-  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/aprovacoes': typeof AuthenticatedAdminAprovacoesRoute
   '/_authenticated/admin/arquivos': typeof AuthenticatedAdminArquivosRoute
   '/_authenticated/admin/captura': typeof AuthenticatedAdminCapturaRoute
@@ -519,7 +509,6 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/blog/'
     | '/admin/agenda'
-    | '/admin/analytics'
     | '/admin/aprovacoes'
     | '/admin/arquivos'
     | '/admin/captura'
@@ -569,7 +558,6 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/blog'
     | '/admin/agenda'
-    | '/admin/analytics'
     | '/admin/aprovacoes'
     | '/admin/arquivos'
     | '/admin/captura'
@@ -621,7 +609,6 @@ export interface FileRouteTypes {
     | '/cotacao/$token'
     | '/blog/'
     | '/_authenticated/admin/agenda'
-    | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/aprovacoes'
     | '/_authenticated/admin/arquivos'
     | '/_authenticated/admin/captura'
@@ -939,13 +926,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAprovacoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/analytics': {
-      id: '/_authenticated/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/agenda': {
       id: '/_authenticated/admin/agenda'
       path: '/agenda'
@@ -1080,7 +1060,6 @@ const AuthenticatedAdminModelosRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAgendaRoute: typeof AuthenticatedAdminAgendaRoute
-  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAprovacoesRoute: typeof AuthenticatedAdminAprovacoesRoute
   AuthenticatedAdminArquivosRoute: typeof AuthenticatedAdminArquivosRoute
   AuthenticatedAdminCapturaRoute: typeof AuthenticatedAdminCapturaRoute
@@ -1098,7 +1077,6 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAgendaRoute: AuthenticatedAdminAgendaRoute,
-  AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminAprovacoesRoute: AuthenticatedAdminAprovacoesRoute,
   AuthenticatedAdminArquivosRoute: AuthenticatedAdminArquivosRoute,
   AuthenticatedAdminCapturaRoute: AuthenticatedAdminCapturaRoute,

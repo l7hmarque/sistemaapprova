@@ -11,7 +11,6 @@ import {
   LogOut,
   Wallet,
   Camera,
-  BarChart3,
   ShieldCheck,
   Crown,
   FolderTree,
