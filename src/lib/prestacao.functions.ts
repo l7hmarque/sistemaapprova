@@ -427,19 +427,71 @@ export async function montarPdfBytes(args: {
     }
   };
 
-  // 5a) template
-  let templateBytes: Uint8Array;
-  try {
-    templateBytes = await exportGoogleFileAsPdf(templateId);
-  } catch (err) {
-    const meta = await downloadDriveMedia(templateId).catch(() => null);
-    if (meta && isPdfBytes(meta.bytes)) {
-      templateBytes = meta.bytes;
-    } else {
-      throw err;
+  // ============ FASE DE DOWNLOAD (paralela) ============
+  // Prepara jobs para: template, cada documento cadastrado, cada anexo de evento.
+  type Job =
+    | { kind: "template" }
+    | { kind: "doc"; label: string; driveId: string | null; url: string | null; mime: string }
+    | { kind: "anexo"; label: string; driveId: string | null; url: string | null };
+
+  const jobs: Job[] = [];
+  jobs.push({ kind: "template" });
+  for (const d of docs) {
+    jobs.push({
+      kind: "doc",
+      label: d.nome,
+      driveId: d.drive_file_id ?? null,
+      url: d.arquivo_url ?? null,
+      mime: d.mime_type ?? "",
+    });
+  }
+  for (const e of eventos ?? []) {
+    for (const a of anexosPorEvento.get(e.id) ?? []) {
+      jobs.push({
+        kind: "anexo",
+        label: `Anexo ${a.tipo} (${e.id_interno ?? ""})`,
+        driveId: a.drive_file_id ?? null,
+        url: a.arquivo_url ?? null,
+      });
     }
   }
-  await addPdf(templateBytes, "Template");
+
+  console.time("[prestacao] download");
+  type Downloaded = { label: string; ok: boolean; bytes?: Uint8Array; mime?: string; error?: string };
+  const downloaded = await mapPool(jobs, 6, async (job): Promise<Downloaded> => {
+    try {
+      if (job.kind === "template") {
+        try {
+          const bytes = await exportGoogleFileAsPdf(templateId);
+          return { label: "Template", ok: true, bytes, mime: "application/pdf" };
+        } catch (err) {
+          const got = await downloadDriveMedia(templateId);
+          if (!isPdfBytes(got.bytes)) throw err;
+          return { label: "Template", ok: true, bytes: got.bytes, mime: got.mimeType };
+        }
+      }
+      if (!job.driveId && !job.url) {
+        return { label: job.label, ok: false, error: "Sem URL nem drive_file_id" };
+      }
+      const got = job.driveId
+        ? await downloadDriveMedia(job.driveId)
+        : await fetchAsBytes(job.url!);
+      return { label: job.label, ok: true, bytes: got.bytes, mime: got.mimeType };
+    } catch (err) {
+      return { label: job.label, ok: false, error: String((err as Error).message ?? err) };
+    }
+  });
+  console.timeEnd("[prestacao] download");
+
+  // ============ FASE DE MERGE (sequencial, mas sem IO) ============
+  console.time("[prestacao] merge");
+
+  // 5a) template
+  const tpl = downloaded[0];
+  if (!tpl.ok || !tpl.bytes) {
+    throw new Error(`Falha ao baixar template: ${tpl.error ?? "desconhecido"}`);
+  }
+  await addPdf(tpl.bytes, "Template");
 
   // 5b) sumário
   const sumarioBytes = await montarSumario({
@@ -451,36 +503,27 @@ export async function montarPdfBytes(args: {
   });
   await addPdf(sumarioBytes, "Sumário");
 
-  // 5c) documentos cadastrados
-  for (const d of docs) {
-    const label = d.nome;
+  // 5c/5d) resto na ordem original (docs + anexos)
+  for (let i = 1; i < downloaded.length; i++) {
+    const item = downloaded[i];
+    const label = item.label;
+    if (!item.ok || !item.bytes) {
+      await addPdf(await paginaErro(label, item.error ?? "erro"), label);
+      continue;
+    }
+    const bytes = item.bytes;
+    const mime = item.mime ?? "";
     try {
-      let bytes: Uint8Array;
-      let mime = d.mime_type ?? "";
-      if (d.drive_file_id) {
-        const got = await downloadDriveMedia(d.drive_file_id);
-        bytes = got.bytes; mime = got.mimeType;
-      } else if (d.arquivo_url) {
-        const got = await fetchAsBytes(d.arquivo_url);
-        bytes = got.bytes; mime = got.mimeType;
-      } else {
-        await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-        continue;
-      }
       if (isPdfBytes(bytes)) {
         await addPdf(bytes, label);
       } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
         const pdfBytes = await imageToPdf(bytes, mime);
         await addPdf(pdfBytes, label);
       } else {
-        const linkOrig = d.arquivo_url ? `Link original: ${d.arquivo_url}` : "";
         await addPdf(
           await paginaSeparadora({
-            titulo: `Documento: ${label}`,
-            linhas: [
-              `Tipo: ${mime || "desconhecido"} — não pode ser convertido automaticamente para PDF.`,
-              linkOrig,
-            ].filter(Boolean),
+            titulo: label,
+            linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
           }),
           label,
         );
@@ -489,45 +532,7 @@ export async function montarPdfBytes(args: {
       await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
     }
   }
-
-  // 5d) comprovantes por evento (sem página separadora — modo compacto)
-  for (const e of eventos ?? []) {
-    const anexos = anexosPorEvento.get(e.id) ?? [];
-    if (!anexos.length) continue;
-    for (const a of anexos) {
-      const label = `Anexo ${a.tipo} (${e.id_interno ?? ""})`;
-      try {
-        let bytes: Uint8Array;
-        let mime = "";
-        if (a.drive_file_id) {
-          const got = await downloadDriveMedia(a.drive_file_id);
-          bytes = got.bytes; mime = got.mimeType;
-        } else if (a.arquivo_url) {
-          const got = await fetchAsBytes(a.arquivo_url);
-          bytes = got.bytes; mime = got.mimeType;
-        } else {
-          await addPdf(await paginaErro(label, "Sem URL nem drive_file_id"), label);
-          continue;
-        }
-        if (isPdfBytes(bytes)) {
-          await addPdf(bytes, label);
-        } else if (mime.startsWith("image/") || bytes[0] === 0x89 || bytes[0] === 0xff) {
-          const pdfBytes = await imageToPdf(bytes, mime);
-          await addPdf(pdfBytes, label);
-        } else {
-          await addPdf(
-            await paginaSeparadora({
-              titulo: label,
-              linhas: [`Tipo ${mime || "desconhecido"} — não convertido automaticamente.`],
-            }),
-            label,
-          );
-        }
-      } catch (err) {
-        await addPdf(await paginaErro(label, String((err as Error).message ?? err)), label);
-      }
-    }
-  }
+  console.timeEnd("[prestacao] merge");
 
   const finalBytes = await merged.save();
   return {
