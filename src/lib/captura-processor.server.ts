@@ -16,6 +16,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { extrairTextoPorPagina } from "@/lib/extract/pdfText";
 import { resolverCamposSIT } from "@/lib/sit/inferCaptura";
+import { aplicarRegrasDespesa, type RegraDespesa } from "@/lib/sit/regrasDespesa";
 
 type Dados = {
   tipo: string | null;
