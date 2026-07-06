@@ -141,12 +141,16 @@ function PrestacaoPage() {
 
   const gerarRelatorio = async () => {
     setGerando(true);
+    const t = toast.loading("Montando PDF único (template + documentos + comprovantes)…");
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
-      toast.success("Relatório gerado!");
+      toast.success(
+        `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
+        { id: t },
+      );
       window.open(r.url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao gerar relatório");
+      toast.error(e?.message || "Erro ao gerar relatório", { id: t });
     } finally {
       setGerando(false);
     }
