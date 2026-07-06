@@ -192,53 +192,15 @@ function PrestacaoPage() {
     void carregar();
   };
 
-  const abrirPreview = async () => {
-    setPreviewLoading(true);
-    setPreviewUrl(null);
-    setPreviewMeta(null);
-    const t = toast.loading("Montando pré-visualização…");
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) throw new Error("Sessão expirada, faça login novamente.");
-      const res = await fetch(`/api/prestacao/preview?mes=${mes}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || `Erro ${res.status}`);
-      }
-      const paginas = Number(res.headers.get("x-total-paginas") ?? 0);
-      const nDocs = Number(res.headers.get("x-total-docs") ?? 0);
-      const nComp = Number(res.headers.get("x-total-comprovantes") ?? 0);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewMeta({ paginas, docs: nDocs, comprovantes: nComp });
-      toast.success("Preview pronto", { id: t });
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao gerar preview", { id: t });
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
-
-  const fecharPreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setPreviewMeta(null);
-  };
-
   const gerarOficial = async () => {
     setGerando(true);
-    const t = toast.loading("Gerando PDF oficial e salvando no Drive…");
+    const t = toast.loading("Gerando PDF e salvando…");
     try {
       const r = await gerar({ data: { mesReferencia: mes } });
       toast.success(
         `PDF pronto: ${r.totalPaginas} pág. · ${r.totalDocs} docs · ${r.totalComprovantes} comprovantes`,
         { id: t },
       );
-      fecharPreview();
       window.open(r.url, "_blank");
       void carregar();
     } catch (e: any) {
