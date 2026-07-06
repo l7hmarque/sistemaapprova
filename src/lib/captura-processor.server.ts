@@ -140,7 +140,7 @@ async function chamarIA(args: {
   bytes?: Uint8Array;
   mimeType: string;
   nomeArquivo: string;
-}): Promise<Dados> {
+}): Promise<Dados[]> {
   const gateway = createLovableAiGatewayProvider(args.apiKey);
   const model = gateway(args.modelo);
   const parts: Array<
@@ -162,8 +162,9 @@ async function chamarIA(args: {
     parts.push({ type: "text", text: `Texto extraído do documento:\n${args.texto.slice(0, 60_000)}` });
   }
   const { text } = await generateText({ model, system: SYSTEM, messages: [{ role: "user", content: parts }] });
-  return parseDados(text);
+  return parseListaDados(text);
 }
+
 
 async function marcarErro(jobId: string, mensagem: string) {
   await supabaseAdmin
