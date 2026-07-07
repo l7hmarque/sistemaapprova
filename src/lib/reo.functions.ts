@@ -220,14 +220,138 @@ export const setNaturezaEvento = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 // Consolidação do REO de um mês
 // ─────────────────────────────────────────────────────────────
+async function computeReo(supabase: any, id: string, anoMes: string) {
+  const [ano] = anoMes.split("-");
+
+  const { data: repasses } = await supabase
+    .from("repasses_recebidos")
+    .select("*")
+    .eq("organization_id", id)
+    .eq("mes_referencia", anoMes)
+    .order("numero_parcela");
+
+  const { data: eventos } = await supabase
+    .from("eventos_financeiros")
+    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado")
+    .eq("organization_id", id)
+    .eq("mes_referencia", anoMes)
+    .is("excluido_em", null)
+    .not("valor_efetivo", "is", null)
+    .order("id_interno");
+
+  const { data: movRow } = await supabase
+    .from("movimento_bancario_mensal")
+    .select("*")
+    .eq("organization_id", id)
+    .eq("mes_referencia", anoMes)
+    .maybeSingle();
+
+  const dataAlvo = `${anoMes}-01`;
+  const { data: plano } = await supabase
+    .from("plano_aplicacao")
+    .select("natureza_codigo, valor_previsto, vigencia_inicio, vigencia_fim, convenio")
+    .eq("organization_id", id)
+    .lte("vigencia_inicio", dataAlvo)
+    .gte("vigencia_fim", dataAlvo);
+
+  const { data: gastoRows } = await supabase
+    .from("eventos_financeiros")
+    .select("natureza_despesa_codigo, valor_efetivo, valor_estornado, mes_referencia")
+    .eq("organization_id", id)
+    .gte("mes_referencia", `${ano}-01`)
+    .lte("mes_referencia", anoMes)
+    .is("excluido_em", null)
+    .not("valor_efetivo", "is", null);
+
+  const gastoPorNat = new Map<string, { gasto: number; estornado: number }>();
+  for (const r of (gastoRows ?? []) as any[]) {
+    const k = r.natureza_despesa_codigo ?? "__sem__";
+    const cur = gastoPorNat.get(k) ?? { gasto: 0, estornado: 0 };
+    cur.gasto += Number(r.valor_efetivo ?? 0);
+    cur.estornado += Number(r.valor_estornado ?? 0);
+    gastoPorNat.set(k, cur);
+  }
+
+  const { data: naturezas } = await supabase
+    .from("naturezas_despesa")
+    .select("codigo, descricao, grupo")
+    .eq("ativo", true)
+    .order("codigo");
+  const descByCod = new Map<string, string>();
+  for (const n of (naturezas ?? []) as any[]) descByCod.set(n.codigo, n.descricao);
+
+  const linhas24Base = ((plano ?? []) as any[]).map((p) => {
+    const g = gastoPorNat.get(p.natureza_codigo) ?? { gasto: 0, estornado: 0 };
+    const previsto = Number(p.valor_previsto ?? 0);
+    return {
+      codigo: p.natureza_codigo,
+      descricao: descByCod.get(p.natureza_codigo) ?? "",
+      previsto,
+      gasto: g.gasto,
+      estornado: g.estornado,
+      disponivel: previsto - g.gasto + g.estornado,
+    };
+  });
+
+  const codsPlano = new Set(linhas24Base.map((l) => l.codigo));
+  const semPrevisto: typeof linhas24Base = [];
+  for (const [cod, g] of gastoPorNat) {
+    if (cod === "__sem__" || codsPlano.has(cod)) continue;
+    semPrevisto.push({
+      codigo: cod,
+      descricao: descByCod.get(cod) ?? "(fora do plano)",
+      previsto: 0,
+      gasto: g.gasto,
+      estornado: g.estornado,
+      disponivel: -g.gasto + g.estornado,
+    });
+  }
+
+  const semNatureza = gastoPorNat.get("__sem__") ?? { gasto: 0, estornado: 0 };
+
+  const valorTransferido = ((repasses ?? []) as any[]).reduce((a, r) => a + Number(r.valor ?? 0), 0);
+  const valorExecutado = ((eventos ?? []) as any[]).reduce((a, e) => a + Number(e.valor_efetivo ?? 0), 0);
+  const estornosEventosMes = ((eventos ?? []) as any[]).reduce((a, e) => a + Number(e.valor_estornado ?? 0), 0);
+  const saldoAnterior = Number(movRow?.saldo_anterior ?? 0);
+  const rendimentos = Number(movRow?.rendimentos ?? 0);
+  const estornosExtra = Number(movRow?.estornos_extra ?? 0);
+  const totalEstornos = estornosEventosMes + estornosExtra;
+  const saldoProximo = saldoAnterior + valorTransferido + rendimentos - valorExecutado + totalEstornos;
+
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("nome, cnpj")
+    .eq("id", id)
+    .maybeSingle();
+
+  return {
+    mes: anoMes,
+    org: { nome: org?.nome ?? "", cnpj: org?.cnpj ?? "" },
+    repasses: repasses ?? [],
+    eventos: eventos ?? [],
+    movimento: {
+      saldo_anterior: saldoAnterior,
+      valor_transferido: valorTransferido,
+      rendimentos,
+      estornos: totalEstornos,
+      valor_executado: valorExecutado,
+      saldo_proximo: saldoProximo,
+      observacao: movRow?.observacao ?? null,
+      estornos_extra: estornosExtra,
+    },
+    linhas24: [...linhas24Base, ...semPrevisto].sort((a, b) => a.codigo.localeCompare(b.codigo)),
+    semNaturezaGasto: semNatureza.gasto,
+  };
+}
+
 export const carregarReo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const id = await orgId(supabase);
-    const anoMes = data.mes;
-    const [ano] = anoMes.split("-");
+    const id = await orgId(context.supabase);
+    return computeReo(context.supabase, id, data.mes);
+  });
+
 
     // 2.1 — repasses do mês
     const { data: repasses } = await (supabase as any)
