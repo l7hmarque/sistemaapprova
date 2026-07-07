@@ -114,8 +114,24 @@ function ArquivosPage() {
     }
   };
 
+  const excluirConfirmado = async () => {
+    if (!confirmarExcluir) return;
+    try {
+      setExcluindo(true);
+      await fnDelete({ data: { fileId: confirmarExcluir.id } });
+      toast.success("Arquivo excluído.");
+      setConfirmarExcluir(null);
+      qc.invalidateQueries({ queryKey: ["arquivos"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao excluir");
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
   const quota = quotaQ.data;
   const pct = quota && quota.limit > 0 ? Math.round((quota.usage / quota.limit) * 100) : 0;
+
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl">
