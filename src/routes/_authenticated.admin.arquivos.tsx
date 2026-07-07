@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle } from "lucide-react";
-import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus } from "@/lib/arquivos.functions";
+import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle, Trash2 } from "lucide-react";
+import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus, excluirArquivoDaOrg } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
+
 
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
   component: ArquivosPage,
@@ -40,10 +45,15 @@ function ArquivosPage() {
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
   const [baixando, setBaixando] = useState<string | null>(null);
+  const [confirmarExcluir, setConfirmarExcluir] = useState<{ id: string; name: string } | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const qc = useQueryClient();
 
   const fnList = useServerFn(listarArquivosDaOrg);
   const fnQuota = useServerFn(getDriveQuota);
   const fnSync = useServerFn(getDriveSyncStatus);
+  const fnDelete = useServerFn(excluirArquivoDaOrg);
+
 
   const filesQ = useQuery({
     queryKey: ["arquivos", activeOrgId, section, mes],
@@ -104,8 +114,24 @@ function ArquivosPage() {
     }
   };
 
+  const excluirConfirmado = async () => {
+    if (!confirmarExcluir) return;
+    try {
+      setExcluindo(true);
+      await fnDelete({ data: { fileId: confirmarExcluir.id } });
+      toast.success("Arquivo excluído.");
+      setConfirmarExcluir(null);
+      qc.invalidateQueries({ queryKey: ["arquivos"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao excluir");
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
   const quota = quotaQ.data;
   const pct = quota && quota.limit > 0 ? Math.round((quota.usage / quota.limit) * 100) : 0;
+
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl">
@@ -256,6 +282,15 @@ function ArquivosPage() {
                         <Download className="h-4 w-4" />
                       )}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setConfirmarExcluir({ id: f.id, name: f.name })}
+                      title="Excluir"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </li>
                 );
               })}
@@ -264,6 +299,29 @@ function ArquivosPage() {
         </CardContent>
       </Card>
 
+      <AlertDialog open={!!confirmarExcluir} onOpenChange={(v) => !v && setConfirmarExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O arquivo <strong>{confirmarExcluir?.name}</strong> será movido para a lixeira do Drive
+              e removido dos vínculos (anexos e documentos de prestação). Esta ação não pode ser desfeita
+              pela interface. Arquivos ligados a prestações homologadas são bloqueados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(e) => { e.preventDefault(); excluirConfirmado(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+

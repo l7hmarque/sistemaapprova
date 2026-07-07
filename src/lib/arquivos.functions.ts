@@ -7,9 +7,11 @@ import {
   listOrgFolderFiles,
   listSectionFilesRecursive,
   fetchStorageQuota,
+  trashDriveFile,
   SUBFOLDERS,
   type SubfolderName,
 } from "./drive-org.server";
+
 
 async function orgId(supabase: any): Promise<string> {
   const { data, error } = await supabase.rpc("current_user_org");
@@ -152,3 +154,75 @@ export const getDriveSyncStatus = createServerFn({ method: "POST" })
     }
     return { pendente, falhou_retry, falhou_definitivo, ultimoErro };
   });
+
+/** Exclui um arquivo do Drive e limpa referências no banco.
+ *  Bloqueia se estiver vinculado a evento/documento em prestação homologada. */
+export const excluirArquivoDaOrg = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ fileId: z.string().min(3) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const orgIdVal = await orgId(supabase);
+    const { fileBelongsToOrg } = await import("./drive-org.server");
+    const ok = await fileBelongsToOrg(orgIdVal, data.fileId);
+    if (!ok) throw new Error("Arquivo não pertence à sua organização.");
+
+    // Bloqueia se algum evento ligado a esse file está em snapshot ativo
+    const [{ data: anx }, { data: prd }] = await Promise.all([
+      (supabase as any)
+        .from("documentos_anexos")
+        .select("id, evento_id")
+        .eq("organization_id", orgIdVal)
+        .eq("drive_file_id", data.fileId),
+      (supabase as any)
+        .from("prestacao_documentos")
+        .select("id, mes_referencia")
+        .eq("organization_id", orgIdVal)
+        .eq("drive_file_id", data.fileId),
+    ]);
+    const eventoIds = ((anx ?? []) as any[]).map((r) => r.evento_id).filter(Boolean);
+    if (eventoIds.length) {
+      const { data: evs } = await (supabase as any)
+        .from("eventos_financeiros")
+        .select("mes_referencia, prestacao_snapshot_id")
+        .in("id", eventoIds);
+      const snapIds = ((evs ?? []) as any[]).map((e) => e.prestacao_snapshot_id).filter(Boolean);
+      if (snapIds.length) {
+        const { data: snaps } = await (supabase as any)
+          .from("prestacoes_snapshot")
+          .select("id, mes_referencia, revogado_em")
+          .in("id", snapIds);
+        const ativo = (snaps ?? []).find((s: any) => !s.revogado_em);
+        if (ativo) {
+          throw new Error(
+            `Prestação de ${ativo.mes_referencia} já foi homologada. Reabra-a antes de excluir este arquivo.`,
+          );
+        }
+      }
+    }
+
+    // Manda pra lixeira do Drive
+    await trashDriveFile(data.fileId);
+
+    // Limpa referências
+    await Promise.all([
+      (supabase as any)
+        .from("documentos_anexos")
+        .delete()
+        .eq("organization_id", orgIdVal)
+        .eq("drive_file_id", data.fileId),
+      (supabase as any)
+        .from("prestacao_documentos")
+        .update({ drive_file_id: null })
+        .eq("organization_id", orgIdVal)
+        .eq("drive_file_id", data.fileId),
+      (supabase as any)
+        .from("drive_sync_queue")
+        .delete()
+        .eq("organization_id", orgIdVal)
+        .eq("drive_file_id", data.fileId),
+    ]);
+
+    return { ok: true, anexosRemovidos: (anx ?? []).length, documentos: (prd ?? []).length };
+  });
+

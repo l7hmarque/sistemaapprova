@@ -1,59 +1,111 @@
-## O que vou fazer
+## 1. Excluir arquivos em `/admin/arquivos`
 
-### 1. Arquivos — corrigir 403 no download e melhorar visualização
-- **Corrigir o 403** em `/api/files/$id/preview`: hoje `fileBelongsToOrg` sobe a árvore de pastas do Drive usando apenas `parents[0]` e limita a 8 níveis. Vou:
-  - percorrer TODOS os pais (BFS, não só o primeiro), o que resolve arquivos que caíram em subpastas com mais de um parent (raro, mas ocorre em Shared Drives / cópias);
-  - aceitar como "da org" também arquivos cujo `id` esteja registrado em `documentos_anexos` ou `prestacao_documentos` da mesma org (checagem via banco), garantindo download mesmo se a hierarquia do Drive tiver sido alterada manualmente;
-  - retornar mensagem clara ("arquivo não pertence à sua organização" vs "sessão expirada") no cliente.
-- **Mostrar todos por padrão**: adicionar opção **"Todas as seções"** no filtro Seção (valor padrão). Quando selecionado, o servidor lista os arquivos das 4 subpastas (Orçamentos, Cotações, Prestações, Documentos) em paralelo e devolve um array unificado, cada item marcado com sua seção de origem.
-- **Badges de identificação** em cada linha: seção (Orçamentos/Cotações/Prestações/Documentos), mês (quando o path contém `AAAA-MM`), extensão real do arquivo e — quando o `drive_file_id` estiver em `documentos_anexos` — badge com o `id_interno` do evento vinculado (ex.: `#0007`). Para arquivos vinculados a `prestacao_documentos`, badge "cadastrado".
+**Server (`src/lib/arquivos.functions.ts`)** — nova server function `excluirArquivoDaOrg({ fileId })`:
 
-### 2. Sidebar — remover Analytics
-- Remover o item **Analytics** de `src/components/admin/sidebar.tsx` e a lógica `showAnalytics`/`superAdminOnly`.
-- Excluir `src/routes/_authenticated.admin.analytics.tsx` e `src/lib/analytics.functions.ts` (funções `getAnalyticsSummary` etc. só são consumidas por essa página).
-- **Mantém** `src/hooks/use-analytics.ts` e a chamada em `__root.tsx` / `MarketingLayout` — isso é o rastreamento de visitas do site público, feature diferente da página Analytics do admin. Se quiser removê-lo também, me diga.
+- Confirma que o arquivo pertence à org (usa a mesma checagem BFS + shortcut de `documentos_anexos`/`prestacao_documentos`).
+- **Bloqueia** se o arquivo estiver vinculado a evento/documento em **prestação homologada** (snapshot não revogado) — devolve erro claro pedindo pra reabrir a prestação.
+- Remove do Drive (`files.delete`) **e** limpa referências: `documentos_anexos.drive_file_id`, `prestacao_documentos.drive_file_id/arquivo_url` (marca como órfão), `drive_sync_queue` pendente.
+- Registra em `audit_log`.
 
-### 3. Prestação — upload de arquivo do computador
-- Na modal "Novo/Editar documento" em `/admin/prestacao`, além do campo "URL do arquivo", adicionar um botão **"Enviar do computador"** que:
-  - abre file picker (pdf/imagens);
-  - envia direto ao bucket `prestacoes` já existente, em `prestacoes/{orgId}/documentos-cadastrados/{uuid}-{filename}`;
-  - preenche automaticamente `arquivo_url` com uma signed URL (ou salva `storage_path` num campo dedicado — ver seção técnica) e mostra o nome do arquivo enviado;
-  - permite trocar o arquivo antes de salvar.
+**UI (`src/routes/_authenticated.admin.arquivos.tsx`)**:
 
-### 4. Toast do relatório — contar despesas do mês
-- Hoje o toast mostra `totalComprovantes` (arquivos anexados únicos). O usuário quer que reflita **quantas despesas do mês** entraram no PDF, independente de anexos compartilhados.
-- Alterar `montarPdfBytes` para retornar também `totalEventos` (linhas de `eventos_financeiros` do mês, não excluídas) e o toast na página passar a mostrar: `X pág. · Y documentos cadastrados · Z despesas do mês (W comprovantes únicos anexados)`.
-
-### 5. Dashboard `/admin` — reformular para guiar o fluxo de trabalho
-Substituir os cards atuais (Orçamentos no mês, Fornecedores, Objetos, gráficos) por blocos **acionáveis** e centrados na rotina da OSC:
-
-- **Este mês em curso** (mês atual, editável): card grande com barra de progresso mostrando
-  - despesas lançadas × despesas com comprovante anexado (ex.: "18 de 24 despesas com comprovante") — link direto para `/admin/painel` filtrado pelas pendências;
-  - total gasto no mês vs. mês anterior (delta %).
-- **Próximas ações** (lista priorizada, cada item é link):
-  - documentos da Prestação vencidos ou a vencer em 30 dias (usa a mesma query da página Prestação);
-  - convites/cotações abertas aguardando resposta há mais de X dias;
-  - capturas em falha (`captura_jobs` com `status = falhou_definitivo`);
-  - aprovações pendentes (`aprovacoes`).
-- **Fechamento da prestação**: card do mês atual mostrando se já existe snapshot fechado (`prestacoes_snapshot` sem `revogado_em`) — botão "Ir para Prestação" ou "Ver PDF fechado". Se não fechado, mostrar checklist rápido (docs faltando + comprovantes faltando).
-- **Últimas atividades** (feed compacto): últimos 5 eventos financeiros, últimas 3 capturas concluídas, último orçamento salvo — para o usuário ter "senso de onde parou".
-- Remover os gráficos de barras/linha/pizza atuais. Se quiser manter um gráfico, sugiro **gasto acumulado do mês vs. média dos 3 meses anteriores** — só um, para não voltar ao problema de "números que não guiam".
-
-Mantém o `EscritorioDashboard` para orgs do tipo escritório (não mexo nele).
+- Botão "Excluir" (ícone lixeira) ao lado do Download, com `AlertDialog` de confirmação mostrando nome + vínculos (badges já existentes).
+- Se retornar erro de snapshot, toast com CTA "Reabrir prestação de {mes}".
+- `queryClient.invalidateQueries(["arquivos"])` no sucesso.
 
 ---
 
-## Detalhes técnicos
+## 2. REO Mensal Financeiro (itens 2.1 → 2.4)
 
-- **`fileBelongsToOrg`**: reescrever como BFS com fila de `parents` (não `parents[0]`), profundidade 12, cache local por request. Antes do BFS, tentar match direto em `documentos_anexos.drive_file_id = fileId` ou `prestacao_documentos.drive_file_id = fileId` para a org.
-- **Listar todas as seções**: novo modo em `listarArquivosDaOrg` quando `section` não vem — retorna `Array<DriveFileEntry & { section: string; mes?: string }>`, resolvendo o mês pelo nome da pasta imediata (regex `^\d{4}-\d{2}$`). Para isso, listamos primeiro as subpastas de cada seção (com `mimeType = folder`) e depois os arquivos de cada uma.
-- **Upload em Prestação**: usar `supabase.storage.from('prestacoes').upload(...)` do cliente (bucket já existe, é privado). Salvar em `arquivo_url` a signed URL de longa duração (ou adicionar coluna `storage_path` em `prestacao_documentos` via migração — decido pelo caminho mais simples: gravar `storage_path` novo e priorizá-lo no download; migração pequena, sem quebrar dados existentes).
-- **Remoção de Analytics**: apagar arquivos, remover import de `analytics.functions` em qualquer lugar (só a página usa), remover item do sidebar, sem tocar em `use-analytics` (visitor tracking).
-- **Toast prestação**: `gerarPrestacaoContas` já retorna `totalComprovantes`; adiciono `totalEventos` no retorno e ajusto a página `_authenticated.admin.prestacao.tsx`.
-- **Dashboard**: novas queries adicionadas ao `useEffect` (ou migrar para `useQuery` para caching). Reaproveitar `buscarDocumentosVigentes` via server-fn nova `getDashboardResumo` para não replicar SQL no cliente.
+### 2.1 Diagnóstico do que já temos vs. o que falta
 
-## Fora de escopo
 
-- Remoção do tracking de visitas (`use-analytics`) — só a página Analytics do admin sai.
-- Reorganizar o `EscritorioDashboard`.
-- Mudar layout do sidebar além de tirar o item Analytics.
+| REO exige                                                                                           | Já temos                                                                                                        | Falta                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **2.1** Parcelas de repasse recebidas no mês (nº, valor, data)                                      | —                                                                                                               | tabela `repasses_recebidos`                                                                                                                                                                               |
+| **2.2** Despesas do mês (código, favorecido, valor pago)                                            | `eventos_financeiros` já tem `id_interno`, `nm_favorecido`, `valor_efetivo`, `data_pagamento`, `mes_referencia` | ✅ direto                                                                                                                                                                                                  |
+| **2.3** Saldo anterior, rendimentos, estornos, saldo próximo mês                                    | —                                                                                                               | tabela `movimento_bancario_mensal` (1 linha por mês, campos: saldo_anterior, rendimentos, estornos, observacao) — valor executado e transferido são calculados                                            |
+| **2.4** Saldo por natureza da despesa (código 3.x.xx.xx.xx, previsto, gasto, estornado, disponível) | —                                                                                                               | (a) catálogo `naturezas_despesa` (código + descrição); (b) `plano_aplicacao` (por org + convênio + código = valor previsto anual/vigência); (c) coluna `natureza_despesa_codigo` em `eventos_financeiros` |
+
+
+### 2.2 Schema novo (migração única)
+
+```text
+naturezas_despesa            → catálogo público (seed com os 30+ códigos do REO)
+  codigo TEXT PK             ex: '3.3.90.30.07'
+  descricao TEXT             ex: 'Gêneros de alimentação'
+  grupo TEXT                 pessoal | material | servico | investimento
+
+plano_aplicacao              → previsto por org/vigência
+  organization_id, vigencia_inicio, vigencia_fim,
+  natureza_codigo → naturezas_despesa,
+  valor_previsto NUMERIC,
+  UNIQUE(org, vigencia_inicio, natureza_codigo)
+
+repasses_recebidos           → 2.1
+  organization_id, mes_referencia, numero_parcela INT,
+  valor NUMERIC, data_recebimento DATE, convenio TEXT NULL
+
+movimento_bancario_mensal    → 2.3 (o que não sai de eventos)
+  organization_id, mes_referencia (UNIQUE),
+  saldo_anterior NUMERIC, rendimentos NUMERIC,
+  estornos_extra NUMERIC,      -- estornos que não são reversão de evento
+  observacao TEXT
+
+eventos_financeiros          → +2 colunas
+  natureza_despesa_codigo TEXT NULL  → FK naturezas_despesa
+  valor_estornado NUMERIC DEFAULT 0  → para 2.4 coluna "estornado"
+```
+
+Regras: para cada tabela → GRANT authenticated + service_role, RLS por `organization_id` via `user_orgs(auth.uid())`, `touch_atualizado_em`. `naturezas_despesa` fica com GRANT SELECT anon (catálogo público read-only).
+
+### 2.3 Enriquecimento automático de eventos
+
+- Estender `regras_despesa` com um novo campo `set_natureza_codigo` para que a inferência já existente (favorecido/regex/tp_despesa) atribua a natureza correta na captura.
+- Fallback manual: campo select no modal de edição de despesa em `/admin/prestacao` e `/admin/aprovacoes`.
+- Job de retro-classificação (server fn `reclassificarEventosSemNatureza`) para eventos antigos.
+
+### 2.4 Nova página `/admin/reo`
+
+Rota `src/routes/_authenticated.admin.reo.tsx`:
+
+- Seletor de mês (default = mês corrente da prestação).
+- **Card 2.1** — tabela editável de parcelas recebidas no mês (add/remove).
+- **Card 2.2** — tabela read-only de despesas do mês (link p/ evento).
+- **Card 2.3** — form: saldo_anterior (auto-preenchido do mês anterior = saldo_anterior + transferido + rendimentos − executado − estornos), rendimentos, estornos, observação. Saldo do próximo mês calculado.
+- **Card 2.4** — pivô por `natureza_despesa_codigo`: Previsto (do plano_aplicacao vigente) | Gasto (soma acumulada no ano) | Estornado | Disponível. Alerta amarelo em códigos com < 5% de saldo, vermelho se estourou.
+- Botão **"Gerar REO em PDF"** — reusa a infra atual de `prestacao.functions.ts` (jsPDF/pdf-lib) com layout idêntico ao exemplo enviado (cabeçalho da OSC, seções 2.1–2.4, assinatura do gestor).
+- Snapshot do REO salvo em `prestacoes_snapshot.manifest` (nova chave `reo`) para versionamento junto da prestação.
+
+### 2.5 Configuração inicial (setup wizard)
+
+Nova aba no `/admin/configuracoes` → **"Plano de Aplicação"**:
+
+- Import via planilha (colunas: código, descrição, previsto) — usa `modelos_planilha` existente.
+- Vigência (ex.: 01/2026 → 12/2026).
+- Convênio/parceria vinculada (texto livre por ora).
+
+Seed das `naturezas_despesa` (migração) com os códigos do PDF de exemplo (3.1.90.11.01 … 4.4.90.52.99).
+
+---
+
+## Ordem de execução
+
+1. Migração (schema + seed naturezas).
+2. Server fn `excluirArquivoDaOrg` + UI botão excluir.
+3. Coluna `natureza_despesa_codigo` no formulário de despesa + regra `set_natureza_codigo`.
+4. Página `/admin/configuracoes/plano-aplicacao`.
+5. Página `/admin/reo` (cards 2.1–2.4 + PDF).
+6. Item no sidebar admin: "REO Mensal" (abaixo de Prestação).
+
+## Fora de escopo (proponho pra depois)
+
+- Seção 1 do REO (execução do objeto, metas físicas) — o PDF mostra que existe, mas você pediu "item 2.0 em diante".
+- Assinatura digital do PDF final.
+- Integração com sistemas municipais (SIT-Confaz/SIM-AM) — só exportar o PDF já resolve a entrega.
+
+## Perguntas rápidas antes de codar
+
+1. **Plano de aplicação** já vem pronto do convênio (você tem uma planilha modelo?) ou o usuário digita manualmente na primeira vez? Uusario digita manualmente
+2. **Rendimentos** e **saldo anterior** entram manualmente (mensal) ou você quer suporte a import de extrato bancário OFX/CSV? Ambos
+3. Para o **2.4**, os totais são **acumulados no ano/vigência** (é o padrão do exemplo) ou você quer também uma visão "só do mês"? Nao entendi essa pergunta

@@ -249,3 +249,17 @@ export async function fetchStorageQuota(): Promise<{ limit: number; usage: numbe
   if (!q) return null;
   return { limit: Number(q.limit ?? 0), usage: Number(q.usage ?? 0) };
 }
+
+/** Move o arquivo para a lixeira do Drive. Não falha se já não existe. */
+export async function trashDriveFile(fileId: string): Promise<void> {
+  const res = await fetch(`${DRIVE}/files/${fileId}?supportsAllDrives=true`, {
+    method: "PATCH",
+    headers: { ...driveHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!res.ok && res.status !== 404) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`drive.files.trash falhou [${res.status}]: ${t.slice(0, 300)}`);
+  }
+}
+

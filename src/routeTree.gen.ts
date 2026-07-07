@@ -36,6 +36,7 @@ import { Route as AuthenticatedOwnerSuporteRouteImport } from './routes/_authent
 import { Route as AuthenticatedOwnerFinanceiroRouteImport } from './routes/_authenticated.owner.financeiro'
 import { Route as AuthenticatedOwnerClientesRouteImport } from './routes/_authenticated.owner.clientes'
 import { Route as AuthenticatedAdminSetupRouteImport } from './routes/_authenticated.admin.setup'
+import { Route as AuthenticatedAdminReoRouteImport } from './routes/_authenticated.admin.reo'
 import { Route as AuthenticatedAdminPrestacaoRouteImport } from './routes/_authenticated.admin.prestacao'
 import { Route as AuthenticatedAdminPainelRouteImport } from './routes/_authenticated.admin.painel'
 import { Route as AuthenticatedAdminOrcamentosRouteImport } from './routes/_authenticated.admin.orcamentos'
@@ -195,6 +196,11 @@ const AuthenticatedOwnerClientesRoute =
 const AuthenticatedAdminSetupRoute = AuthenticatedAdminSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminReoRoute = AuthenticatedAdminReoRouteImport.update({
+  id: '/reo',
+  path: '/reo',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedAdminPrestacaoRoute =
@@ -365,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/admin/orcamentos': typeof AuthenticatedAdminOrcamentosRoute
   '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/prestacao': typeof AuthenticatedAdminPrestacaoRoute
+  '/admin/reo': typeof AuthenticatedAdminReoRoute
   '/admin/setup': typeof AuthenticatedAdminSetupRoute
   '/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/admin/orcamentos': typeof AuthenticatedAdminOrcamentosRoute
   '/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/admin/prestacao': typeof AuthenticatedAdminPrestacaoRoute
+  '/admin/reo': typeof AuthenticatedAdminReoRoute
   '/admin/setup': typeof AuthenticatedAdminSetupRoute
   '/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
@@ -466,6 +474,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/orcamentos': typeof AuthenticatedAdminOrcamentosRoute
   '/_authenticated/admin/painel': typeof AuthenticatedAdminPainelRoute
   '/_authenticated/admin/prestacao': typeof AuthenticatedAdminPrestacaoRoute
+  '/_authenticated/admin/reo': typeof AuthenticatedAdminReoRoute
   '/_authenticated/admin/setup': typeof AuthenticatedAdminSetupRoute
   '/_authenticated/owner/clientes': typeof AuthenticatedOwnerClientesRouteWithChildren
   '/_authenticated/owner/financeiro': typeof AuthenticatedOwnerFinanceiroRoute
@@ -519,6 +528,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos'
     | '/admin/painel'
     | '/admin/prestacao'
+    | '/admin/reo'
     | '/admin/setup'
     | '/owner/clientes'
     | '/owner/financeiro'
@@ -567,6 +577,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos'
     | '/admin/painel'
     | '/admin/prestacao'
+    | '/admin/reo'
     | '/admin/setup'
     | '/owner/clientes'
     | '/owner/financeiro'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/orcamentos'
     | '/_authenticated/admin/painel'
     | '/_authenticated/admin/prestacao'
+    | '/_authenticated/admin/reo'
     | '/_authenticated/admin/setup'
     | '/_authenticated/owner/clientes'
     | '/_authenticated/owner/financeiro'
@@ -856,6 +868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSetupRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/reo': {
+      id: '/_authenticated/admin/reo'
+      path: '/reo'
+      fullPath: '/admin/reo'
+      preLoaderRoute: typeof AuthenticatedAdminReoRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/prestacao': {
       id: '/_authenticated/admin/prestacao'
       path: '/prestacao'
@@ -1070,6 +1089,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminOrcamentosRoute: typeof AuthenticatedAdminOrcamentosRoute
   AuthenticatedAdminPainelRoute: typeof AuthenticatedAdminPainelRoute
   AuthenticatedAdminPrestacaoRoute: typeof AuthenticatedAdminPrestacaoRoute
+  AuthenticatedAdminReoRoute: typeof AuthenticatedAdminReoRoute
   AuthenticatedAdminSetupRoute: typeof AuthenticatedAdminSetupRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminCotacoesIdRoute: typeof AuthenticatedAdminCotacoesIdRoute
@@ -1088,6 +1108,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminOrcamentosRoute: AuthenticatedAdminOrcamentosRoute,
   AuthenticatedAdminPainelRoute: AuthenticatedAdminPainelRoute,
   AuthenticatedAdminPrestacaoRoute: AuthenticatedAdminPrestacaoRoute,
+  AuthenticatedAdminReoRoute: AuthenticatedAdminReoRoute,
   AuthenticatedAdminSetupRoute: AuthenticatedAdminSetupRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminCotacoesIdRoute: AuthenticatedAdminCotacoesIdRoute,
