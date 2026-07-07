@@ -380,17 +380,9 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
   .handler(async ({ data, context }) => {
-    // Reaproveita carregarReo internamente
-    const { supabase } = context;
-    const id = await orgId(supabase);
-    // Chama a mesma lógica de carregarReo diretamente (evita ida ao HTTP)
-    const reo = await (async () => {
-      const fn = carregarReo as any;
-      return fn({ data: { mes: data.mes }, context } as any);
-    })().catch(async () => {
-      // fallback: recarrega manualmente
-      throw new Error("Falha ao carregar dados do REO");
-    });
+    const id = await orgId(context.supabase);
+    const reo = await computeReo(context.supabase, id, data.mes);
+
 
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
