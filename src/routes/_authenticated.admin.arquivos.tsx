@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle } from "lucide-react";
-import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus } from "@/lib/arquivos.functions";
+import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle, Trash2 } from "lucide-react";
+import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus, excluirArquivoDaOrg } from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
+
 
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
   component: ArquivosPage,
