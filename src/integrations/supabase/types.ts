@@ -628,6 +628,7 @@ export type Database = {
           id_interno: string | null
           mes_referencia: string
           metadata: Json
+          natureza_despesa_codigo: string | null
           nm_favorecido: string | null
           nr_doc_fav: string | null
           nr_documento: string | null
@@ -642,6 +643,7 @@ export type Database = {
           tp_documento_pagamento: number | null
           updated_at: string
           valor_efetivo: number | null
+          valor_estornado: number
           valor_previsto: number | null
         }
         Insert: {
@@ -659,6 +661,7 @@ export type Database = {
           id_interno?: string | null
           mes_referencia: string
           metadata?: Json
+          natureza_despesa_codigo?: string | null
           nm_favorecido?: string | null
           nr_doc_fav?: string | null
           nr_documento?: string | null
@@ -673,6 +676,7 @@ export type Database = {
           tp_documento_pagamento?: number | null
           updated_at?: string
           valor_efetivo?: number | null
+          valor_estornado?: number
           valor_previsto?: number | null
         }
         Update: {
@@ -690,6 +694,7 @@ export type Database = {
           id_interno?: string | null
           mes_referencia?: string
           metadata?: Json
+          natureza_despesa_codigo?: string | null
           nm_favorecido?: string | null
           nr_doc_fav?: string | null
           nr_documento?: string | null
@@ -704,6 +709,7 @@ export type Database = {
           tp_documento_pagamento?: number | null
           updated_at?: string
           valor_efetivo?: number | null
+          valor_estornado?: number
           valor_previsto?: number | null
         }
         Relationships: [
@@ -713,6 +719,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fornecedores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_financeiros_natureza_despesa_codigo_fkey"
+            columns: ["natureza_despesa_codigo"]
+            isOneToOne: false
+            referencedRelation: "naturezas_despesa"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "eventos_financeiros_organization_id_fkey"
@@ -1044,6 +1057,74 @@ export type Database = {
           },
         ]
       }
+      movimento_bancario_mensal: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          estornos_extra: number
+          id: string
+          mes_referencia: string
+          observacao: string | null
+          organization_id: string
+          rendimentos: number
+          saldo_anterior: number
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          estornos_extra?: number
+          id?: string
+          mes_referencia: string
+          observacao?: string | null
+          organization_id: string
+          rendimentos?: number
+          saldo_anterior?: number
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          estornos_extra?: number
+          id?: string
+          mes_referencia?: string
+          observacao?: string | null
+          organization_id?: string
+          rendimentos?: number
+          saldo_anterior?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimento_bancario_mensal_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      naturezas_despesa: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          descricao: string
+          grupo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          descricao: string
+          grupo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string
+          grupo?: string
+        }
+        Relationships: []
+      }
       objetos_cotacao: {
         Row: {
           categoria: string | null
@@ -1313,6 +1394,57 @@ export type Database = {
           },
         ]
       }
+      plano_aplicacao: {
+        Row: {
+          atualizado_em: string
+          convenio: string | null
+          criado_em: string
+          id: string
+          natureza_codigo: string
+          organization_id: string
+          valor_previsto: number
+          vigencia_fim: string
+          vigencia_inicio: string
+        }
+        Insert: {
+          atualizado_em?: string
+          convenio?: string | null
+          criado_em?: string
+          id?: string
+          natureza_codigo: string
+          organization_id: string
+          valor_previsto?: number
+          vigencia_fim: string
+          vigencia_inicio: string
+        }
+        Update: {
+          atualizado_em?: string
+          convenio?: string | null
+          criado_em?: string
+          id?: string
+          natureza_codigo?: string
+          organization_id?: string
+          valor_previsto?: number
+          vigencia_fim?: string
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_aplicacao_natureza_codigo_fkey"
+            columns: ["natureza_codigo"]
+            isOneToOne: false
+            referencedRelation: "naturezas_despesa"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "plano_aplicacao_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prestacao_documentos: {
         Row: {
           aprovado_em: string | null
@@ -1529,6 +1661,7 @@ export type Database = {
           organization_id: string
           prioridade: number
           set_cd_modalidade: number | null
+          set_natureza_codigo: string | null
           set_nm_favorecido: string | null
           set_nr_documento_favorecido: string | null
           set_tp_despesa: number | null
@@ -1547,6 +1680,7 @@ export type Database = {
           organization_id: string
           prioridade?: number
           set_cd_modalidade?: number | null
+          set_natureza_codigo?: string | null
           set_nm_favorecido?: string | null
           set_nr_documento_favorecido?: string | null
           set_tp_despesa?: number | null
@@ -1565,6 +1699,7 @@ export type Database = {
           organization_id?: string
           prioridade?: number
           set_cd_modalidade?: number | null
+          set_natureza_codigo?: string | null
           set_nm_favorecido?: string | null
           set_nr_documento_favorecido?: string | null
           set_tp_despesa?: number | null
@@ -1574,6 +1709,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "regras_despesa_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regras_despesa_set_natureza_codigo_fkey"
+            columns: ["set_natureza_codigo"]
+            isOneToOne: false
+            referencedRelation: "naturezas_despesa"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      repasses_recebidos: {
+        Row: {
+          atualizado_em: string
+          convenio: string | null
+          criado_em: string
+          data_recebimento: string
+          id: string
+          mes_referencia: string
+          numero_parcela: number
+          observacao: string | null
+          organization_id: string
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          convenio?: string | null
+          criado_em?: string
+          data_recebimento: string
+          id?: string
+          mes_referencia: string
+          numero_parcela: number
+          observacao?: string | null
+          organization_id: string
+          valor: number
+        }
+        Update: {
+          atualizado_em?: string
+          convenio?: string | null
+          criado_em?: string
+          data_recebimento?: string
+          id?: string
+          mes_referencia?: string
+          numero_parcela?: number
+          observacao?: string | null
+          organization_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repasses_recebidos_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
