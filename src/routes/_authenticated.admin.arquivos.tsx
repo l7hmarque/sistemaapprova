@@ -282,6 +282,15 @@ function ArquivosPage() {
                         <Download className="h-4 w-4" />
                       )}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setConfirmarExcluir({ id: f.id, name: f.name })}
+                      title="Excluir"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </li>
                 );
               })}
@@ -290,6 +299,29 @@ function ArquivosPage() {
         </CardContent>
       </Card>
 
+      <AlertDialog open={!!confirmarExcluir} onOpenChange={(v) => !v && setConfirmarExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O arquivo <strong>{confirmarExcluir?.name}</strong> será movido para a lixeira do Drive
+              e removido dos vínculos (anexos e documentos de prestação). Esta ação não pode ser desfeita
+              pela interface. Arquivos ligados a prestações homologadas são bloqueados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              onClick={(e) => { e.preventDefault(); excluirConfirmado(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
