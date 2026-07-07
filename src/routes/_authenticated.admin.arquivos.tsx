@@ -45,10 +45,15 @@ function ArquivosPage() {
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
   const [baixando, setBaixando] = useState<string | null>(null);
+  const [confirmarExcluir, setConfirmarExcluir] = useState<{ id: string; name: string } | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const qc = useQueryClient();
 
   const fnList = useServerFn(listarArquivosDaOrg);
   const fnQuota = useServerFn(getDriveQuota);
   const fnSync = useServerFn(getDriveSyncStatus);
+  const fnDelete = useServerFn(excluirArquivoDaOrg);
+
 
   const filesQ = useQuery({
     queryKey: ["arquivos", activeOrgId, section, mes],
