@@ -264,7 +264,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
 
     // 5. IA — extrai LISTA de documentos
-    await supabaseAdmin.from("captura_jobs").update({ mensagem: "extraindo com IA" }).eq("id", jobId);
+    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lendo documento" }).eq("id", jobId);
 
     const dadosVazio: Dados = {
       tipo: null, cnpj: null, razao_social: null, valor: null, numero: null,
@@ -308,7 +308,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     // 6. Vínculo / fornecedor / evento — carrega config e caches uma vez
     await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando eventos" }).eq("id", jobId);
 
-    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }, { data: regrasRaw }] = await Promise.all([
+    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }, { data: regrasRaw }, { data: natRaw }] = await Promise.all([
       supabaseAdmin.from("configuracoes").select("valor").eq("organization_id", orgId).eq("chave", "auto_vinculo").maybeSingle(),
       supabaseAdmin.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", orgId),
       supabaseAdmin
@@ -318,8 +318,10 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         .eq("mes_referencia", mesRef)
         .is("excluido_em", null),
       supabaseAdmin.from("regras_despesa").select("*").eq("organization_id", orgId),
+      supabaseAdmin.from("naturezas_despesa").select("codigo").eq("ativo", true),
     ]);
-    const regrasOrg = (regrasRaw ?? []) as RegraDespesa[];
+    const regrasOrg = (regrasRaw ?? []) as Array<RegraDespesa & { set_natureza_codigo?: string | null }>;
+    const naturezasAtivas = new Set<string>((natRaw ?? []).map((n) => n.codigo as string));
     const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
     const tolValor = ((typeof v?.valor_centavos === "number" ? v.valor_centavos : 50)) / 100;
     const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
@@ -431,8 +433,46 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         if (camposFinal.tp_despesa === 271 && camposFinal.cd_modalidade_compra == null) {
           camposFinal.cd_modalidade_compra = 101;
         }
-        // Nº doc pagamento espelha Nº do documento quando a IA não trouxe valor específico.
+        // Nº doc pagamento espelha Nº do documento quando não vier valor específico.
         const nrDocPagamento = dados.numero_pagamento ?? dados.numero ?? null;
+
+        // Resolve natureza contábil: sugestão da extração → regra por fornecedor → null
+        let naturezaResolvida: string | null = null;
+        let origemNatureza: "ia" | "regra_fornecedor" | null = null;
+        const sugestao = (dados as { sugestaoCategoria?: string | null }).sugestaoCategoria;
+        const sugestaoTrim = typeof sugestao === "string" ? sugestao.trim() : "";
+        if (sugestaoTrim && naturezasAtivas.has(sugestaoTrim)) {
+          naturezaResolvida = sugestaoTrim;
+          origemNatureza = "ia";
+        } else {
+          const camposMatch = {
+            tp_despesa: camposFinal.tp_despesa,
+            tp_documento_despesa: camposFinal.tp_documento_despesa,
+            cd_modalidade_compra: camposFinal.cd_modalidade_compra,
+            tp_documento_pagamento: camposFinal.tp_documento_pagamento,
+            tp_doc_fav: camposFinal.tp_doc_fav,
+            nr_doc_fav: camposFinal.nr_doc_fav,
+            nm_favorecido: camposFinal.nm_favorecido,
+          };
+          const regraNat = regrasOrg
+            .filter((r) => r.ativo && r.set_natureza_codigo && naturezasAtivas.has(r.set_natureza_codigo))
+            .sort((a, b) => a.prioridade - b.prioridade)
+            .find((r) => {
+              if (r.match_tp_despesa == null && r.match_tp_documento == null && !r.match_favorecido_regex) return false;
+              if (r.match_tp_despesa != null && camposMatch.tp_despesa !== r.match_tp_despesa) return false;
+              if (r.match_tp_documento != null && camposMatch.tp_documento_despesa !== r.match_tp_documento) return false;
+              if (r.match_favorecido_regex) {
+                try {
+                  if (!new RegExp(r.match_favorecido_regex, "i").test(camposMatch.nm_favorecido ?? "")) return false;
+                } catch { return false; }
+              }
+              return true;
+            });
+          if (regraNat?.set_natureza_codigo) {
+            naturezaResolvida = regraNat.set_natureza_codigo;
+            origemNatureza = "regra_fornecedor";
+          }
+        }
 
         const evIns = await supabaseAdmin
           .from("eventos_financeiros")
@@ -457,6 +497,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             nr_documento_pagamento: nrDocPagamento,
             tp_despesa: camposFinal.tp_despesa,
             cd_modalidade_compra: camposFinal.cd_modalidade_compra,
+            natureza_despesa_codigo: naturezaResolvida,
             status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados.tipo,
@@ -474,6 +515,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
               precisa_revisao: marcarDuplicata || !valorNum,
               motivo_revisao: marcarDuplicata ? "Arquivo duplicado — revisar manualmente"
                 : (!valorNum ? "Valor não extraído" : null),
+              origem_natureza: origemNatureza,
             },
           })
           .select("id")
