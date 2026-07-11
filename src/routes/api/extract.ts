@@ -247,17 +247,27 @@ export const Route = createFileRoute("/api/extract")({
           }
 
           // Persistir cache (best effort; falhas não bloqueiam resposta)
-          supabaseAdmin
-            .from("extracoes_salvas")
-            .insert({
-              dados: final,
-              hash_arquivo: hash,
-              mes_referencia: final.mesReferencia ?? null,
-              nome_arquivo: `cache-${hash.slice(0, 8)}`,
-            })
-            .then(({ error }) => {
-              if (error) console.warn("[api/extract] cache insert falhou", error.message);
-            });
+          const { data: memb } = await supabaseAdmin
+            .from("organization_members")
+            .select("organization_id")
+            .eq("user_id", userRes.user.id)
+            .order("criado_em", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (memb?.organization_id) {
+            supabaseAdmin
+              .from("extracoes_salvas")
+              .insert({
+                organization_id: memb.organization_id,
+                dados: final,
+                hash_arquivo: hash,
+                mes_referencia: final.mesReferencia ?? null,
+                nome_arquivo: `cache-${hash.slice(0, 8)}`,
+              })
+              .then(({ error }) => {
+                if (error) console.warn("[api/extract] cache insert falhou", error.message);
+              });
+          }
 
           return Response.json(final);
         } catch (e: unknown) {
