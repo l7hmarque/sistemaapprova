@@ -27,9 +27,12 @@ export const criarConvite = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const token = gerarToken();
     const expira = new Date(Date.now() + data.validade_dias * 86400_000).toISOString();
+    const { data: orgId } = await context.supabase.rpc("current_user_org");
+    if (!orgId) throw new Error("Organização ativa não encontrada.");
     const { data: row, error } = await context.supabase
       .from("convites_cotacao")
       .insert({
+        organization_id: orgId as string,
         cotacao_id: data.cotacao_id,
         fornecedor_id: data.fornecedor_id || null,
         razao_social: data.razao_social,
