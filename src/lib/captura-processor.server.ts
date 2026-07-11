@@ -264,7 +264,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
 
     // 5. IA — extrai LISTA de documentos
-    await supabaseAdmin.from("captura_jobs").update({ mensagem: "extraindo com IA" }).eq("id", jobId);
+    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lendo documento" }).eq("id", jobId);
 
     const dadosVazio: Dados = {
       tipo: null, cnpj: null, razao_social: null, valor: null, numero: null,
