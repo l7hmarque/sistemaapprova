@@ -433,8 +433,46 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
         if (camposFinal.tp_despesa === 271 && camposFinal.cd_modalidade_compra == null) {
           camposFinal.cd_modalidade_compra = 101;
         }
-        // Nº doc pagamento espelha Nº do documento quando a IA não trouxe valor específico.
+        // Nº doc pagamento espelha Nº do documento quando não vier valor específico.
         const nrDocPagamento = dados.numero_pagamento ?? dados.numero ?? null;
+
+        // Resolve natureza contábil: sugestão da extração → regra por fornecedor → null
+        let naturezaResolvida: string | null = null;
+        let origemNatureza: "ia" | "regra_fornecedor" | null = null;
+        const sugestao = (dados as { sugestaoCategoria?: string | null }).sugestaoCategoria;
+        const sugestaoTrim = typeof sugestao === "string" ? sugestao.trim() : "";
+        if (sugestaoTrim && naturezasAtivas.has(sugestaoTrim)) {
+          naturezaResolvida = sugestaoTrim;
+          origemNatureza = "ia";
+        } else {
+          const camposMatch = {
+            tp_despesa: camposFinal.tp_despesa,
+            tp_documento_despesa: camposFinal.tp_documento_despesa,
+            cd_modalidade_compra: camposFinal.cd_modalidade_compra,
+            tp_documento_pagamento: camposFinal.tp_documento_pagamento,
+            tp_doc_fav: camposFinal.tp_doc_fav,
+            nr_doc_fav: camposFinal.nr_doc_fav,
+            nm_favorecido: camposFinal.nm_favorecido,
+          };
+          const regraNat = regrasOrg
+            .filter((r) => r.ativo && r.set_natureza_codigo && naturezasAtivas.has(r.set_natureza_codigo))
+            .sort((a, b) => a.prioridade - b.prioridade)
+            .find((r) => {
+              if (r.match_tp_despesa == null && r.match_tp_documento == null && !r.match_favorecido_regex) return false;
+              if (r.match_tp_despesa != null && camposMatch.tp_despesa !== r.match_tp_despesa) return false;
+              if (r.match_tp_documento != null && camposMatch.tp_documento_despesa !== r.match_tp_documento) return false;
+              if (r.match_favorecido_regex) {
+                try {
+                  if (!new RegExp(r.match_favorecido_regex, "i").test(camposMatch.nm_favorecido ?? "")) return false;
+                } catch { return false; }
+              }
+              return true;
+            });
+          if (regraNat?.set_natureza_codigo) {
+            naturezaResolvida = regraNat.set_natureza_codigo;
+            origemNatureza = "regra_fornecedor";
+          }
+        }
 
         const evIns = await supabaseAdmin
           .from("eventos_financeiros")
