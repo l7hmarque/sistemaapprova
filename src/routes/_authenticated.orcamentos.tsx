@@ -903,7 +903,10 @@ function PresetsTab() {
         const [desc, un = "un", qtd = "1"] = l.split(";").map((s) => s.trim());
         return { descricao: desc, unidade: un, qtd: Number(qtd) || 1 };
       });
+    const { data: orgId } = await supabase.rpc("current_user_org");
+    if (!orgId) return toast.error("Organização ativa não encontrada.");
     const { error } = await supabase.from("orcamento_presets").insert({
+      organization_id: orgId as string,
       nome, objeto, termo, itens, fornecedores_sugeridos: [],
     });
     if (error) return toast.error("Falha: " + error.message);
