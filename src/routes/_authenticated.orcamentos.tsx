@@ -146,7 +146,10 @@ async function upsertFornecedor(f: Omit<Fornecedor, "id">): Promise<void> {
     .eq("cnpj", cnpj)
     .maybeSingle();
   if (existing) return;
+  const { data: orgId } = await supabase.rpc("current_user_org");
+  if (!orgId) return;
   await supabase.from("fornecedores").insert({
+    organization_id: orgId as string,
     cnpj,
     razao_social: f.razao_social,
     representante_legal: f.representante_legal ?? null,
