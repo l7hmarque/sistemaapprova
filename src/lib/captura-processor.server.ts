@@ -497,6 +497,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             nr_documento_pagamento: nrDocPagamento,
             tp_despesa: camposFinal.tp_despesa,
             cd_modalidade_compra: camposFinal.cd_modalidade_compra,
+            natureza_despesa_codigo: naturezaResolvida,
             status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
             metadata: {
               tipo: dados.tipo,
@@ -514,6 +515,7 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
               precisa_revisao: marcarDuplicata || !valorNum,
               motivo_revisao: marcarDuplicata ? "Arquivo duplicado — revisar manualmente"
                 : (!valorNum ? "Valor não extraído" : null),
+              origem_natureza: origemNatureza,
             },
           })
           .select("id")
