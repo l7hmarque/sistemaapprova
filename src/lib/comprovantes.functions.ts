@@ -111,9 +111,12 @@ export const anexarComprovante = createServerFn({ method: "POST" })
       .upload(path, bytes, { contentType: data.mimeType, upsert: true });
     if (upErr) throw new Error(`Falha no upload: ${upErr.message}`);
 
+    const { data: orgIdRes } = await supabase.rpc("current_user_org");
+    if (!orgIdRes) throw new Error("Organização ativa não encontrada.");
     const { data: ins, error: insErr } = await supabase
       .from("prestacao_documentos")
       .insert({
+        organization_id: orgIdRes as string,
         nome: data.nome,
         descricao: userId, // usamos descricao p/ guardar quem fez upload (sem coluna nova)
         ordem: 0,
