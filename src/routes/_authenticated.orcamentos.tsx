@@ -146,7 +146,10 @@ async function upsertFornecedor(f: Omit<Fornecedor, "id">): Promise<void> {
     .eq("cnpj", cnpj)
     .maybeSingle();
   if (existing) return;
+  const { data: orgId } = await supabase.rpc("current_user_org");
+  if (!orgId) return;
   await supabase.from("fornecedores").insert({
+    organization_id: orgId as string,
     cnpj,
     razao_social: f.razao_social,
     representante_legal: f.representante_legal ?? null,
@@ -900,7 +903,10 @@ function PresetsTab() {
         const [desc, un = "un", qtd = "1"] = l.split(";").map((s) => s.trim());
         return { descricao: desc, unidade: un, qtd: Number(qtd) || 1 };
       });
+    const { data: orgId } = await supabase.rpc("current_user_org");
+    if (!orgId) return toast.error("Organização ativa não encontrada.");
     const { error } = await supabase.from("orcamento_presets").insert({
+      organization_id: orgId as string,
       nome, objeto, termo, itens, fornecedores_sugeridos: [],
     });
     if (error) return toast.error("Falha: " + error.message);

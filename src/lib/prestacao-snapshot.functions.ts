@@ -298,6 +298,7 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     const { data: snap, error: eins } = await adm
       .from("prestacoes_snapshot")
       .insert({
+        organization_id: orgId!,
         mes_referencia: mes,
         titulo,
         pdf_url: signed?.signedUrl ?? null,

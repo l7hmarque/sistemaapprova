@@ -165,6 +165,7 @@ export const Route = createFileRoute("/api/public/cotacao/$token")({
         const { data: orcRow } = await supabaseAdmin
           .from("orcamentos_salvos")
           .insert({
+            organization_id: cot.organization_id,
             tipo: "cotacao",
             objeto: cot.objeto,
             termo: cot.termo,
