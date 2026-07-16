@@ -186,6 +186,18 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
       throw new Error(`Nenhum evento em ${mes}.`);
     }
 
+    // Bloqueia homologação se houver eventos ainda em rascunho ou pendentes de revisão.
+    const pendentes = (eventos as any[]).filter((e) =>
+      ["rascunho", "pendente_revisao"].includes(e.status_workflow)
+    );
+    if (pendentes.length > 0) {
+      throw new Error(
+        `Não é possível gerar snapshot: ${pendentes.length} evento(s) ainda pendente(s) de aprovação em ${mes}. Aprove-os em Admin → Aprovações.`
+      );
+    }
+
+
+
     const eventoIds = eventos.map((e) => e.id);
 
     // 2) Anexos vinculados
