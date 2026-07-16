@@ -16,12 +16,15 @@ import {
   FolderTree,
   Landmark,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { signOutLimpo } from "@/lib/auth/signOutLimpo";
 import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useViewAs } from "@/hooks/use-view-as";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { resumoDashboard } from "@/lib/aprovacoes.functions";
 import { ViewAsSwitcher } from "./ViewAsSwitcher";
 import { toast } from "sonner";
 
@@ -51,6 +54,17 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { role: viewAsRole } = useViewAs();
   const nav = useNavigate();
   const queryClient = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
+  const resumoFn = useServerFn(resumoDashboard);
+  const { data: resumo } = useQuery({
+    queryKey: ["dashboard-resumo", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => resumoFn({ data: { organization_id: activeOrgId! } }),
+    staleTime: 60_000,
+  });
+  const badges: Record<string, number> = {
+    "/admin/aprovacoes": resumo?.pendentesRevisao ?? 0,
+  };
 
   const sair = async () => {
     await signOutLimpo(queryClient);
@@ -91,7 +105,12 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                 className="h-4 w-4"
                 style={active ? { color: "var(--module-accent, var(--primary))" } : undefined}
               />
-              <span className="font-medium">{it.label}</span>
+              <span className="font-medium flex-1">{it.label}</span>
+              {badges[it.to] > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-500 text-white text-[10px] font-semibold h-5 min-w-5 px-1.5">
+                  {badges[it.to]}
+                </span>
+              )}
             </Link>
           );
         })}

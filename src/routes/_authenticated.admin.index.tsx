@@ -1,18 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, CartesianGrid,
-} from "recharts";
-import { FileText, Users, Package, CalendarClock } from "lucide-react";
-
+  ShieldCheck, Tag, Paperclip, CalendarClock, FileCheck2, ArrowRight, Landmark,
+} from "lucide-react";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
+import { resumoDashboard } from "@/lib/aprovacoes.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/")({ component: DashboardRoute });
-
+export const Route = createFileRoute("/_authenticated/admin/")({
+  component: DashboardRoute,
+});
 
 function DashboardRoute() {
   const { activeOrg } = useActiveOrg();
@@ -22,147 +23,166 @@ function DashboardRoute() {
   return <Dashboard />;
 }
 
-type Orc = { criado_em: string; tipo: string; fornecedor_id: string | null; dados: any };
-
 function Dashboard() {
-  const { activeOrgId } = useActiveOrg();
-  const [orcs, setOrcs] = useState<Orc[]>([]);
-  const [fornCount, setFornCount] = useState(0);
-  const [objCount, setObjCount] = useState(0);
-
-  useEffect(() => {
-    if (!activeOrgId) { setOrcs([]); setFornCount(0); setObjCount(0); return; }
-    (async () => {
-      const [o, f, ob] = await Promise.all([
-        supabase.from("orcamentos_salvos").select("criado_em, tipo, fornecedor_id, dados")
-          .eq("organization_id", activeOrgId)
-          .order("criado_em", { ascending: false }).limit(500),
-        supabase.from("fornecedores").select("id", { count: "exact", head: true })
-          .eq("organization_id", activeOrgId),
-        supabase.from("objetos_cotacao").select("id", { count: "exact", head: true })
-          .eq("organization_id", activeOrgId),
-      ]);
-      if (o.data) setOrcs(o.data as Orc[]);
-      else setOrcs([]);
-      setFornCount(f.count ?? 0);
-      setObjCount(ob.count ?? 0);
-    })();
-  }, [activeOrgId]);
-
-
-  const now = new Date();
-  const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const noMes = orcs.filter((o) => o.criado_em.startsWith(mesAtual)).length;
-
-  // por mês (últimos 6)
-  const meses: { mes: string; total: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    meses.push({ mes: k.slice(2), total: orcs.filter((o) => o.criado_em.startsWith(k)).length });
-  }
-
-  // gasto por mês (soma de dados.total quando existir)
-  const gastoMes = meses.map((m) => {
-    const k = `20${m.mes.replace("-", "-")}`;
-    const total = orcs
-      .filter((o) => o.criado_em.startsWith(k))
-      .reduce((acc, o) => acc + (Number(o.dados?.total) || 0), 0);
-    return { mes: m.mes, valor: Math.round(total) };
+  const { activeOrgId, activeOrg } = useActiveOrg();
+  const fn = useServerFn(resumoDashboard);
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard-resumo", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fn({ data: { organization_id: activeOrgId! } }),
   });
-
-  // distribuição por fornecedor (top 5)
-  const porForn = new Map<string, number>();
-  orcs.forEach((o) => {
-    const k = o.fornecedor_id ?? "sem";
-    porForn.set(k, (porForn.get(k) ?? 0) + 1);
-  });
-  const donut = [...porForn.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([k, v], i) => ({ name: k === "sem" ? "Sem fornecedor" : `#${i + 1}`, value: v }));
-
-  const TONS = ["#0a0a0a", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8"];
 
   return (
     <div className="p-8 space-y-8">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl uppercase">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visão geral do sistema</p>
-        </div>
+      <header>
+        <h1 className="font-display text-3xl uppercase">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {activeOrg?.nome ? `${activeOrg.nome} — ` : ""}pendências e próximos passos do mês {data?.mesAtual ?? ""}.
+        </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Stat icon={<FileText className="h-5 w-5" />} label="Orçamentos no mês" value={noMes} />
-        <Stat icon={<Users className="h-5 w-5" />} label="Fornecedores" value={fornCount} />
-        <Stat icon={<Package className="h-5 w-5" />} label="Objetos cadastrados" value={objCount} />
-        <Stat icon={<CalendarClock className="h-5 w-5" />} label="Documentos a vencer" value={0} hint="Configure em Prestação" />
-      </div>
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle className="text-sm uppercase tracking-wide">Orçamentos por mês</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={meses}>
-                <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="total" fill="#0a0a0a" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {data && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <ActionCard
+              icon={<ShieldCheck className="h-5 w-5" />}
+              label="A aprovar"
+              value={data.pendentesRevisao}
+              hint="Eventos em rascunho ou pendentes"
+              to="/admin/aprovacoes"
+              cta="Revisar"
+              tone={data.pendentesRevisao > 0 ? "warn" : "ok"}
+            />
+            <ActionCard
+              icon={<Tag className="h-5 w-5" />}
+              label="Sem natureza REO"
+              value={data.semNatureza}
+              hint="Eventos aprovados sem código 3.3.90.*"
+              to="/admin/painel"
+              cta="Classificar"
+              tone={data.semNatureza > 0 ? "warn" : "ok"}
+            />
+            <ActionCard
+              icon={<Paperclip className="h-5 w-5" />}
+              label="Sem comprovante"
+              value={data.pagosSemComprovante}
+              hint="Eventos pagos sem anexo"
+              to="/admin/captura"
+              cta="Anexar"
+              tone={data.pagosSemComprovante > 0 ? "warn" : "ok"}
+            />
+            <ActionCard
+              icon={<CalendarClock className="h-5 w-5" />}
+              label="Docs vencendo (30d)"
+              value={data.docsVencendo.length}
+              hint="Certidões e comprovantes de vigência"
+              to="/admin/prestacao"
+              cta="Ver"
+              tone={data.docsVencendo.length > 0 ? "warn" : "ok"}
+            />
+          </div>
 
-        <Card>
-          <CardHeader><CardTitle className="text-sm uppercase tracking-wide">Valor por mês</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={gastoMes}>
-                <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="valor" stroke="#0a0a0a" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm uppercase tracking-wide flex items-center gap-2">
+                  <Landmark className="h-4 w-4" /> Fechar mês {data.mesAnterior}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {data.snapshotMesAnterior ? (
+                  <p className="text-sm text-muted-foreground">
+                    Mês já homologado. Baixe o relatório na aba de snapshots.
+                  </p>
+                ) : data.podeFecharMesAnterior ? (
+                  <>
+                    <p className="text-sm">Todos os eventos do mês anterior estão aprovados — pronto para homologar.</p>
+                    <Button asChild size="sm">
+                      <Link to="/admin/prestacao">Gerar snapshot <ArrowRight className="h-4 w-4 ml-1" /></Link>
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {data.pendenciasMesAnterior} evento(s) do mês anterior ainda pendente(s) de aprovação.{" "}
+                    <Link to="/admin/aprovacoes" className="underline">Ver aprovações</Link>.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-sm uppercase tracking-wide">Distribuição por fornecedor (top 5)</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            {donut.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Sem dados ainda.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={donut} dataKey="value" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                    {donut.map((_, i) => <Cell key={i} fill={TONS[i % TONS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm uppercase tracking-wide flex items-center gap-2">
+                  <FileCheck2 className="h-4 w-4" /> Últimos relatórios
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.snapshots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum snapshot ainda.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {data.snapshots.map((s: any) => (
+                      <li key={s.id} className="py-2 flex items-center justify-between text-sm">
+                        <div>
+                          <div className="font-medium">{s.titulo ?? s.mes_referencia}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {s.mes_referencia} · {new Date(s.criado_em).toLocaleDateString("pt-BR")}
+                          </div>
+                        </div>
+                        <Button asChild size="sm" variant="outline">
+                          <Link to="/admin/prestacao">Abrir</Link>
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {data.docsVencendo.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm uppercase tracking-wide">Documentos vencendo em 30 dias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y">
+                  {data.docsVencendo.map((d: any) => (
+                    <li key={d.id} className="py-2 flex items-center justify-between text-sm">
+                      <span>{d.nome}</span>
+                      <Badge variant="secondary">Válido até {d.valido_ate ?? d.data_vencimento}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-function Stat({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: number | string; hint?: string }) {
+function ActionCard({
+  icon, label, value, hint, to, cta, tone,
+}: {
+  icon: React.ReactNode; label: string; value: number; hint: string;
+  to: string; cta: string; tone: "ok" | "warn";
+}) {
   return (
-    <Card>
+    <Card className={tone === "warn" && value > 0 ? "border-orange-300" : ""}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
           <div className="text-muted-foreground">{icon}</div>
         </div>
         <div className="font-display text-4xl mt-3">{value}</div>
-        {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
+        <div className="text-xs text-muted-foreground mt-1">{hint}</div>
+        <Button asChild size="sm" variant="ghost" className="mt-3 -ml-2 h-8 gap-1">
+          <Link to={to as any}>{cta} <ArrowRight className="h-3 w-3" /></Link>
+        </Button>
       </CardContent>
     </Card>
   );

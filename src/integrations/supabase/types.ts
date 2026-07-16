@@ -614,6 +614,8 @@ export type Database = {
       }
       eventos_financeiros: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           categoria: string
           cd_modalidade_compra: number | null
           created_at: string
@@ -621,6 +623,7 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           descricao: string | null
+          devolvido_motivo: string | null
           excluido_em: string | null
           excluido_por: string | null
           fornecedor_id: string | null
@@ -637,6 +640,7 @@ export type Database = {
           origem: string
           prestacao_snapshot_id: string | null
           status_documental: string
+          status_workflow: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa: number | null
           tp_doc_fav: string | null
           tp_documento_despesa: number | null
@@ -647,6 +651,8 @@ export type Database = {
           valor_previsto: number | null
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           categoria: string
           cd_modalidade_compra?: number | null
           created_at?: string
@@ -654,6 +660,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          devolvido_motivo?: string | null
           excluido_em?: string | null
           excluido_por?: string | null
           fornecedor_id?: string | null
@@ -670,6 +677,7 @@ export type Database = {
           origem?: string
           prestacao_snapshot_id?: string | null
           status_documental?: string
+          status_workflow?: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa?: number | null
           tp_doc_fav?: string | null
           tp_documento_despesa?: number | null
@@ -680,6 +688,8 @@ export type Database = {
           valor_previsto?: number | null
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           categoria?: string
           cd_modalidade_compra?: number | null
           created_at?: string
@@ -687,6 +697,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          devolvido_motivo?: string | null
           excluido_em?: string | null
           excluido_por?: string | null
           fornecedor_id?: string | null
@@ -703,6 +714,7 @@ export type Database = {
           origem?: string
           prestacao_snapshot_id?: string | null
           status_documental?: string
+          status_workflow?: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa?: number | null
           tp_doc_fav?: string | null
           tp_documento_despesa?: number | null
@@ -1892,6 +1904,11 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "org_owner" | "org_admin" | "org_member"
+      evento_status_workflow:
+        | "rascunho"
+        | "pendente_revisao"
+        | "aprovado"
+        | "homologado"
       org_member_role: "owner" | "admin" | "membro"
       org_status: "trial" | "ativo" | "suspenso" | "cancelado"
       org_tipo: "osc" | "escritorio"
@@ -2023,6 +2040,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "org_owner", "org_admin", "org_member"],
+      evento_status_workflow: [
+        "rascunho",
+        "pendente_revisao",
+        "aprovado",
+        "homologado",
+      ],
       org_member_role: ["owner", "admin", "membro"],
       org_status: ["trial", "ativo", "suspenso", "cancelado"],
       org_tipo: ["osc", "escritorio"],

@@ -1,40 +1,49 @@
-## Milestone 1 — Continuação: Isolamento multi-tenant no cliente e blindagem final
+## Milestone 2 — Workflow de aprovação/homologação e dashboard acionável
 
-Contexto: as server functions já exigem `organization_id` explícito. Falta blindar o **cliente** para (a) não vazar dados entre organizações ao alternar contexto e (b) garantir que todo insert/update passe a org ativa correta.
+Milestone 1 (isolamento multi-tenant) está fechado. Proponho seguir com o M2 focado no fluxo de trabalho mensal do usuário: quem aprova o quê, quando fecha o mês, e o que a home do admin mostra.
 
-### 1. Isolamento no switch de organização
-Arquivo: `src/hooks/use-active-org.tsx`
-- Ao trocar de organização ativa: `queryClient.removeQueries()` (remoção total, não apenas invalidate) para eliminar cache cruzado.
-- Persistir a org ativa em `localStorage` com chave versionada e limpar no `signOutLimpo`.
-- Expor `activeOrgId` tipado e um helper `requireActiveOrg()` que lança se null.
+### 1. Estados do evento financeiro
+Hoje `eventos_financeiros` tem `status` livre. Vamos formalizar:
+- `rascunho` (captura crua) → `pendente_revisao` → `aprovado` → `homologado` (via snapshot).
+- Transições permitidas por papel: membro cria/edita rascunho e pendente; admin/owner aprova; snapshot homologa.
+- Migração: adicionar `status_workflow` (enum) + backfill baseado em `prestacao_snapshot_id` e `revisado_em`.
 
-### 2. Sign-out hygiene
-Arquivo: `src/lib/auth/signOutLimpo.ts`
-- Após `supabase.auth.signOut()`: `queryClient.clear()` + limpar chaves `synsit_*` / `approva_*` do localStorage.
+### 2. Tela de Aprovações (`/admin/aprovacoes`)
+A rota já existe como placeholder. Implementar:
+- Lista de eventos `pendente_revisao` do mês, agrupados por natureza REO.
+- Ações em lote: aprovar seleção, devolver para rascunho com motivo, marcar duplicata.
+- Filtros: sem natureza, sem comprovante, valor divergente (previsto vs efetivo > 10%).
+- Só admin/owner enxerga; membro é redirecionado.
 
-### 3. Auditoria de inserts diretos do cliente
-Varrer `src/**/*.tsx` e `src/**/*.ts` procurando `.from("<tabela>").insert(` sem `organization_id`. Candidatos prováveis:
-- `src/routes/_authenticated.admin.configuracoes.*` (regras, equipe, organização)
-- `src/routes/_authenticated.admin.fornecedores.tsx`
-- `src/routes/_authenticated.admin.objetos.tsx`
-- `src/routes/_authenticated.admin.orcamentos.tsx`
-- `src/routes/_authenticated.admin.modelos.tsx`
-- `src/routes/_authenticated.admin.agenda.tsx`
-- `src/routes/_authenticated.admin.prestacao.tsx`
+### 3. Dashboard acionável (`/admin/index` — hoje `/admin/painel`)
+Substituir a home genérica por cards de trabalho pendente da org ativa:
+- **Aprovar**: nº de eventos pendentes → link p/ Aprovações.
+- **Classificar REO**: eventos aprovados sem `natureza_despesa_codigo`.
+- **Anexar comprovante**: eventos pagos sem anexo.
+- **Documentos vencendo**: `prestacao_documentos` com vigência expirando em ≤ 30 dias.
+- **Fechar mês**: se todos os eventos do mês anterior estão aprovados e sem pendências, botão "Gerar snapshot".
+- **Últimos snapshots**: 3 mais recentes com link de download via proxy.
 
-Para cada ocorrência: injetar `organization_id: activeOrgId` a partir do hook, ou migrar a escrita para uma server function que já resolve a org via `current_user_org()`.
+Cada card é uma query isolada (React Query) escopada por `activeOrgId`, com skeletons e vazio explícito.
 
-### 4. Guard-rail de leitura
-Nos hooks/queries que listam por organização, adicionar `.eq("organization_id", activeOrgId)` explícito mesmo quando RLS já filtra — evita bugs se um dia a policy afrouxar e serve de documentação.
+### 4. Homologação (snapshot) exigindo aprovação
+`src/lib/prestacao-snapshot.functions.ts`:
+- Bloquear criação de snapshot se houver eventos do mês em `rascunho` ou `pendente_revisao`.
+- Mensagem de erro aponta quantos e link para Aprovações.
 
-### 5. Verificação
-- Build limpo (tsgo).
-- Testar manualmente: criar 2 orgs, alternar, confirmar que listas trocam e que criar registro na org B não aparece na org A.
-- Conferir `audit_log` registrando as escritas das tabelas críticas.
+### 5. Notificações leves
+- Toast + badge no menu lateral para "Aprovações pendentes" e "Documentos vencendo" (contadores da mesma query do dashboard).
+- Sem e-mail nesta fase.
 
-### Fora de escopo (próximos milestones)
-- Milestone 2 (workflow de aprovação/homologação).
-- Refactor de UI do dashboard acionável.
-- Otimizações de performance do REO.
+### Detalhes técnicos
+- Migração: enum `evento_status_workflow`, coluna `status_workflow`, backfill, índice `(organization_id, mes_referencia, status_workflow)`.
+- Server fns novos em `src/lib/aprovacoes.functions.ts`: `listarPendentes`, `aprovarLote`, `devolverParaRascunho`.
+- Reforço RLS: transições sensíveis (aprovar/homologar) checam `has_role` ou `is_org_owner`.
+- Dashboard puxa contagens via uma única server fn `resumoDashboard` para minimizar round-trips.
 
-Após aprovação, executo em uma passada com edits paralelos por arquivo.
+### Fora de escopo
+- E-mail/push de notificação.
+- Reabrir mês homologado (já existe via revogação de snapshot).
+- Redesenho visual profundo — mantém o design system atual.
+
+Se aprovar, começo pela migração + server fns de aprovação, depois a tela de Aprovações, e por último o dashboard.

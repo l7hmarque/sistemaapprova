@@ -178,13 +178,25 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     // 1) Eventos do mês
     const { data: eventos, error: e1 } = await adm
       .from("eventos_financeiros")
-      .select("id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental")
+      .select("id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental, status_workflow")
       .eq("mes_referencia", mes)
       .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (e1) throw new Error("Falha ao ler eventos: " + e1.message);
     if (!eventos || eventos.length === 0) {
       throw new Error(`Nenhum evento em ${mes}.`);
     }
+
+    // Bloqueia homologação se houver eventos ainda em rascunho ou pendentes de revisão.
+    const pendentes = (eventos as any[]).filter((e) =>
+      ["rascunho", "pendente_revisao"].includes(e.status_workflow)
+    );
+    if (pendentes.length > 0) {
+      throw new Error(
+        `Não é possível gerar snapshot: ${pendentes.length} evento(s) ainda pendente(s) de aprovação em ${mes}. Aprove-os em Admin → Aprovações.`
+      );
+    }
+
+
 
     const eventoIds = eventos.map((e) => e.id);
 
