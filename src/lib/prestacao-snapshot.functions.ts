@@ -178,7 +178,7 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     // 1) Eventos do mês
     const { data: eventos, error: e1 } = await adm
       .from("eventos_financeiros")
-      .select("id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental")
+      .select("id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental, status_workflow")
       .eq("mes_referencia", mes)
       .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (e1) throw new Error("Falha ao ler eventos: " + e1.message);
