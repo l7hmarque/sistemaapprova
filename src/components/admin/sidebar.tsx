@@ -16,12 +16,15 @@ import {
   FolderTree,
   Landmark,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { signOutLimpo } from "@/lib/auth/signOutLimpo";
 import { ApprovaLogo } from "@/components/brand/ApprovaLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useViewAs } from "@/hooks/use-view-as";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { resumoDashboard } from "@/lib/aprovacoes.functions";
 import { ViewAsSwitcher } from "./ViewAsSwitcher";
 import { toast } from "sonner";
 
