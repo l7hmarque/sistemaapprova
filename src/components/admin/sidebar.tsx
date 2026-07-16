@@ -54,6 +54,17 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { role: viewAsRole } = useViewAs();
   const nav = useNavigate();
   const queryClient = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
+  const resumoFn = useServerFn(resumoDashboard);
+  const { data: resumo } = useQuery({
+    queryKey: ["dashboard-resumo", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => resumoFn({ data: { organization_id: activeOrgId! } }),
+    staleTime: 60_000,
+  });
+  const badges: Record<string, number> = {
+    "/admin/aprovacoes": resumo?.pendentesRevisao ?? 0,
+  };
 
   const sair = async () => {
     await signOutLimpo(queryClient);
