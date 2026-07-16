@@ -105,7 +105,12 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                 className="h-4 w-4"
                 style={active ? { color: "var(--module-accent, var(--primary))" } : undefined}
               />
-              <span className="font-medium">{it.label}</span>
+              <span className="font-medium flex-1">{it.label}</span>
+              {badges[it.to] > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-500 text-white text-[10px] font-semibold h-5 min-w-5 px-1.5">
+                  {badges[it.to]}
+                </span>
+              )}
             </Link>
           );
         })}
