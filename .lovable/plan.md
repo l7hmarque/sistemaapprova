@@ -1,51 +1,40 @@
-## Próxima entrega: Milestone 1 — Blindagem multi-tenant, soft-delete e id_interno auditável
+## Milestone 1 — Continuação: Isolamento multi-tenant no cliente e blindagem final
 
-Fase 1 (neutralização de "IA" + auto-preenchimento de natureza contábil na captura) já foi aplicada no turno anterior. Sigo agora com o **Milestone 1** do `plano_acao_approva`, que é a fundação de segurança para os milestones seguintes.
+Contexto: as server functions já exigem `organization_id` explícito. Falta blindar o **cliente** para (a) não vazar dados entre organizações ao alternar contexto e (b) garantir que todo insert/update passe a org ativa correta.
 
-### Escopo desta entrega
+### 1. Isolamento no switch de organização
+Arquivo: `src/hooks/use-active-org.tsx`
+- Ao trocar de organização ativa: `queryClient.removeQueries()` (remoção total, não apenas invalidate) para eliminar cache cruzado.
+- Persistir a org ativa em `localStorage` com chave versionada e limpar no `signOutLimpo`.
+- Expor `activeOrgId` tipado e um helper `requireActiveOrg()` que lança se null.
 
-1. **Isolamento multi-tenant rigoroso (1.1)**
-   - Migration removendo `DEFAULT public.current_user_org()` de todas as colunas `organization_id` em `public.*` (mantendo `NOT NULL`).
-   - Novo helper server `assertOrgAccess(activeOrgId)` que valida `auth.uid()` × `organization_members` e é usado em todos os `*.functions.ts` de escrita/leitura sensível.
-   - Server functions passam a exigir `activeOrgId: z.string().uuid()` no `inputValidator` e filtram/gravam sempre com esse id.
-   - Frontend: `AdminShell`/`useActiveOrg` já expõem o org ativo — passar em todas as chamadas e incluir `activeOrgId` nas `queryKey` do React Query; ao trocar de org, `queryClient.removeQueries()`.
+### 2. Sign-out hygiene
+Arquivo: `src/lib/auth/signOutLimpo.ts`
+- Após `supabase.auth.signOut()`: `queryClient.clear()` + limpar chaves `synsit_*` / `approva_*` do localStorage.
 
-2. **Soft-delete + auditoria (1.2)**
-   - `eventos_financeiros`: colunas `excluido_em timestamptz`, `excluido_por uuid` (já existem parcialmente pelo trigger `fn_eventos_financeiros_soft_delete`) — confirmar, garantir índice parcial `WHERE excluido_em IS NULL` e RLS filtrando.
-   - Trigger genérica `fn_audit_row` já existe; anexar a `eventos_financeiros`, `fornecedores`, `configuracoes`, `prestacao_documentos`, `regras_despesa`.
-   - Frontend: revisar todas as listagens de `eventos_financeiros` e adicionar `.is("excluido_em", null)` onde faltar (painel, captura, REO, arquivos, prestação).
+### 3. Auditoria de inserts diretos do cliente
+Varrer `src/**/*.tsx` e `src/**/*.ts` procurando `.from("<tabela>").insert(` sem `organization_id`. Candidatos prováveis:
+- `src/routes/_authenticated.admin.configuracoes.*` (regras, equipe, organização)
+- `src/routes/_authenticated.admin.fornecedores.tsx`
+- `src/routes/_authenticated.admin.objetos.tsx`
+- `src/routes/_authenticated.admin.orcamentos.tsx`
+- `src/routes/_authenticated.admin.modelos.tsx`
+- `src/routes/_authenticated.admin.agenda.tsx`
+- `src/routes/_authenticated.admin.prestacao.tsx`
 
-3. **id_interno sequencial atômico (1.3)**
-   - Hoje a trigger `fn_eventos_financeiros_set_id_interno` gera `NNNN` por org+mês via `contadores_periodo` (atômico). Ajustar para o formato pedido no plano: `YYYYMM-NNNN` (ex.: `202607-0012`) mantendo a atomicidade.
-   - Backfill: atualizar registros existentes cujo `id_interno` esteja no formato antigo `NNNN` para o novo padrão, preservando a sequência dentro do mês.
-   - Formulário de evento continua com o campo `read-only`.
+Para cada ocorrência: injetar `organization_id: activeOrgId` a partir do hook, ou migrar a escrita para uma server function que já resolve a org via `current_user_org()`.
 
-### Mitigações já contempladas
-- Race condition do sequencial: `contadores_periodo` com `INSERT … ON CONFLICT DO UPDATE … RETURNING` (atômico) — mantido.
-- Cache cross-org: `queryKey` inclui `activeOrgId` + `removeQueries` no switch.
-- Períodos homologados: preservados pelo `fn_lock_snapshot_eventos` (Milestone 3 ampliará).
+### 4. Guard-rail de leitura
+Nos hooks/queries que listam por organização, adicionar `.eq("organization_id", activeOrgId)` explícito mesmo quando RLS já filtra — evita bugs se um dia a policy afrouxar e serve de documentação.
 
-### Fora de escopo neste bloco
-Milestone 2 (motor de regras JSONB em fornecedores), Milestone 3 (Drive assíncrono + trava contábil ampliada) e Milestone 4 (Stripe + PlanoGuard + unificação de categorias) — entram nas próximas rodadas.
+### 5. Verificação
+- Build limpo (tsgo).
+- Testar manualmente: criar 2 orgs, alternar, confirmar que listas trocam e que criar registro na org B não aparece na org A.
+- Conferir `audit_log` registrando as escritas das tabelas críticas.
 
-### Detalhes técnicos
+### Fora de escopo (próximos milestones)
+- Milestone 2 (workflow de aprovação/homologação).
+- Refactor de UI do dashboard acionável.
+- Otimizações de performance do REO.
 
-```text
-Migrations
-├── remove default current_user_org() em todas colunas organization_id
-├── ajusta trigger fn_eventos_financeiros_set_id_interno → 'YYYYMM-NNNN'
-├── backfill id_interno antigos (NNNN → YYYYMM-NNNN)
-└── anexa fn_audit_row a fornecedores, configuracoes, prestacao_documentos, regras_despesa
-
-Código
-├── src/lib/_shared/assertOrgAccess.server.ts (novo helper)
-├── src/lib/*.functions.ts (activeOrgId obrigatório + assertOrgAccess)
-├── src/hooks/use-active-org.tsx (removeQueries no switch)
-└── revisão de queryKeys e filtros excluido_em nas telas admin
-```
-
-### Verificação
-- `bun run build:dev` limpo.
-- Trocar de org no `OrgSwitcher` não deixa dados vazando entre orgs (cache limpo).
-- Deletar evento continua fazendo soft-delete (some da UI, permanece em `audit_log`).
-- Novo evento recebe `id_interno = 202607-0001`.
+Após aprovação, executo em uma passada com edits paralelos por arquivo.

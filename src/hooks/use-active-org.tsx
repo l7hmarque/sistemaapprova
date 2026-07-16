@@ -114,3 +114,16 @@ export function useActiveOrg(): ActiveOrgValue {
   if (!v) return { activeOrgId: null, setActiveOrgId: () => {}, orgs: [], loading: false, activeOrg: null, activeRole: null };
   return v;
 }
+
+/**
+ * Retorna o id da organização ativa ou lança um erro amigável.
+ * Use em handlers de mutação onde a org é obrigatória para não vazar dados
+ * entre tenants por falta de contexto.
+ */
+export function useRequireActiveOrg(): string {
+  const { activeOrgId, loading } = useActiveOrg();
+  if (loading) throw new Error("Carregando organização ativa…");
+  if (!activeOrgId) throw new Error("Nenhuma organização ativa selecionada.");
+  return activeOrgId;
+}
+
