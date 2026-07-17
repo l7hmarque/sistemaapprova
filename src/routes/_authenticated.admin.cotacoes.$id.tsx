@@ -342,16 +342,25 @@ function CotacaoDetalhePage() {
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Selecione 3 orçamentos preenchidos para gerar o mapa no Drive.
+                Escolha automaticamente os 3 menores preços, ou selecione manualmente.
               </p>
               <Button
+                className="w-full gap-1"
+                disabled={orcamentosPreenchidos.length < 3 || mutMapaAuto.isPending}
+                onClick={() => mutMapaAuto.mutate()}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {orcamentosPreenchidos.length < 3
+                  ? `${orcamentosPreenchidos.length}/3 preenchidos`
+                  : mutMapaAuto.isPending ? "Gerando…" : "Gerar mapa (3 menores)"}
+              </Button>
+              <Button
+                variant="outline"
                 className="w-full"
                 disabled={orcamentosPreenchidos.length < 3}
                 onClick={() => setMapaSel({ open: true, ids: [] })}
               >
-                {orcamentosPreenchidos.length < 3
-                  ? `${orcamentosPreenchidos.length}/3 preenchidos`
-                  : "Gerar mapa comparativo"}
+                Selecionar manualmente
               </Button>
               {mapa?.drive_file_url && (
                 <a href={mapa.drive_file_url} target="_blank" rel="noreferrer" className="block">
