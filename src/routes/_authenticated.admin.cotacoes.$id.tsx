@@ -38,10 +38,15 @@ function CotacaoDetalhePage() {
   const gerarOrc = useServerFn(gerarOrcamentoParaCotacao);
   const removerOrc = useServerFn(removerOrcamentoCotacao);
   const gerarMapa = useServerFn(gerarMapaDaCotacao);
+  const gerarMapaAuto = useServerFn(gerarMapaAutomatico);
+  const fetchRanking = useServerFn(rankingCotacao);
+  const setVencedor = useServerFn(definirVencedor);
+  const gerarEvento = useServerFn(gerarEventoDaCotacao);
   const savePreset = useServerFn(salvarPreset);
   const novoConvite = useServerFn(criarConvite);
   const fetchConvites = useServerFn(listarConvitesDaCotacao);
   const delConvite = useServerFn(removerConvite);
+  const reenvConvite = useServerFn(reenviarConvite);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
