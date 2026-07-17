@@ -523,13 +523,14 @@ function CotacaoDetalhePage() {
 }
 
 function ConvitesPanel({
-  cotacaoId, fornecedores, fetchConvites, novoConvite, delConvite,
+  cotacaoId, fornecedores, fetchConvites, novoConvite, delConvite, reenvConvite,
 }: {
   cotacaoId: string;
   fornecedores: any[];
   fetchConvites: (a: any) => Promise<any>;
   novoConvite: (a: any) => Promise<any>;
   delConvite: (a: any) => Promise<any>;
+  reenvConvite: (a: any) => Promise<any>;
 }) {
   const qc = useQueryClient();
   const { data: convites } = useQuery({
@@ -558,9 +559,10 @@ function ConvitesPanel({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["convites", cotacaoId] });
-      toast.success("Convite criado");
+      if (r?.email_enviado) toast.success("Convite criado e e-mail enviado");
+      else toast.success(`Convite criado (${r?.email_motivo ?? "sem e-mail"})`);
       setOpen(false);
       setFornId("");
     },
@@ -570,6 +572,15 @@ function ConvitesPanel({
   const mutDel = useMutation({
     mutationFn: (id: string) => delConvite({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["convites", cotacaoId] }),
+  });
+
+  const mutReenv = useMutation({
+    mutationFn: (id: string) => reenvConvite({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["convites", cotacaoId] });
+      toast.success("E-mail reenviado");
+    },
+    onError: (e) => toast.error((e as Error).message),
   });
 
   const copiarLink = (token: string) => {
@@ -595,9 +606,18 @@ function ConvitesPanel({
               <li key={c.id} className="py-2 flex items-center gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm truncate">{c.razao_social}</div>
-                  <div className="text-xs text-muted-foreground">{c.status}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.status}
+                    {c.email ? ` · ${c.email}` : " · sem e-mail"}
+                    {c.envios_count > 1 ? ` · ${c.envios_count} envios` : ""}
+                  </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => copiarLink(c.token)} className="gap-1">
+                {c.email && c.status === "pendente" && (
+                  <Button size="sm" variant="ghost" onClick={() => mutReenv.mutate(c.id)} disabled={mutReenv.isPending} title="Reenviar e-mail">
+                    <Send className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => copiarLink(c.token)} className="gap-1" title="Copiar link">
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => mutDel.mutate(c.id)}>
