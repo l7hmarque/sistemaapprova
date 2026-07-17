@@ -391,6 +391,7 @@ function CotacaoDetalhePage() {
             fetchConvites={fetchConvites}
             novoConvite={novoConvite}
             delConvite={delConvite}
+            reenvConvite={reenvConvite}
           />
 
           <Card>
