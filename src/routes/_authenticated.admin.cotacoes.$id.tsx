@@ -289,6 +289,48 @@ function CotacaoDetalhePage() {
               )}
             </CardContent>
           </Card>
+
+          {ranking && ranking.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-4 w-4" /> Ranking de preços
+                </CardTitle>
+                {eventoGeradoId ? (
+                  <Badge variant="secondary">Lançado no financeiro</Badge>
+                ) : vencedorId ? (
+                  <Button size="sm" onClick={() => mutEvento.mutate()} disabled={mutEvento.isPending} className="gap-1">
+                    <ArrowRightCircle className="h-3.5 w-3.5" /> Lançar no financeiro
+                  </Button>
+                ) : null}
+              </CardHeader>
+              <CardContent className="p-0">
+                <ul className="divide-y text-sm">
+                  {ranking.map((r: any, idx: number) => {
+                    const isWinner = r.id === vencedorId;
+                    return (
+                      <li key={r.id} className="flex items-center gap-3 p-3">
+                        <div className={`w-6 text-center text-xs font-bold ${idx === 0 ? "text-primary" : "text-muted-foreground"}`}>{idx + 1}º</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate flex items-center gap-2">
+                            {r.razao || "—"}
+                            {isWinner && <Badge className="text-[10px]">Vencedor</Badge>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">CNPJ {r.cnpj || "—"}</div>
+                        </div>
+                        <div className="font-medium">{Number(r.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                        {!isWinner && !eventoGeradoId && (
+                          <Button size="sm" variant="ghost" onClick={() => mutVencedor.mutate(r.id)} disabled={mutVencedor.isPending}>
+                            Definir vencedor
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">
