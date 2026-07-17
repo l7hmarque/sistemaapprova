@@ -1,49 +1,56 @@
-## Milestone 2 — Workflow de aprovação/homologação e dashboard acionável
+## Milestone 3 — Cotações & Orçamentos (ciclo fechado de compras)
 
-Milestone 1 (isolamento multi-tenant) está fechado. Proponho seguir com o M2 focado no fluxo de trabalho mensal do usuário: quem aprova o quê, quando fecha o mês, e o que a home do admin mostra.
+O módulo hoje cria cotações, gera Sheets por fornecedor, monta mapa comparativo manual e tem portal público — mas o ciclo não fecha: convites são só um link salvo no banco (sem e-mail), a escolha do vencedor é implícita, e não existe ponte entre o mapa aprovado e o evento financeiro (REO 3.3.90.39.99 / modalidade 101). Esta fase resolve os quatro elos que faltam.
 
-### 1. Estados do evento financeiro
-Hoje `eventos_financeiros` tem `status` livre. Vamos formalizar:
-- `rascunho` (captura crua) → `pendente_revisao` → `aprovado` → `homologado` (via snapshot).
-- Transições permitidas por papel: membro cria/edita rascunho e pendente; admin/owner aprova; snapshot homologa.
-- Migração: adicionar `status_workflow` (enum) + backfill baseado em `prestacao_snapshot_id` e `revisado_em`.
+### Escopo
 
-### 2. Tela de Aprovações (`/admin/aprovacoes`)
-A rota já existe como placeholder. Implementar:
-- Lista de eventos `pendente_revisao` do mês, agrupados por natureza REO.
-- Ações em lote: aprovar seleção, devolver para rascunho com motivo, marcar duplicata.
-- Filtros: sem natureza, sem comprovante, valor divergente (previsto vs efetivo > 10%).
-- Só admin/owner enxerga; membro é redirecionado.
+1. **Envio de convites por e-mail (Resend)**
+   - Ao criar convite em `/admin/cotacoes/$id`, se houver e-mail, disparar mensagem transacional com objeto, itens, prazo e link `/cotacao/{token}`.
+   - Botões novos por convite: **Reenviar** (com contador de envios) e **Copiar link** (fallback quando não há e-mail).
+   - Lembrete automático (server fn `enviarLembretesCotacao`) para convites `pendente` faltando ≤ 3 dias; disparo manual + hook `/api/public/hooks/cotacao-lembretes` para cron diário.
+   - Template curto reutilizando o helper de e-mail já existente em `src/lib/email.functions.ts` / `email-templates.ts`.
 
-### 3. Dashboard acionável (`/admin/index` — hoje `/admin/painel`)
-Substituir a home genérica por cards de trabalho pendente da org ativa:
-- **Aprovar**: nº de eventos pendentes → link p/ Aprovações.
-- **Classificar REO**: eventos aprovados sem `natureza_despesa_codigo`.
-- **Anexar comprovante**: eventos pagos sem anexo.
-- **Documentos vencendo**: `prestacao_documentos` com vigência expirando em ≤ 30 dias.
-- **Fechar mês**: se todos os eventos do mês anterior estão aprovados e sem pendências, botão "Gerar snapshot".
-- **Últimos snapshots**: 3 mais recentes com link de download via proxy.
+2. **Ranking, escolha do vencedor e mapa automático**
+   - Na tela da cotação, mostrar tabela ranking (menor preço total por fornecedor entre os `preenchido`) com destaque do vencedor sugerido.
+   - Botão **Gerar mapa (3 melhores)**: seleciona automaticamente os 3 menores totais válidos e chama `gerarMapaDaCotacao` (mantém seleção manual como fallback).
+   - Nova coluna `cotacoes.orcamento_vencedor_id` + ação **Definir vencedor** (grava vínculo; travar após `finalizado`).
+   - Sinalizar convites `expirado` (batch server fn atualizando status baseado em `expira_em`).
 
-Cada card é uma query isolada (React Query) escopada por `activeOrgId`, com skeletons e vazio explícito.
+3. **Ponte cotação → evento financeiro (fecha o ciclo REO)**
+   - Nova server fn `gerarEventoDaCotacao`: cria evento em `eventos_financeiros` como `rascunho`, com:
+     - `natureza_despesa_codigo = "3.3.90.39.99"` e `cd_modalidade_compra = 101` (a regra que o usuário pediu antes já se aplica);
+     - `mes_referencia`, `valor_previsto` = total do vencedor, `nm_favorecido`, `fornecedor_id`, `descricao` = objeto da cotação;
+     - `metadata.origem = "cotacao"`, `metadata.cotacao_id`, `metadata.mapa_file_id`.
+   - Anexo automático do mapa (`documentos_anexos`) e dos 3 orçamentos ao evento, para o merge do PDF de prestação já capturar tudo.
+   - Botão **Lançar no financeiro** aparece quando há vencedor definido; leva ao evento criado no Painel Financeiro.
 
-### 4. Homologação (snapshot) exigindo aprovação
-`src/lib/prestacao-snapshot.functions.ts`:
-- Bloquear criação de snapshot se houver eventos do mês em `rascunho` ou `pendente_revisao`.
-- Mensagem de erro aponta quantos e link para Aprovações.
-
-### 5. Notificações leves
-- Toast + badge no menu lateral para "Aprovações pendentes" e "Documentos vencendo" (contadores da mesma query do dashboard).
-- Sem e-mail nesta fase.
+4. **Painel do escritório contábil (visão consolidada de cotações)**
+   - Card em `/admin` mostrando cotações `coletando` com < 3 orçamentos preenchidos há > 7 dias (ação: reenviar convites).
+   - Filtro por mês em `/admin/orcamentos` e badge de status por cotação (nº preenchidos / 3, vencedor definido, evento gerado).
 
 ### Detalhes técnicos
-- Migração: enum `evento_status_workflow`, coluna `status_workflow`, backfill, índice `(organization_id, mes_referencia, status_workflow)`.
-- Server fns novos em `src/lib/aprovacoes.functions.ts`: `listarPendentes`, `aprovarLote`, `devolverParaRascunho`.
-- Reforço RLS: transições sensíveis (aprovar/homologar) checam `has_role` ou `is_org_owner`.
-- Dashboard puxa contagens via uma única server fn `resumoDashboard` para minimizar round-trips.
+
+- **Migração**:
+  - `ALTER TABLE cotacoes ADD COLUMN orcamento_vencedor_id uuid REFERENCES orcamentos_salvos(id) ON DELETE SET NULL, ADD COLUMN evento_financeiro_id uuid REFERENCES eventos_financeiros(id) ON DELETE SET NULL;`
+  - `ALTER TABLE convites_cotacao ADD COLUMN envios_count int NOT NULL DEFAULT 1, ADD COLUMN ultimo_envio_em timestamptz DEFAULT now();`
+  - Índice `idx_convites_pendentes_expira` em `(organization_id, status, expira_em)` para o lembrete.
+  - Sem novas policies (usa `user_orgs`), mantendo `GRANT` já existentes.
+
+- **Server functions novas** em `src/lib/convites.functions.ts` e `src/lib/cotacoes.functions.ts`:
+  - `enviarConvite({ id })`, `reenviarConvite({ id })`, `enviarLembretesCotacao({ organization_id })`
+  - `definirVencedor({ cotacao_id, orcamento_id })`, `gerarEventoDaCotacao({ cotacao_id })`, `atualizarStatusConvitesExpirados({ organization_id })`
+
+- **Rota cron**: `src/routes/api/public/hooks/cotacao-lembretes.ts` autenticado por `apikey` (anon key) — agendado depois pelo usuário via pg_cron.
+
+- **UI**: alterações somente em `/admin/cotacoes/$id` (ranking, botões) e `/admin/orcamentos` (badges/filtro). Reuso do `AdminShell`, sem novo design.
+
+- **E-mail**: reaproveita `RESEND_API_KEY` já presente em connectors; template mínimo com identidade Approva.
 
 ### Fora de escopo
-- E-mail/push de notificação.
-- Reabrir mês homologado (já existe via revogação de snapshot).
-- Redesenho visual profundo — mantém o design system atual.
 
-Se aprovar, começo pela migração + server fns de aprovação, depois a tela de Aprovações, e por último o dashboard.
+- Portal com múltiplos itens por fornecedor sem PDF (já existe).
+- Assinatura digital dos orçamentos.
+- Modelo de e-mail rico com anexo PDF (link basta nesta fase).
+- Automação de compras diferente de modalidade 101 (fica para M4 quando entrar dispensa/inexigibilidade).
+
+Se aprovar, começo pela migração + envio de e-mail dos convites, depois ranking/vencedor, e por último a ponte para o evento financeiro.
