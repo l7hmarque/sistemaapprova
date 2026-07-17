@@ -205,6 +205,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           enviado_em: string
+          envios_count: number
           expira_em: string
           fornecedor_id: string | null
           id: string
@@ -218,6 +219,7 @@ export type Database = {
           status: string
           telefone: string | null
           token: string
+          ultimo_envio_em: string
         }
         Insert: {
           atualizado_em?: string
@@ -228,6 +230,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           enviado_em?: string
+          envios_count?: number
           expira_em?: string
           fornecedor_id?: string | null
           id?: string
@@ -241,6 +244,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           token: string
+          ultimo_envio_em?: string
         }
         Update: {
           atualizado_em?: string
@@ -251,6 +255,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           enviado_em?: string
+          envios_count?: number
           expira_em?: string
           fornecedor_id?: string | null
           id?: string
@@ -264,6 +269,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           token?: string
+          ultimo_envio_em?: string
         }
         Relationships: [
           {
@@ -370,6 +376,7 @@ export type Database = {
         Row: {
           atualizado_em: string
           criado_em: string
+          evento_financeiro_id: string | null
           id: string
           itens: Json
           mapa_drive_file_id: string | null
@@ -377,6 +384,7 @@ export type Database = {
           mes_referencia: string | null
           objeto: string
           observacoes: string | null
+          orcamento_vencedor_id: string | null
           organization_id: string
           status: string
           termo: string | null
@@ -384,6 +392,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           criado_em?: string
+          evento_financeiro_id?: string | null
           id?: string
           itens?: Json
           mapa_drive_file_id?: string | null
@@ -391,6 +400,7 @@ export type Database = {
           mes_referencia?: string | null
           objeto: string
           observacoes?: string | null
+          orcamento_vencedor_id?: string | null
           organization_id: string
           status?: string
           termo?: string | null
@@ -398,6 +408,7 @@ export type Database = {
         Update: {
           atualizado_em?: string
           criado_em?: string
+          evento_financeiro_id?: string | null
           id?: string
           itens?: Json
           mapa_drive_file_id?: string | null
@@ -405,11 +416,26 @@ export type Database = {
           mes_referencia?: string | null
           objeto?: string
           observacoes?: string | null
+          orcamento_vencedor_id?: string | null
           organization_id?: string
           status?: string
           termo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cotacoes_evento_financeiro_id_fkey"
+            columns: ["evento_financeiro_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_orcamento_vencedor_id_fkey"
+            columns: ["orcamento_vencedor_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_salvos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cotacoes_organization_id_fkey"
             columns: ["organization_id"]
