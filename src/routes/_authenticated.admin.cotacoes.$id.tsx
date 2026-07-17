@@ -13,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput, Link2, Copy,
+  Send, Trophy, Zap, ArrowRightCircle,
 } from "lucide-react";
 import {
   obterCotacao, gerarOrcamentoParaCotacao, removerOrcamentoCotacao, gerarMapaDaCotacao, salvarPreset,
+  rankingCotacao, gerarMapaAutomatico, definirVencedor, gerarEventoDaCotacao,
 } from "@/lib/cotacoes.functions";
 import { listarFornecedores } from "@/lib/fornecedores.functions";
-import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
+import { criarConvite, listarConvitesDaCotacao, removerConvite, reenviarConvite } from "@/lib/convites.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/cotacoes/$id")({
