@@ -13,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ExternalLink, Plus, Trash2, FileSpreadsheet, BarChart3, Save, FolderInput, Link2, Copy,
+  Send, Trophy, Zap, ArrowRightCircle,
 } from "lucide-react";
 import {
   obterCotacao, gerarOrcamentoParaCotacao, removerOrcamentoCotacao, gerarMapaDaCotacao, salvarPreset,
+  rankingCotacao, gerarMapaAutomatico, definirVencedor, gerarEventoDaCotacao,
 } from "@/lib/cotacoes.functions";
 import { listarFornecedores } from "@/lib/fornecedores.functions";
-import { criarConvite, listarConvitesDaCotacao, removerConvite } from "@/lib/convites.functions";
+import { criarConvite, listarConvitesDaCotacao, removerConvite, reenviarConvite } from "@/lib/convites.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/cotacoes/$id")({
@@ -36,10 +38,15 @@ function CotacaoDetalhePage() {
   const gerarOrc = useServerFn(gerarOrcamentoParaCotacao);
   const removerOrc = useServerFn(removerOrcamentoCotacao);
   const gerarMapa = useServerFn(gerarMapaDaCotacao);
+  const gerarMapaAuto = useServerFn(gerarMapaAutomatico);
+  const fetchRanking = useServerFn(rankingCotacao);
+  const setVencedor = useServerFn(definirVencedor);
+  const gerarEvento = useServerFn(gerarEventoDaCotacao);
   const savePreset = useServerFn(salvarPreset);
   const novoConvite = useServerFn(criarConvite);
   const fetchConvites = useServerFn(listarConvitesDaCotacao);
   const delConvite = useServerFn(removerConvite);
+  const reenvConvite = useServerFn(reenviarConvite);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -144,6 +151,55 @@ function CotacaoDetalhePage() {
 
   const orcamentosPreenchidos = orcs.filter((o) => o.tipo === "cotacao" && o.status === "preenchido");
   const mapa = orcs.find((o) => o.tipo === "mapa_comparativo");
+  const vencedorId = cot?.orcamento_vencedor_id as string | null | undefined;
+  const eventoGeradoId = cot?.evento_financeiro_id as string | null | undefined;
+
+  const { data: ranking } = useQuery({
+    queryKey: ["cotacao-ranking", id, activeOrgId, orcs.length],
+    enabled: !!activeOrgId && orcamentosPreenchidos.length > 0,
+    queryFn: () => fetchRanking({ data: { id, organization_id: activeOrgId! } }),
+  });
+
+  const mutMapaAuto = useMutation({
+    mutationFn: async () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      const r = await gerarMapaAuto({ data: { organization_id: activeOrgId, cotacao_id: id } });
+      return gerarMapa({
+        data: { organization_id: activeOrgId, cotacao_id: id, orcamento_ids: r.orcamento_ids },
+      });
+    },
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success("Mapa gerado com os 3 menores preços");
+      window.open(r.url, "_blank");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const mutVencedor = useMutation({
+    mutationFn: (orcamento_id: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return setVencedor({ data: { organization_id: activeOrgId, cotacao_id: id, orcamento_id } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success("Vencedor definido");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const mutEvento = useMutation({
+    mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return gerarEvento({ data: { id, organization_id: activeOrgId } });
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success(r.ja_existia ? "Evento já existia — abrindo" : "Evento criado no financeiro");
+      window.location.href = "/admin/painel";
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   if (isLoading) {
     return <AdminShell title="Cotação"><p className="text-sm text-muted-foreground">Carregando...</p></AdminShell>;
@@ -233,6 +289,48 @@ function CotacaoDetalhePage() {
               )}
             </CardContent>
           </Card>
+
+          {ranking && ranking.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-4 w-4" /> Ranking de preços
+                </CardTitle>
+                {eventoGeradoId ? (
+                  <Badge variant="secondary">Lançado no financeiro</Badge>
+                ) : vencedorId ? (
+                  <Button size="sm" onClick={() => mutEvento.mutate()} disabled={mutEvento.isPending} className="gap-1">
+                    <ArrowRightCircle className="h-3.5 w-3.5" /> Lançar no financeiro
+                  </Button>
+                ) : null}
+              </CardHeader>
+              <CardContent className="p-0">
+                <ul className="divide-y text-sm">
+                  {ranking.map((r: any, idx: number) => {
+                    const isWinner = r.id === vencedorId;
+                    return (
+                      <li key={r.id} className="flex items-center gap-3 p-3">
+                        <div className={`w-6 text-center text-xs font-bold ${idx === 0 ? "text-primary" : "text-muted-foreground"}`}>{idx + 1}º</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate flex items-center gap-2">
+                            {r.razao || "—"}
+                            {isWinner && <Badge className="text-[10px]">Vencedor</Badge>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">CNPJ {r.cnpj || "—"}</div>
+                        </div>
+                        <div className="font-medium">{Number(r.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                        {!isWinner && !eventoGeradoId && (
+                          <Button size="sm" variant="ghost" onClick={() => mutVencedor.mutate(r.id)} disabled={mutVencedor.isPending}>
+                            Definir vencedor
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -244,16 +342,25 @@ function CotacaoDetalhePage() {
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Selecione 3 orçamentos preenchidos para gerar o mapa no Drive.
+                Escolha automaticamente os 3 menores preços, ou selecione manualmente.
               </p>
               <Button
+                className="w-full gap-1"
+                disabled={orcamentosPreenchidos.length < 3 || mutMapaAuto.isPending}
+                onClick={() => mutMapaAuto.mutate()}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {orcamentosPreenchidos.length < 3
+                  ? `${orcamentosPreenchidos.length}/3 preenchidos`
+                  : mutMapaAuto.isPending ? "Gerando…" : "Gerar mapa (3 menores)"}
+              </Button>
+              <Button
+                variant="outline"
                 className="w-full"
                 disabled={orcamentosPreenchidos.length < 3}
                 onClick={() => setMapaSel({ open: true, ids: [] })}
               >
-                {orcamentosPreenchidos.length < 3
-                  ? `${orcamentosPreenchidos.length}/3 preenchidos`
-                  : "Gerar mapa comparativo"}
+                Selecionar manualmente
               </Button>
               {mapa?.drive_file_url && (
                 <a href={mapa.drive_file_url} target="_blank" rel="noreferrer" className="block">
@@ -284,6 +391,7 @@ function CotacaoDetalhePage() {
             fetchConvites={fetchConvites}
             novoConvite={novoConvite}
             delConvite={delConvite}
+            reenvConvite={reenvConvite}
           />
 
           <Card>
@@ -415,13 +523,14 @@ function CotacaoDetalhePage() {
 }
 
 function ConvitesPanel({
-  cotacaoId, fornecedores, fetchConvites, novoConvite, delConvite,
+  cotacaoId, fornecedores, fetchConvites, novoConvite, delConvite, reenvConvite,
 }: {
   cotacaoId: string;
   fornecedores: any[];
   fetchConvites: (a: any) => Promise<any>;
   novoConvite: (a: any) => Promise<any>;
   delConvite: (a: any) => Promise<any>;
+  reenvConvite: (a: any) => Promise<any>;
 }) {
   const qc = useQueryClient();
   const { data: convites } = useQuery({
@@ -450,9 +559,10 @@ function ConvitesPanel({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["convites", cotacaoId] });
-      toast.success("Convite criado");
+      if (r?.email_enviado) toast.success("Convite criado e e-mail enviado");
+      else toast.success(`Convite criado (${r?.email_motivo ?? "sem e-mail"})`);
       setOpen(false);
       setFornId("");
     },
@@ -462,6 +572,15 @@ function ConvitesPanel({
   const mutDel = useMutation({
     mutationFn: (id: string) => delConvite({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["convites", cotacaoId] }),
+  });
+
+  const mutReenv = useMutation({
+    mutationFn: (id: string) => reenvConvite({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["convites", cotacaoId] });
+      toast.success("E-mail reenviado");
+    },
+    onError: (e) => toast.error((e as Error).message),
   });
 
   const copiarLink = (token: string) => {
@@ -487,9 +606,18 @@ function ConvitesPanel({
               <li key={c.id} className="py-2 flex items-center gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm truncate">{c.razao_social}</div>
-                  <div className="text-xs text-muted-foreground">{c.status}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.status}
+                    {c.email ? ` · ${c.email}` : " · sem e-mail"}
+                    {c.envios_count > 1 ? ` · ${c.envios_count} envios` : ""}
+                  </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => copiarLink(c.token)} className="gap-1">
+                {c.email && c.status === "pendente" && (
+                  <Button size="sm" variant="ghost" onClick={() => mutReenv.mutate(c.id)} disabled={mutReenv.isPending} title="Reenviar e-mail">
+                    <Send className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => copiarLink(c.token)} className="gap-1" title="Copiar link">
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => mutDel.mutate(c.id)}>

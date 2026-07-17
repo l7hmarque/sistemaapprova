@@ -50,6 +50,7 @@ import { Route as AuthenticatedAdminAprovacoesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminAgendaRouteImport } from './routes/_authenticated.admin.agenda'
 import { Route as AuthenticatedAdminConfiguracoesIndexRouteImport } from './routes/_authenticated.admin.configuracoes.index'
 import { Route as ApiPublicHooksDriveSyncTickRouteImport } from './routes/api/public/hooks/drive-sync-tick'
+import { Route as ApiPublicHooksCotacaoLembretesRouteImport } from './routes/api/public/hooks/cotacao-lembretes'
 import { Route as ApiPublicHooksCapturaWorkerRouteImport } from './routes/api/public/hooks/captura-worker'
 import { Route as ApiPublicCotacaoTokenRouteImport } from './routes/api/public/cotacao.$token'
 import { Route as ApiFilesIdPreviewRouteImport } from './routes/api/files.$id.preview'
@@ -281,6 +282,12 @@ const ApiPublicHooksDriveSyncTickRoute =
     path: '/api/public/hooks/drive-sync-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCotacaoLembretesRoute =
+  ApiPublicHooksCotacaoLembretesRouteImport.update({
+    id: '/api/public/hooks/cotacao-lembretes',
+    path: '/api/public/hooks/cotacao-lembretes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCapturaWorkerRoute =
   ApiPublicHooksCapturaWorkerRouteImport.update({
     id: '/api/public/hooks/captura-worker',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
+  '/api/public/hooks/cotacao-lembretes': typeof ApiPublicHooksCotacaoLembretesRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -437,6 +445,7 @@ export interface FileRoutesByTo {
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
+  '/api/public/hooks/cotacao-lembretes': typeof ApiPublicHooksCotacaoLembretesRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -491,6 +500,7 @@ export interface FileRoutesById {
   '/api/files/$id/preview': typeof ApiFilesIdPreviewRoute
   '/api/public/cotacao/$token': typeof ApiPublicCotacaoTokenRouteWithChildren
   '/api/public/hooks/captura-worker': typeof ApiPublicHooksCapturaWorkerRoute
+  '/api/public/hooks/cotacao-lembretes': typeof ApiPublicHooksCotacaoLembretesRoute
   '/api/public/hooks/drive-sync-tick': typeof ApiPublicHooksDriveSyncTickRoute
   '/_authenticated/admin/configuracoes/': typeof AuthenticatedAdminConfiguracoesIndexRoute
   '/api/public/cotacao/$token/pdf': typeof ApiPublicCotacaoTokenPdfRoute
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/hooks/captura-worker'
+    | '/api/public/hooks/cotacao-lembretes'
     | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
@@ -594,6 +605,7 @@ export interface FileRouteTypes {
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/hooks/captura-worker'
+    | '/api/public/hooks/cotacao-lembretes'
     | '/api/public/hooks/drive-sync-tick'
     | '/admin/configuracoes'
     | '/api/public/cotacao/$token/pdf'
@@ -647,6 +659,7 @@ export interface FileRouteTypes {
     | '/api/files/$id/preview'
     | '/api/public/cotacao/$token'
     | '/api/public/hooks/captura-worker'
+    | '/api/public/hooks/cotacao-lembretes'
     | '/api/public/hooks/drive-sync-tick'
     | '/_authenticated/admin/configuracoes/'
     | '/api/public/cotacao/$token/pdf'
@@ -674,6 +687,7 @@ export interface RootRouteChildren {
   ApiFilesIdPreviewRoute: typeof ApiFilesIdPreviewRoute
   ApiPublicCotacaoTokenRoute: typeof ApiPublicCotacaoTokenRouteWithChildren
   ApiPublicHooksCapturaWorkerRoute: typeof ApiPublicHooksCapturaWorkerRoute
+  ApiPublicHooksCotacaoLembretesRoute: typeof ApiPublicHooksCotacaoLembretesRoute
   ApiPublicHooksDriveSyncTickRoute: typeof ApiPublicHooksDriveSyncTickRoute
 }
 
@@ -966,6 +980,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDriveSyncTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cotacao-lembretes': {
+      id: '/api/public/hooks/cotacao-lembretes'
+      path: '/api/public/hooks/cotacao-lembretes'
+      fullPath: '/api/public/hooks/cotacao-lembretes'
+      preLoaderRoute: typeof ApiPublicHooksCotacaoLembretesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/captura-worker': {
       id: '/api/public/hooks/captura-worker'
       path: '/api/public/hooks/captura-worker'
@@ -1199,18 +1220,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFilesIdPreviewRoute: ApiFilesIdPreviewRoute,
   ApiPublicCotacaoTokenRoute: ApiPublicCotacaoTokenRouteWithChildren,
   ApiPublicHooksCapturaWorkerRoute: ApiPublicHooksCapturaWorkerRoute,
+  ApiPublicHooksCotacaoLembretesRoute: ApiPublicHooksCotacaoLembretesRoute,
   ApiPublicHooksDriveSyncTickRoute: ApiPublicHooksDriveSyncTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
