@@ -151,6 +151,55 @@ function CotacaoDetalhePage() {
 
   const orcamentosPreenchidos = orcs.filter((o) => o.tipo === "cotacao" && o.status === "preenchido");
   const mapa = orcs.find((o) => o.tipo === "mapa_comparativo");
+  const vencedorId = cot?.orcamento_vencedor_id as string | null | undefined;
+  const eventoGeradoId = cot?.evento_financeiro_id as string | null | undefined;
+
+  const { data: ranking } = useQuery({
+    queryKey: ["cotacao-ranking", id, activeOrgId, orcs.length],
+    enabled: !!activeOrgId && orcamentosPreenchidos.length > 0,
+    queryFn: () => fetchRanking({ data: { id, organization_id: activeOrgId! } }),
+  });
+
+  const mutMapaAuto = useMutation({
+    mutationFn: async () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      const r = await gerarMapaAuto({ data: { organization_id: activeOrgId, cotacao_id: id } });
+      return gerarMapa({
+        data: { organization_id: activeOrgId, cotacao_id: id, orcamento_ids: r.orcamento_ids },
+      });
+    },
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success("Mapa gerado com os 3 menores preços");
+      window.open(r.url, "_blank");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const mutVencedor = useMutation({
+    mutationFn: (orcamento_id: string) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return setVencedor({ data: { organization_id: activeOrgId, cotacao_id: id, orcamento_id } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success("Vencedor definido");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const mutEvento = useMutation({
+    mutationFn: () => {
+      if (!activeOrgId) throw new Error("Selecione uma organização");
+      return gerarEvento({ data: { id, organization_id: activeOrgId } });
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["cotacao", id] });
+      toast.success(r.ja_existia ? "Evento já existia — abrindo" : "Evento criado no financeiro");
+      window.location.href = "/admin/painel";
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   if (isLoading) {
     return <AdminShell title="Cotação"><p className="text-sm text-muted-foreground">Carregando...</p></AdminShell>;
