@@ -514,3 +514,201 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
 
     return { cotacao: cot, fornecedores_sugeridos: preset.fornecedores_sugeridos };
   });
+
+/* ============================ RANKING / VENCEDOR / EVENTO ============================ */
+
+function totalOrcamento(o: any): number {
+  const items = ((o.dados as any)?.itens ?? []) as Array<{ precoUnitario?: number; qtd?: number; indisponivel?: boolean }>;
+  return items.reduce((a, it) => {
+    if (it.indisponivel) return a;
+    return a + Number(it.precoUnitario || 0) * Number(it.qtd || 0);
+  }, 0);
+}
+
+export const rankingCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
+  .handler(async ({ data }) => {
+    const { data: orcs, error } = await supabase
+      .from("orcamentos_salvos")
+      .select("id, dados, drive_file_id, drive_file_url, criado_em")
+      .eq("organization_id", data.organization_id)
+      .eq("cotacao_id", data.id)
+      .eq("tipo", "cotacao")
+      .eq("status", "preenchido");
+    if (error) throw new Error(error.message);
+    return (orcs ?? [])
+      .map((o) => ({
+        id: o.id,
+        razao: (o.dados as any)?.fornecedor?.razao ?? "",
+        cnpj: (o.dados as any)?.fornecedor?.cnpj ?? "",
+        total: totalOrcamento(o),
+        drive_file_url: o.drive_file_url,
+        criado_em: o.criado_em,
+      }))
+      .filter((o) => o.total > 0)
+      .sort((a, b) => a.total - b.total);
+  });
+
+const GerarMapaAutoSchema = z.object({
+  organization_id: z.string().uuid(),
+  cotacao_id: z.string().uuid(),
+});
+
+export const gerarMapaAutomatico = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => GerarMapaAutoSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { data: orcs, error } = await supabase
+      .from("orcamentos_salvos")
+      .select("id, dados")
+      .eq("organization_id", data.organization_id)
+      .eq("cotacao_id", data.cotacao_id)
+      .eq("tipo", "cotacao")
+      .eq("status", "preenchido");
+    if (error) throw new Error(error.message);
+    const validos = (orcs ?? [])
+      .map((o) => ({ id: o.id, total: totalOrcamento(o) }))
+      .filter((o) => o.total > 0)
+      .sort((a, b) => a.total - b.total);
+    if (validos.length < 3) throw new Error(`Necessário 3 orçamentos preenchidos (há ${validos.length}).`);
+    return { orcamento_ids: validos.slice(0, 3).map((o) => o.id) as [string, string, string] };
+  });
+
+const DefinirVencedorSchema = z.object({
+  organization_id: z.string().uuid(),
+  cotacao_id: z.string().uuid(),
+  orcamento_id: z.string().uuid(),
+});
+
+export const definirVencedor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => DefinirVencedorSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { data: row, error } = await supabase
+      .from("cotacoes")
+      .update({ orcamento_vencedor_id: data.orcamento_id })
+      .eq("id", data.cotacao_id)
+      .eq("organization_id", data.organization_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const gerarEventoDaCotacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => OrgScopedId.parse(d))
+  .handler(async ({ data }) => {
+    const { data: cot, error: errCot } = await supabase
+      .from("cotacoes")
+      .select("*")
+      .eq("id", data.id)
+      .eq("organization_id", data.organization_id)
+      .single();
+    if (errCot || !cot) throw new Error("Cotação não encontrada");
+    if (cot.evento_financeiro_id) {
+      return { evento_id: cot.evento_financeiro_id as string, ja_existia: true };
+    }
+    if (!cot.orcamento_vencedor_id) throw new Error("Defina o orçamento vencedor antes de lançar no financeiro.");
+
+    const { data: vencedor, error: errV } = await supabase
+      .from("orcamentos_salvos")
+      .select("*")
+      .eq("id", cot.orcamento_vencedor_id)
+      .eq("organization_id", data.organization_id)
+      .single();
+    if (errV || !vencedor) throw new Error("Orçamento vencedor não encontrado");
+
+    const total = totalOrcamento(vencedor);
+    const fornecedor = (vencedor.dados as any)?.fornecedor ?? {};
+    const mes = cot.mes_referencia || new Date().toISOString().slice(0, 7);
+
+    let fornecedorId: string | null = null;
+    if (fornecedor.cnpj) {
+      const { data: f } = await supabase
+        .from("fornecedores")
+        .select("id")
+        .eq("organization_id", data.organization_id)
+        .eq("cnpj", fornecedor.cnpj)
+        .maybeSingle();
+      fornecedorId = f?.id ?? null;
+    }
+
+    const { data: evento, error: errE } = await supabase
+      .from("eventos_financeiros")
+      .insert({
+        organization_id: data.organization_id,
+        mes_referencia: mes,
+        categoria: "material_consumo",
+        descricao: cot.objeto,
+        valor_previsto: total,
+        fornecedor_id: fornecedorId,
+        nm_favorecido: fornecedor.razao ?? null,
+        natureza_despesa_codigo: "3.3.90.39.99",
+        cd_modalidade_compra: 101,
+        origem: "cotacao",
+        status_workflow: "rascunho",
+        metadata: {
+          origem: "cotacao",
+          cotacao_id: cot.id,
+          orcamento_vencedor_id: vencedor.id,
+          mapa_drive_file_id: cot.mapa_drive_file_id ?? null,
+          origem_natureza: "regra_modalidade_101",
+        },
+      })
+      .select()
+      .single();
+    if (errE) throw new Error(errE.message);
+
+    try {
+      const anexos: Array<{
+        organization_id: string;
+        evento_id: string;
+        tipo: string;
+        arquivo_url: string | null;
+        drive_file_id: string | null;
+        metadata: any;
+      }> = [];
+      if (cot.mapa_drive_file_id) {
+        anexos.push({
+          organization_id: data.organization_id,
+          evento_id: evento.id,
+          tipo: "mapa_comparativo",
+          arquivo_url: cot.mapa_drive_file_url,
+          drive_file_id: cot.mapa_drive_file_id,
+          metadata: { origem: "cotacao", cotacao_id: cot.id },
+        });
+      }
+      const { data: orcs3 } = await supabase
+        .from("orcamentos_salvos")
+        .select("id, drive_file_id, drive_file_url")
+        .eq("organization_id", data.organization_id)
+        .eq("cotacao_id", cot.id)
+        .eq("tipo", "cotacao");
+      for (const o of orcs3 ?? []) {
+        if (!o.drive_file_id) continue;
+        anexos.push({
+          organization_id: data.organization_id,
+          evento_id: evento.id,
+          tipo: "orcamento",
+          arquivo_url: o.drive_file_url,
+          drive_file_id: o.drive_file_id,
+          metadata: { origem: "cotacao", orcamento_id: o.id },
+        });
+      }
+      if (anexos.length) {
+        await supabase.from("documentos_anexos").insert(anexos);
+      }
+    } catch (e) {
+      console.warn("[gerarEventoDaCotacao] falha ao anexar documentos:", e);
+    }
+
+    await supabase
+      .from("cotacoes")
+      .update({ evento_financeiro_id: evento.id })
+      .eq("id", cot.id)
+      .eq("organization_id", data.organization_id);
+
+    return { evento_id: evento.id as string, ja_existia: false };
+  });
