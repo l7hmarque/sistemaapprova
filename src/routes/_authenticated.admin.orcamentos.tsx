@@ -40,6 +40,17 @@ function mesAtual() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function opcoesMes(): { value: string; label: string }[] {
+  const arr: { value: string; label: string }[] = [];
+  const hoje = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    arr.push({ value: v, label: v });
+  }
+  return arr;
+}
+
 function CotacoesPage() {
   const fetchAll = useServerFn(listarCotacoes);
   const fetchPresets = useServerFn(listarPresets);
