@@ -129,6 +129,42 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
         />
       </div>
 
+      {cotaçõesQ.data && cotaçõesQ.data.length > 0 && (
+        <section>
+          <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
+            Cotações aguardando orçamentos
+          </h2>
+          <Card className="border-[var(--warning)]/40">
+            <CardContent className="p-0">
+              <ul className="divide-y">
+                {cotaçõesQ.data.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 p-3">
+                    <ShoppingCart className="h-4 w-4 text-[var(--warning)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{c.objeto}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.mes_referencia ?? ""} · criada há {Math.max(1, Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (24 * 3600 * 1000)))} dias
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[var(--warning)] border-[var(--warning)]/40 bg-[var(--warning)]/10 shrink-0">
+                      &lt; 3 orçamentos
+                    </Badge>
+                    <Link
+                      to="/admin/cotacoes/$id"
+                      params={{ id: c.id }}
+                      onClick={() => setActiveOrgId(c.organization_id)}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-[var(--module-accent)] hover:underline shrink-0"
+                    >
+                      Reenviar <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       <section>
         <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">Suas OSCs</h2>
         {oscsQ.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
