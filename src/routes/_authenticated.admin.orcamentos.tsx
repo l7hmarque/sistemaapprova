@@ -261,7 +261,22 @@ function CotacoesPage() {
                       {c.mes_referencia ?? ""} · {(c.itens as any[])?.length ?? 0} itens
                     </div>
                   </div>
-                  <Badge variant="outline">{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant={c.orcamentos_preenchidos_count >= 3 ? "default" : "secondary"}>
+                      {c.orcamentos_preenchidos_count}/3 orçamentos
+                    </Badge>
+                    {c.tem_vencedor && (
+                      <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                        Vencedor
+                      </Badge>
+                    )}
+                    {c.tem_evento && (
+                      <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
+                        Financeiro
+                      </Badge>
+                    )}
+                    <Badge variant="outline">{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                  </div>
                   <Link to="/admin/cotacoes/$id" params={{ id: c.id }}>
                     <Button size="sm" variant="ghost" className="gap-1">
                       Abrir <ArrowRight className="h-3.5 w-3.5" />
