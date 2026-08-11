@@ -69,7 +69,6 @@ function CotacoesPage() {
 
   const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; mes: string; itens: Item[] } | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
-  const [filtroMes, setFiltroMes] = useState<string>("todos");
 
   const mutCreate = useMutation({
     mutationFn: () => {
