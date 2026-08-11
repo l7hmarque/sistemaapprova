@@ -50,9 +50,15 @@ function CotacoesPage() {
   const { activeOrgId } = useActiveOrg();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cotacoes", activeOrgId],
+    queryKey: ["cotacoes", activeOrgId, filtroMes],
     enabled: !!activeOrgId,
-    queryFn: () => fetchAll({ data: { organization_id: activeOrgId! } }),
+    queryFn: () =>
+      fetchAll({
+        data: {
+          organization_id: activeOrgId!,
+          mes_referencia: filtroMes === "todos" ? null : filtroMes,
+        },
+      }),
   });
   const { data: presets } = useQuery({
     queryKey: ["cotacao-presets", activeOrgId],
