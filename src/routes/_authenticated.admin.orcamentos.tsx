@@ -11,9 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, FolderOpen, FileText, ArrowRight } from "lucide-react";
+import { Plus, Trash2, FolderOpen, FileText, ArrowRight, Calendar } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/admin/orcamentos")({
   head: () => ({ meta: [{ title: "Cotações — Approva" }] }),
@@ -33,6 +40,17 @@ function mesAtual() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function opcoesMes(): { value: string; label: string }[] {
+  const arr: { value: string; label: string }[] = [];
+  const hoje = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    arr.push({ value: v, label: v });
+  }
+  return arr;
+}
+
 function CotacoesPage() {
   const fetchAll = useServerFn(listarCotacoes);
   const fetchPresets = useServerFn(listarPresets);
@@ -41,11 +59,18 @@ function CotacoesPage() {
   const criarDePreset = useServerFn(criarCotacaoDePreset);
   const qc = useQueryClient();
   const { activeOrgId } = useActiveOrg();
+  const [filtroMes, setFiltroMes] = useState<string>("todos");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cotacoes", activeOrgId],
+    queryKey: ["cotacoes", activeOrgId, filtroMes],
     enabled: !!activeOrgId,
-    queryFn: () => fetchAll({ data: { organization_id: activeOrgId! } }),
+    queryFn: () =>
+      fetchAll({
+        data: {
+          organization_id: activeOrgId!,
+          mes_referencia: filtroMes === "todos" ? null : filtroMes,
+        },
+      }),
   });
   const { data: presets } = useQuery({
     queryKey: ["cotacao-presets", activeOrgId],
@@ -109,6 +134,21 @@ function CotacoesPage() {
   return (
     <AdminShell title="Cotações" subtitle="Coleta de orçamentos por fornecedor e geração de mapa comparativo">
       <div className="flex gap-2 mb-4">
+        <Select value={filtroMes} onValueChange={setFiltroMes}>
+          <SelectTrigger className="w-[190px] gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meses</SelectItem>
+            {opcoesMes().map((m) => (
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Dialog open={presetOpen} onOpenChange={setPresetOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
@@ -221,7 +261,22 @@ function CotacoesPage() {
                       {c.mes_referencia ?? ""} · {(c.itens as any[])?.length ?? 0} itens
                     </div>
                   </div>
-                  <Badge variant="outline">{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant={c.orcamentos_preenchidos_count >= 3 ? "default" : "secondary"}>
+                      {c.orcamentos_preenchidos_count}/3 orçamentos
+                    </Badge>
+                    {c.tem_vencedor && (
+                      <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                        Vencedor
+                      </Badge>
+                    )}
+                    {c.tem_evento && (
+                      <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
+                        Financeiro
+                      </Badge>
+                    )}
+                    <Badge variant="outline">{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                  </div>
                   <Link to="/admin/cotacoes/$id" params={{ id: c.id }}>
                     <Button size="sm" variant="ghost" className="gap-1">
                       Abrir <ArrowRight className="h-3.5 w-3.5" />

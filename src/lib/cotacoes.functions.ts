@@ -96,17 +96,47 @@ export const criarCotacao = createServerFn({ method: "POST" })
     return row;
   });
 
+const ListarCotacoesSchema = OrgOnly.extend({
+  mes_referencia: z.string().max(7).nullish(),
+});
+
 export const listarCotacoes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => OrgOnly.parse(d))
+  .inputValidator((d: unknown) => ListarCotacoesSchema.parse(d))
   .handler(async ({ data }) => {
-    const { data: rows, error } = await supabase
+    let q = supabase
       .from("cotacoes")
       .select("*")
       .eq("organization_id", data.organization_id)
       .order("criado_em", { ascending: false });
+    if (data.mes_referencia) {
+      q = q.eq("mes_referencia", data.mes_referencia);
+    }
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    if (!rows?.length) return [];
+
+    const ids = rows.map((r) => r.id);
+    const { data: orcs } = await supabase
+      .from("orcamentos_salvos")
+      .select("id, cotacao_id, status, tipo")
+      .eq("organization_id", data.organization_id)
+      .in("cotacao_id", ids)
+      .eq("tipo", "cotacao");
+
+    const preenchidosPorCotacao = new Map<string, number>();
+    for (const o of orcs ?? []) {
+      if (o.status === "preenchido" && o.cotacao_id) {
+        preenchidosPorCotacao.set(o.cotacao_id, (preenchidosPorCotacao.get(o.cotacao_id) ?? 0) + 1);
+      }
+    }
+
+    return rows.map((c) => ({
+      ...c,
+      orcamentos_preenchidos_count: preenchidosPorCotacao.get(c.id) ?? 0,
+      tem_vencedor: !!c.orcamento_vencedor_id,
+      tem_evento: !!c.evento_financeiro_id,
+    }));
   });
 
 export const obterCotacao = createServerFn({ method: "POST" })

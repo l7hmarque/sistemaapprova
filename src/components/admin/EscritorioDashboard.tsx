@@ -3,8 +3,9 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight } from "lucide-react";
+import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart } from "lucide-react";
 
 type OscRow = {
   id: string;
@@ -15,6 +16,14 @@ type OscRow = {
 };
 
 type EventoFin = { organization_id: string; status_documental: string; data_vencimento: string | null; mes_referencia: string };
+
+type CotacaoParada = {
+  id: string;
+  objeto: string;
+  mes_referencia: string | null;
+  organization_id: string;
+  criado_em: string;
+};
 
 export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: string }) {
   const { setActiveOrgId } = useActiveOrg();
@@ -57,6 +66,39 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
     eventosByOrg.set(e.organization_id, arr);
   });
 
+  const cotaçõesQ = useQuery({
+    queryKey: ["escritorio-cotacoes-paradas", oscIds.join(",")],
+    enabled: oscIds.length > 0,
+    queryFn: async () => {
+      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const { data: cotacoes, error } = await supabase
+        .from("cotacoes")
+        .select("id, objeto, mes_referencia, organization_id, criado_em")
+        .in("organization_id", oscIds)
+        .eq("status", "coletando")
+        .lt("criado_em", seteDiasAtras)
+        .order("criado_em", { ascending: true });
+      if (error) throw error;
+      if (!cotacoes?.length) return [] as CotacaoParada[];
+
+      const ids = cotacoes.map((c) => c.id);
+      const { data: orcs } = await supabase
+        .from("orcamentos_salvos")
+        .select("cotacao_id, status")
+        .in("cotacao_id", ids)
+        .eq("tipo", "cotacao");
+
+      const preenchidos = new Map<string, number>();
+      for (const o of orcs ?? []) {
+        if (o.status === "preenchido" && o.cotacao_id) {
+          preenchidos.set(o.cotacao_id, (preenchidos.get(o.cotacao_id) ?? 0) + 1);
+        }
+      }
+
+      return (cotacoes as CotacaoParada[]).filter((c) => (preenchidos.get(c.id) ?? 0) < 3);
+    },
+  });
+
   const totals = (eventosQ.data ?? []).reduce(
     (acc, e) => {
       acc.total++;
@@ -86,6 +128,42 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
           kind={totals.pendentes > 0 ? "warning" : "success"}
         />
       </div>
+
+      {cotaçõesQ.data && cotaçõesQ.data.length > 0 && (
+        <section>
+          <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
+            Cotações aguardando orçamentos
+          </h2>
+          <Card className="border-[var(--warning)]/40">
+            <CardContent className="p-0">
+              <ul className="divide-y">
+                {cotaçõesQ.data.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 p-3">
+                    <ShoppingCart className="h-4 w-4 text-[var(--warning)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{c.objeto}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.mes_referencia ?? ""} · criada há {Math.max(1, Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (24 * 3600 * 1000)))} dias
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[var(--warning)] border-[var(--warning)]/40 bg-[var(--warning)]/10 shrink-0">
+                      &lt; 3 orçamentos
+                    </Badge>
+                    <Link
+                      to="/admin/cotacoes/$id"
+                      params={{ id: c.id }}
+                      onClick={() => setActiveOrgId(c.organization_id)}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-[var(--module-accent)] hover:underline shrink-0"
+                    >
+                      Reenviar <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       <section>
         <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">Suas OSCs</h2>
