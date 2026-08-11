@@ -126,7 +126,7 @@ export const listarCotacoes = createServerFn({ method: "POST" })
 
     const preenchidosPorCotacao = new Map<string, number>();
     for (const o of orcs ?? []) {
-      if (o.status === "preenchido") {
+      if (o.status === "preenchido" && o.cotacao_id) {
         preenchidosPorCotacao.set(o.cotacao_id, (preenchidosPorCotacao.get(o.cotacao_id) ?? 0) + 1);
       }
     }
