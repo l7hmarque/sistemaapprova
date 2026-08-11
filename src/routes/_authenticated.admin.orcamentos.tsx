@@ -48,6 +48,7 @@ function CotacoesPage() {
   const criarDePreset = useServerFn(criarCotacaoDePreset);
   const qc = useQueryClient();
   const { activeOrgId } = useActiveOrg();
+  const [filtroMes, setFiltroMes] = useState<string>("todos");
 
   const { data, isLoading } = useQuery({
     queryKey: ["cotacoes", activeOrgId, filtroMes],
