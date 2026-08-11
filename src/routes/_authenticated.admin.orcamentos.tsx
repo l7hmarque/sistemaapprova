@@ -135,7 +135,7 @@ function CotacoesPage() {
     <AdminShell title="Cotações" subtitle="Coleta de orçamentos por fornecedor e geração de mapa comparativo">
       <div className="flex gap-2 mb-4">
         <Select value={filtroMes} onValueChange={setFiltroMes}>
-          <SelectTrigger className="w-[150px] gap-2">
+          <SelectTrigger className="w-[190px] gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
