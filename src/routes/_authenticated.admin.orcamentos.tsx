@@ -134,6 +134,21 @@ function CotacoesPage() {
   return (
     <AdminShell title="Cotações" subtitle="Coleta de orçamentos por fornecedor e geração de mapa comparativo">
       <div className="flex gap-2 mb-4">
+        <Select value={filtroMes} onValueChange={setFiltroMes}>
+          <SelectTrigger className="w-[150px] gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os meses</SelectItem>
+            {opcoesMes().map((m) => (
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Dialog open={presetOpen} onOpenChange={setPresetOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
