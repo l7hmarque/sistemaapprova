@@ -58,6 +58,39 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
     eventosByOrg.set(e.organization_id, arr);
   });
 
+  const cotaçõesQ = useQuery({
+    queryKey: ["escritorio-cotacoes-paradas", oscIds.join(",")],
+    enabled: oscIds.length > 0,
+    queryFn: async () => {
+      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const { data: cotacoes, error } = await supabase
+        .from("cotacoes")
+        .select("id, objeto, mes_referencia, organization_id, criado_em")
+        .in("organization_id", oscIds)
+        .eq("status", "coletando")
+        .lt("criado_em", seteDiasAtras)
+        .order("criado_em", { ascending: true });
+      if (error) throw error;
+      if (!cotacoes?.length) return [] as CotacaoParada[];
+
+      const ids = cotacoes.map((c) => c.id);
+      const { data: orcs } = await supabase
+        .from("orcamentos_salvos")
+        .select("cotacao_id, status")
+        .in("cotacao_id", ids)
+        .eq("tipo", "cotacao");
+
+      const preenchidos = new Map<string, number>();
+      for (const o of orcs ?? []) {
+        if (o.status === "preenchido" && o.cotacao_id) {
+          preenchidos.set(o.cotacao_id, (preenchidos.get(o.cotacao_id) ?? 0) + 1);
+        }
+      }
+
+      return (cotacoes as CotacaoParada[]).filter((c) => (preenchidos.get(c.id) ?? 0) < 3);
+    },
+  });
+
   const totals = (eventosQ.data ?? []).reduce(
     (acc, e) => {
       acc.total++;
