@@ -17,6 +17,14 @@ type OscRow = {
 
 type EventoFin = { organization_id: string; status_documental: string; data_vencimento: string | null; mes_referencia: string };
 
+type CotacaoParada = {
+  id: string;
+  objeto: string;
+  mes_referencia: string | null;
+  organization_id: string;
+  criado_em: string;
+};
+
 export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: string }) {
   const { setActiveOrgId } = useActiveOrg();
 
