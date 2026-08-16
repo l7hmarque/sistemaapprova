@@ -146,6 +146,34 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
         />
       </div>
 
+      {projetosCriticos.length > 0 && (
+        <section>
+          <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
+            Projetos com saldo crítico
+          </h2>
+          <Card className="border-[var(--destructive)]/40">
+            <CardContent className="p-0">
+              <ul className="divide-y">
+                {projetosCriticos.map((p: any) => (
+                  <li key={p.id} className="flex items-center gap-3 p-3">
+                    <FolderKanban className="h-4 w-4 text-[var(--destructive)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{p.nome}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.numero_termo ?? "Sem termo"} · saldo {formatCurrency(p.saldo)} de {formatCurrency(p.valor_total)}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[var(--destructive)] border-[var(--destructive)]/40 bg-[var(--destructive)]/10 shrink-0">
+                      {Math.round((p.saldo / p.valor_total) * 100)}% restante
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       {cotaçõesQ.data && cotaçõesQ.data.length > 0 && (
         <section>
           <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
