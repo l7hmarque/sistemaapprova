@@ -22,50 +22,51 @@ type Etapa = {
 
 const ETAPAS: Etapa[] = [
   {
-    fase: "Dia 1 · Repasse entra",
+    fase: "Início do mês · Repasse entra",
     gestor: {
-      titulo: "Registra o convênio ou termo",
-      detalhe: "Valor, vigência e rubricas ficam prontos para lançar despesas o mês inteiro.",
+      titulo: "Registra o projeto ou termo",
+      detalhe: "Valor, vigência e repasse ficam cadastrados para lançar despesas o mês inteiro.",
     },
     contador: {
-      titulo: "Confere abertura do período",
-      detalhe: "Saldo inicial e categorias herdadas do mês anterior — sem digitar de novo.",
+      titulo: "Confere a abertura do mês",
+      detalhe: "Saldo do projeto e classificações já cadastradas — sem digitar de novo.",
     },
   },
   {
-    fase: "Ao longo do mês · Despesa acontece",
+    fase: "Durante o mês · Despesa acontece",
     gestor: {
-      titulo: "Envia documentos pelo Approva",
-      detalhe: "NF-e, boleto, holerite ou PDF — o sistema lê e propõe a categoria certa.",
+      titulo: "Envia os documentos",
+      detalhe: "Nota, boleto, holerite ou PDF inteiro — o sistema separa e preenche os dados.",
     },
     contador: {
-      titulo: "Revisa fornecedor e rubrica",
-      detalhe: "Painel único com o que ainda falta comprovante e o que precisa de segunda mão.",
+      titulo: "Revisa fornecedor e classificação",
+      detalhe: "Um painel só com o que ainda falta de comprovante e o que espera revisão.",
     },
   },
   {
     fase: "Fim do mês · Aprovação",
     gestor: {
-      titulo: "Aprova em duas mãos",
-      detalhe: "Solicitante e responsável assinam. Trilha de auditoria fica salva.",
+      titulo: "Envia para revisão",
+      detalhe: "Cada despesa segue com o comprovante anexo para a fila de aprovação.",
     },
     contador: {
-      titulo: "Fecha o período",
-      detalhe: "Concilia com extrato bancário. Homologado, ninguém mais altera.",
+      titulo: "Aprova ou devolve com motivo",
+      detalhe: "Fica registrado quem aprovou, quando, e o que foi devolvido para ajuste.",
     },
   },
   {
-    fase: "Entrega · Órgão repassador",
+    fase: "Entrega · Relatório pronto",
     gestor: {
-      titulo: "Recebe o relatório",
-      detalhe: "PDF pronto para conselho, diretoria e financiador.",
+      titulo: "Baixa o PDF da prestação",
+      detalhe: "Modelo, certidões e comprovantes do mês em um arquivo único, com sumário.",
     },
     contador: {
-      titulo: "Exporta para TCE-PR ou município",
-      detalhe: "Arquivo no formato oficial exigido pelo controle externo, sem retrabalho.",
+      titulo: "Gera o relatório de execução",
+      detalhe: "Repasses, despesas classificadas e previsto x realizado do mês em PDF.",
     },
   },
 ];
+
 
 export function FluxoMensal() {
   const cols = ETAPAS.length;
