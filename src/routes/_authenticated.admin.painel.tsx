@@ -197,6 +197,7 @@ function PainelPage() {
       id: "",
       mes_referencia: mes,
       fornecedor_id: null,
+      projeto_id: null,
       categoria: "outros",
       descricao: "",
       valor_previsto: null,
