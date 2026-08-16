@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, FolderOpen, FileText, ArrowRight, Calendar } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
+import { listarProjetos } from "@/lib/projetos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
   Select,
