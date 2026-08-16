@@ -223,10 +223,12 @@ export const listarProjetosComResumo = createServerFn({ method: "POST" })
 
     const repPorProj = new Map<string, number>();
     for (const r of repasses ?? []) {
+      if (!r.projeto_id) continue;
       repPorProj.set(r.projeto_id, (repPorProj.get(r.projeto_id) || 0) + Number(r.valor || 0));
     }
     const execPorProj = new Map<string, number>();
     for (const e of eventos ?? []) {
+      if (!e.projeto_id) continue;
       execPorProj.set(e.projeto_id, (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0));
     }
 
