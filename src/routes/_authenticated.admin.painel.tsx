@@ -152,6 +152,17 @@ function PainelPage() {
     })();
   }, [activeOrgId]);
   useEffect(() => {
+    if (!activeOrgId) { setProjetos([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("projetos")
+        .select("id, nome")
+        .eq("organization_id", activeOrgId)
+        .order("nome");
+      setProjetos((data ?? []) as { id: string; nome: string }[]);
+    })();
+  }, [activeOrgId]);
+  useEffect(() => {
     if (!activeOrgId) { setRegras([]); return; }
     (async () => {
       try {
