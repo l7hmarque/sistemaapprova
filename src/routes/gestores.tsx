@@ -105,15 +105,16 @@ function GestoresPage() {
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
           <p className="text-xs uppercase tracking-widest text-brand-accent font-medium">Para quem cuida do que importa</p>
           <h2 className="mt-3 text-4xl md:text-5xl font-serif text-white">
-            A sua causa merece uma operação à altura.
+            A sua causa merece uma operação organizada.
           </h2>
           <p className="mt-6 text-white/85 text-lg leading-relaxed">
-            OSCs que adotam o Approva relatam fechamentos mensais
-            <strong className="text-brand-accent"> até 3x mais rápidos</strong> e
-            redução significativa de erros em prestações de contas.
+            Cada despesa com o comprovante junto, o saldo do projeto sempre à
+            vista e o relatório do mês pronto para baixar. O Approva organiza e
+            gera os documentos — a entrega ao órgão continua sendo feita por você.
           </p>
         </div>
       </section>
+
 
       <PlanCards publico="gestor" />
 
