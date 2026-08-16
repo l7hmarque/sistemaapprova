@@ -54,7 +54,7 @@ function ReoPage() {
     queryKey: ["reo-plano", vigencia, projetoId],
     queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia, projeto_id: projetoId } }),
   });
-  const repsQ = useQuery({ queryKey: ["reo-reps", mes, projetoId], queryFn: () => fnReps({ data: { mes, projeto_id: projetoId }) });
+  const repsQ = useQuery({ queryKey: ["reo-reps", mes, projetoId], queryFn: () => fnReps({ data: { mes, projeto_id: projetoId } }) });
 
   const [mov, setMov] = useState({ saldo_anterior: "", rendimentos: "", estornos_extra: "", observacao: "" });
   useMemo(() => {
