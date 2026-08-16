@@ -228,7 +228,6 @@ function CotacoesPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  </div>
                 </div>
                 <div>
                   <Label>Itens</Label>
