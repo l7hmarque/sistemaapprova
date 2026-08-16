@@ -36,13 +36,14 @@ export const Route = createFileRoute("/contadores")({
 });
 
 const VANTAGENS = [
-  { t: "Carteira em um lugar só", d: "Veja todas as OSCs sob sua responsabilidade num painel único, com status de prestação por entidade." },
-  { t: "Modelos por edital", d: "Templates de orçamento, mapa de cotação e relatórios prontos para os principais convênios e termos de fomento." },
-  { t: "Exportação para o órgão repassador", d: "Arquivo no formato oficial do TCE-PR e relatórios PDF para prestações municipais — sem ajuste manual de campos." },
-  { t: "Padronização da equipe", d: "Mesmo fluxo para todo o time — reduz retrabalho e dependência de quem lançou cada despesa." },
-  { t: "Auditoria interna facilitada", d: "Histórico completo por evento financeiro, com rastreabilidade de documentos vinculados." },
-  { t: "Logo do escritório nos relatórios", d: "Entregue a prestação de contas mensal com sua marca, para reforço de autoridade frente ao cliente." },
+  { t: "Carteira em um lugar só", d: "Todas as OSCs que você atende no mesmo login, com a situação do mês de cada uma e troca de cliente em um clique." },
+  { t: "O cliente lança, você revisa", d: "A OSC envia os documentos, o sistema cria as despesas preenchidas e você aprova ou devolve com o motivo." },
+  { t: "Regras de classificação", d: "Defina a classificação por fornecedor ou tipo de documento uma vez — o sistema repete sozinho para toda a equipe." },
+  { t: "Prestação mensal em PDF único", d: "Modelo, certidões e comprovantes de cada despesa reunidos em um arquivo com sumário, pronto para o cliente entregar." },
+  { t: "Relatório mensal de execução", d: "Repasses, despesas classificadas, resumo bancário e previsto x realizado, em PDF, por projeto ou termo." },
+  { t: "Histórico por lançamento", d: "Edições, exclusões e aprovações registradas com autor e data, com os documentos vinculados a cada despesa." },
 ];
+
 
 function ContadoresPage() {
   return (
