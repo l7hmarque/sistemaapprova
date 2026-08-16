@@ -56,7 +56,7 @@ export const PLANOS: Plano[] = [
       "15 usuários",
       "Multi-OSC (carteira até 5 entidades)",
       "Painel consolidado por cliente",
-      "Logo do escritório nos relatórios",
+      "Regras de classificação por fornecedor",
       "Gestor de conta dedicado",
     ],
     cta: "Falar com a equipe",
