@@ -518,6 +518,14 @@ function PainelPage() {
                       </div>
                     )}
                   </div>
+                  {e.projeto_id && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Projeto</div>
+                      <div className="text-sm font-medium">
+                        {projetos.find((p) => p.id === e.projeto_id)?.nome ?? "—"}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
