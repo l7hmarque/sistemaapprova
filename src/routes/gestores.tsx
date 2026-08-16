@@ -34,13 +34,14 @@ export const Route = createFileRoute("/gestores")({
 });
 
 const VANTAGENS = [
-  { t: "Menos papelada, mais causa", d: "Reduza o tempo gasto com lançamentos e fechamentos. Sua equipe volta a focar nos projetos." },
-  { t: "Visão clara do orçamento", d: "Acompanhe o realizado vs. previsto por projeto, rubrica e convênio em tempo real." },
-  { t: "Prestação de contas tranquila", d: "Documentos organizados, lançamentos rastreáveis. Quando o conselho ou financiador pedir, está pronto." },
-  { t: "Alertas de prazo", d: "Calendário fiscal e prazos de prestação com lembretes — nunca mais perca uma data." },
-  { t: "Acesso por papel", d: "Coordenação, financeiro e direção acessam o que precisam — com segurança e histórico." },
-  { t: "Relatórios para o conselho", d: "Exporte demonstrativos prontos para reuniões de diretoria e assembleias." },
+  { t: "Menos papelada, mais causa", d: "Os documentos entram pelo sistema e já viram despesa preenchida. Sua equipe deixa de digitar linha por linha." },
+  { t: "Saldo do projeto na tela", d: "Quanto foi aprovado, repassado, gasto e quanto resta em cada convênio ou termo de fomento." },
+  { t: "Prestação em um PDF só", d: "Modelo, certidões e comprovantes do mês reunidos em um arquivo único, com sumário, pronto para entregar." },
+  { t: "Certidões com validade controlada", d: "Documento válido por vários meses reaparece sozinho na prestação e avisa quando está perto de vencer." },
+  { t: "Cotação e mapa comparativo", d: "Peça orçamento aos fornecedores por e-mail, compare os preços e gere o mapa comparativo no próprio sistema." },
+  { t: "Acesso para a equipe", d: "Coordenação, financeiro, diretoria e contabilidade com convite por e-mail e histórico de quem alterou o quê." },
 ];
+
 
 function GestoresPage() {
   return (
