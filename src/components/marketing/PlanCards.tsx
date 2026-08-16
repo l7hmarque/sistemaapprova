@@ -37,8 +37,9 @@ export const PLANOS: Plano[] = [
     itens: [
       "Até 500 lançamentos/mês",
       "5 usuários",
-      "Agenda fiscal + alertas",
-      "Modelos personalizados de orçamento",
+      "Cotações com mapa comparativo",
+      "Controle de saldo por projeto/termo",
+
       "Cadastro ilimitado de fornecedores",
       "Suporte prioritário (até 4h úteis)",
     ],
