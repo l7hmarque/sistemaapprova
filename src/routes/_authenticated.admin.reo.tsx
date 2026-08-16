@@ -93,7 +93,7 @@ function ReoPage() {
   const baixarPdf = async () => {
     try {
       toast.loading("Gerando REO…", { id: "reo-pdf" });
-      const r = await fnPdf({ data: { mes } });
+      const r = await fnPdf({ data: { mes, projeto_id: projetoId } });
       const bin = atob(r.base64);
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
