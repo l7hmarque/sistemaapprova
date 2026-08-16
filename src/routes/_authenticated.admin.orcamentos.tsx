@@ -190,7 +190,7 @@ function CotacoesPage() {
           <DialogTrigger asChild>
             <Button
               className="gap-2 ml-auto"
-              onClick={() => setNovo({ open: true, objeto: "", termo: "", mes: mesAtual(), itens: [{ descricao: "", qtd: 1, unidade: "UN" }] })}
+              onClick={() => setNovo({ open: true, objeto: "", termo: "", projeto_id: "", mes: mesAtual(), itens: [{ descricao: "", qtd: 1, unidade: "UN" }] })}
             >
               <Plus className="h-4 w-4" /> Nova cotação
             </Button>
@@ -213,6 +213,21 @@ function CotacoesPage() {
                   <div>
                     <Label>Mês (AAAA-MM)</Label>
                     <Input value={novo.mes} onChange={(e) => setNovo({ ...novo, mes: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Projeto/Termo</Label>
+                  <Select value={novo.projeto_id} onValueChange={(v) => setNovo({ ...novo, projeto_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um projeto (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {(projetos ?? []).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   </div>
                 </div>
                 <div>
