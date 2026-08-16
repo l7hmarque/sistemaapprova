@@ -7,10 +7,11 @@ import escritorioShot from "@/assets/screens/escritorio.webp";
 export const Route = createFileRoute("/contadores")({
   head: () => ({
     meta: [
-      { title: "Approva para Contadores e Escritórios do Terceiro Setor" },
-      { name: "description", content: "Padronize a prestação de contas de várias OSCs em um único painel. Modelos prontos, exportação para TCE-PR e prestações municipais, multi-cliente. 30 dias grátis." },
-      { property: "og:title", content: "Approva para Contadores que atendem OSCs" },
-      { property: "og:description", content: "Multi-OSC, modelos por edital, exportação para o órgão repassador. Sem retrabalho." },
+      { title: "Sistema para escritório contábil que atende OSCs | Approva" },
+      { name: "description", content: "Atenda várias OSCs no mesmo login: despesas com documento anexo, revisão e aprovação em fila e prestação de contas mensal em PDF único. 30 dias grátis." },
+      { property: "og:title", content: "Approva para escritórios de contabilidade do terceiro setor" },
+      { property: "og:description", content: "Carteira de OSCs em um painel, mês já lançado pelo cliente com documento anexo e relatório mensal pronto." },
+
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://sistemaapprova.lovable.app/contadores" },
     ],
