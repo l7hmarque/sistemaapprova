@@ -279,7 +279,7 @@ function ReoPage() {
   );
 }
 
-function BotaoAddRepasse({ mes, fn, onSaved }: { mes: string; fn: any; onSaved: () => void }) {
+function BotaoAddRepasse({ mes, projetoId, fn, onSaved }: { mes: string; projetoId?: string; fn: any; onSaved: () => void }) {
   const [loading, setLoading] = useState(false);
   const add = async () => {
     const parcela = Number(prompt("Número da parcela?") || "0");
@@ -288,7 +288,7 @@ function BotaoAddRepasse({ mes, fn, onSaved }: { mes: string; fn: any; onSaved: 
     if (!parcela || !valor || !dt) return;
     setLoading(true);
     try {
-      await fn({ data: { mes_referencia: mes, numero_parcela: parcela, valor, data_recebimento: dt } });
+      await fn({ data: { mes_referencia: mes, numero_parcela: parcela, valor, data_recebimento: dt, projeto_id: projetoId } });
       toast.success("Repasse adicionado"); onSaved();
     } catch (e: any) { toast.error(e?.message || "Falha"); }
     finally { setLoading(false); }
