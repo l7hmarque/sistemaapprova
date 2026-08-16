@@ -79,8 +79,10 @@ function mesAtual() {
 function PainelPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [projetos, setProjetos] = useState<{ id: string; nome: string }[]>([]);
   const [mes, setMes] = useState(mesAtual());
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [filtroProjeto, setFiltroProjeto] = useState<string>("todos");
   const [editing, setEditing] = useState<Evento | null>(null);
   // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
   const [valorPrevStr, setValorPrevStr] = useState<string>("");
