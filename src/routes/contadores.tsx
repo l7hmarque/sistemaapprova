@@ -90,14 +90,15 @@ function ContadoresPage() {
 
       <section className="bg-brand-cream-soft">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Quanto custa <i>não</i> ter</p>
+          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">O mês do cliente, padronizado</p>
           <h2 className="mt-3 text-4xl md:text-5xl font-serif text-brand-navy">
             Cada hora gasta em planilha é uma hora a menos com cliente.
           </h2>
           <p className="mt-6 text-brand-muted text-lg leading-relaxed">
-            Escritórios que atendem 3 a 5 OSCs com Approva reportam economia de
-            <strong className="text-brand-navy"> 8 a 14 horas mensais</strong> só em fechamento
-            e organização documental.
+            No Approva o documento chega junto do lançamento, a revisão acontece
+            em uma fila só e o relatório do mês é gerado pelo próprio sistema. O
+            Approva não se conecta ao TCE nem ao SIT: ele organiza os dados e
+            entrega os documentos prontos para a sua equipe fazer o envio.
           </p>
         </div>
       </section>
@@ -105,11 +106,13 @@ function ContadoresPage() {
       <PlanCards publico="contador" />
 
       <FaqAccordion items={[
-        { q: "Funciona para mais de uma OSC?", a: "Sim. O plano Escritório atende até 5 OSCs com painel consolidado. Para mais entidades, fale conosco — temos condições por carteira." },
-        { q: "Posso importar dados de planilhas que já uso?", a: "Sim. Na implantação ajudamos na migração inicial dos saldos e fornecedores ativos." },
-        { q: "E se o TCE ou o município atualizar o layout de exportação?", a: "Mantemos o sistema atualizado conforme as portarias do TCE-PR e conforme os leiautes municipais em uso pelos nossos clientes. Atualizações de layout não geram custo adicional." },
-        { q: "Tem treinamento da equipe?", a: "Sim. Todos os planos incluem onboarding em vídeo. Plano Escritório inclui sessão ao vivo." },
+        { q: "Funciona para mais de uma OSC?", a: "Sim. Você alterna entre as organizações da carteira no mesmo login, sem misturar dados. O plano Escritório atende até 5 OSCs; para mais entidades, fale conosco." },
+        { q: "O Approva exporta ou envia dados para o TCE ou para o SIT?", a: "Não. Não há integração com sistemas de órgãos de controle. O Approva organiza os lançamentos, guarda os documentos e gera os relatórios e o PDF da prestação de contas que a sua equipe usa para fazer a entrega." },
+        { q: "O cliente lança e eu só reviso?", a: "Sim. A OSC envia os documentos, o sistema cria as despesas já preenchidas e elas chegam a uma fila de aprovação. Você aprova ou devolve com o motivo, e tudo fica registrado." },
+        { q: "Dá para padronizar a classificação das despesas?", a: "Sim. Você cria regras por fornecedor ou tipo de documento e o sistema passa a aplicar a mesma classificação automaticamente para toda a equipe." },
+        { q: "Tem treinamento da equipe?", a: "Sim. Todos os planos incluem onboarding em vídeo. O plano Escritório inclui sessão ao vivo." },
       ]} />
+
     </MarketingLayout>
   );
 }
