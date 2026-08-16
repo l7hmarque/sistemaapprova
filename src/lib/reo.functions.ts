@@ -359,10 +359,10 @@ async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?
 
 export const carregarReo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    return computeReo(context.supabase, id, data.mes);
+    return computeReo(context.supabase, id, data.mes, data.projeto_id);
   });
 
 
