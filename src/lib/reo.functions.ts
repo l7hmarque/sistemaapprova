@@ -112,15 +112,17 @@ export const removerLinhaPlano = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 export const listarRepasses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    const { data: rows, error } = await (context.supabase as any)
+    let q = (context.supabase as any)
       .from("repasses_recebidos")
       .select("*")
       .eq("organization_id", id)
       .eq("mes_referencia", data.mes)
       .order("numero_parcela");
+    if (data.projeto_id) q = q.eq("projeto_id", data.projeto_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as any[];
   });
@@ -136,6 +138,7 @@ export const salvarRepasse = createServerFn({ method: "POST" })
       data_recebimento: z.string(),
       convenio: z.string().nullable().optional(),
       observacao: z.string().nullable().optional(),
+      projeto_id: z.string().uuid().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
