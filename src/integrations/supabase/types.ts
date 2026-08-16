@@ -386,6 +386,7 @@ export type Database = {
           observacoes: string | null
           orcamento_vencedor_id: string | null
           organization_id: string
+          projeto_id: string | null
           status: string
           termo: string | null
         }
@@ -402,6 +403,7 @@ export type Database = {
           observacoes?: string | null
           orcamento_vencedor_id?: string | null
           organization_id: string
+          projeto_id?: string | null
           status?: string
           termo?: string | null
         }
@@ -418,6 +420,7 @@ export type Database = {
           observacoes?: string | null
           orcamento_vencedor_id?: string | null
           organization_id?: string
+          projeto_id?: string | null
           status?: string
           termo?: string | null
         }
@@ -441,6 +444,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]
@@ -665,6 +675,7 @@ export type Database = {
           organization_id: string
           origem: string
           prestacao_snapshot_id: string | null
+          projeto_id: string | null
           status_documental: string
           status_workflow: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa: number | null
@@ -702,6 +713,7 @@ export type Database = {
           organization_id: string
           origem?: string
           prestacao_snapshot_id?: string | null
+          projeto_id?: string | null
           status_documental?: string
           status_workflow?: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa?: number | null
@@ -739,6 +751,7 @@ export type Database = {
           organization_id?: string
           origem?: string
           prestacao_snapshot_id?: string | null
+          projeto_id?: string | null
           status_documental?: string
           status_workflow?: Database["public"]["Enums"]["evento_status_workflow"]
           tp_despesa?: number | null
@@ -770,6 +783,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_financeiros_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]
@@ -1254,6 +1274,7 @@ export type Database = {
           mes_referencia: string | null
           objeto: string | null
           organization_id: string
+          projeto_id: string | null
           status: string
           termo: string | null
           tipo: string
@@ -1269,6 +1290,7 @@ export type Database = {
           mes_referencia?: string | null
           objeto?: string | null
           organization_id: string
+          projeto_id?: string | null
           status?: string
           termo?: string | null
           tipo: string
@@ -1284,6 +1306,7 @@ export type Database = {
           mes_referencia?: string | null
           objeto?: string | null
           organization_id?: string
+          projeto_id?: string | null
           status?: string
           termo?: string | null
           tipo?: string
@@ -1308,6 +1331,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_salvos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]
@@ -1440,6 +1470,7 @@ export type Database = {
           id: string
           natureza_codigo: string
           organization_id: string
+          projeto_id: string | null
           valor_previsto: number
           vigencia_fim: string
           vigencia_inicio: string
@@ -1451,6 +1482,7 @@ export type Database = {
           id?: string
           natureza_codigo: string
           organization_id: string
+          projeto_id?: string | null
           valor_previsto?: number
           vigencia_fim: string
           vigencia_inicio: string
@@ -1462,6 +1494,7 @@ export type Database = {
           id?: string
           natureza_codigo?: string
           organization_id?: string
+          projeto_id?: string | null
           valor_previsto?: number
           vigencia_fim?: string
           vigencia_inicio?: string
@@ -1479,6 +1512,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_aplicacao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]
@@ -1686,6 +1726,59 @@ export type Database = {
           },
         ]
       }
+      projetos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          id: string
+          nome: string
+          numero_termo: string | null
+          objeto: string | null
+          organization_id: string
+          orgao_concedente: string | null
+          status: string
+          valor_total: number | null
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome: string
+          numero_termo?: string | null
+          objeto?: string | null
+          organization_id: string
+          orgao_concedente?: string | null
+          status?: string
+          valor_total?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          nome?: string
+          numero_termo?: string | null
+          objeto?: string | null
+          organization_id?: string
+          orgao_concedente?: string | null
+          status?: string
+          valor_total?: number | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_despesa: {
         Row: {
           ativo: boolean
@@ -1772,6 +1865,7 @@ export type Database = {
           numero_parcela: number
           observacao: string | null
           organization_id: string
+          projeto_id: string | null
           valor: number
         }
         Insert: {
@@ -1784,6 +1878,7 @@ export type Database = {
           numero_parcela: number
           observacao?: string | null
           organization_id: string
+          projeto_id?: string | null
           valor: number
         }
         Update: {
@@ -1796,6 +1891,7 @@ export type Database = {
           numero_parcela?: number
           observacao?: string | null
           organization_id?: string
+          projeto_id?: string | null
           valor?: number
         }
         Relationships: [
@@ -1804,6 +1900,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repasses_recebidos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]
