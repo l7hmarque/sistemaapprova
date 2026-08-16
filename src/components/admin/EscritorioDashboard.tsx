@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart } from "lucide-react";
+import { listarProjetosEscritorioComResumo } from "@/lib/projetos.functions";
+import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart, FolderKanban } from "lucide-react";
 
 type OscRow = {
   id: string;
