@@ -239,3 +239,59 @@ export const listarProjetosComResumo = createServerFn({ method: "POST" })
       saldo: Number(p.valor_total || 0) - (execPorProj.get(p.id) || 0),
     }));
   });
+
+/** Lista projetos de múltiplas organizações (visão escritório) com resumo financeiro. */
+export const listarProjetosEscritorioComResumo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ organization_ids: z.array(z.string().uuid()), mes_referencia: z.string().regex(/^\d{4}-\d{2}$/).optional() }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const { data: projetos, error } = await context.supabase
+      .from("projetos")
+      .select("id, nome, numero_termo, valor_total, status, organization_id")
+      .in("organization_id", data.organization_ids)
+      .eq("status", "ativo")
+      .order("nome");
+    if (error) throw new Error(error.message);
+
+    const ids = (projetos ?? []).map((p: any) => p.id);
+    if (!ids.length) return [];
+
+    let qRepasses = context.supabase
+      .from("repasses_recebidos")
+      .select("projeto_id, valor")
+      .in("projeto_id", ids);
+    if (data.mes_referencia) qRepasses = qRepasses.eq("mes_referencia", data.mes_referencia);
+
+    const { data: repasses, error: errRepasses } = await qRepasses;
+    if (errRepasses) throw new Error(errRepasses.message);
+
+    let qEventos = context.supabase
+      .from("eventos_financeiros")
+      .select("projeto_id, valor_efetivo")
+      .in("projeto_id", ids)
+      .is("excluido_em", null);
+    if (data.mes_referencia) qEventos = qEventos.eq("mes_referencia", data.mes_referencia);
+
+    const { data: eventos, error: errEventos } = await qEventos;
+    if (errEventos) throw new Error(errEventos.message);
+
+    const repPorProj = new Map<string, number>();
+    for (const r of repasses ?? []) {
+      if (!r.projeto_id) continue;
+      repPorProj.set(r.projeto_id, (repPorProj.get(r.projeto_id) || 0) + Number(r.valor || 0));
+    }
+    const execPorProj = new Map<string, number>();
+    for (const e of eventos ?? []) {
+      if (!e.projeto_id) continue;
+      execPorProj.set(e.projeto_id, (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0));
+    }
+
+    return (projetos ?? []).map((p: any) => ({
+      ...p,
+      totalRepassado: repPorProj.get(p.id) || 0,
+      totalExecutado: execPorProj.get(p.id) || 0,
+      saldo: Number(p.valor_total || 0) - (execPorProj.get(p.id) || 0),
+    }));
+  });
