@@ -32,6 +32,7 @@ type Evento = {
   id: string;
   mes_referencia: string;
   fornecedor_id: string | null;
+  projeto_id: string | null;
   categoria: string;
   descricao: string | null;
   valor_previsto: number | null;
