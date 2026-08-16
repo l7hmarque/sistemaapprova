@@ -15,6 +15,7 @@ import {
   Crown,
   FolderTree,
   Landmark,
+  FolderKanban,
 } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
