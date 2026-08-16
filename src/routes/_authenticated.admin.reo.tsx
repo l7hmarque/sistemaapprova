@@ -159,7 +159,7 @@ function ReoPage() {
 
       {/* 2.1 Repasses */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex justify-between">2.1 Valores transferidos <BotaoAddRepasse mes={mes} fn={fnSaveRep} onSaved={invalidateAll} /></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex justify-between">2.1 Valores transferidos <BotaoAddRepasse mes={mes} projetoId={projetoId} fn={fnSaveRep} onSaved={invalidateAll} /></CardTitle></CardHeader>
         <CardContent>
           {!repsQ.data?.length ? (
             <p className="text-sm text-muted-foreground">Nenhum repasse cadastrado neste mês.</p>
