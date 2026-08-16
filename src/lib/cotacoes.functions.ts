@@ -87,6 +87,7 @@ export const criarCotacao = createServerFn({ method: "POST" })
         organization_id: data.organization_id,
         objeto: data.objeto,
         termo: data.termo || null,
+        projeto_id: data.projeto_id || null,
         mes_referencia: data.mes_referencia || null,
         itens: data.itens,
         observacoes: data.observacoes || null,
