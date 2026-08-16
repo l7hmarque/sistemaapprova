@@ -43,16 +43,17 @@ export const listarNaturezas = createServerFn({ method: "GET" })
 export const listarPlanoAplicacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ vigenciaInicio: z.string().optional() }).parse(d ?? {}),
+    z.object({ vigenciaInicio: z.string().optional(), projeto_id: z.string().uuid().optional() }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     let q = (context.supabase as any)
       .from("plano_aplicacao")
-      .select("id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio")
+      .select("id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio, projeto_id")
       .eq("organization_id", id)
       .order("natureza_codigo");
     if (data.vigenciaInicio) q = q.eq("vigencia_inicio", data.vigenciaInicio);
+    if (data.projeto_id) q = q.eq("projeto_id", data.projeto_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as any[];
