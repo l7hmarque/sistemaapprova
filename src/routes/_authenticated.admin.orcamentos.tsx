@@ -79,8 +79,13 @@ function CotacoesPage() {
     enabled: !!activeOrgId,
     queryFn: () => fetchPresets({ data: { organization_id: activeOrgId! } }),
   });
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchProjetos({ data: { organization_id: activeOrgId! } }),
+  });
 
-  const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; mes: string; itens: Item[] } | null>(null);
+  const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; projeto_id: string | ""; mes: string; itens: Item[] } | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
 
   const mutCreate = useMutation({
