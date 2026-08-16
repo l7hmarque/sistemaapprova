@@ -96,6 +96,7 @@ function CotacoesPage() {
           organization_id: activeOrgId,
           objeto: novo!.objeto,
           termo: novo!.termo,
+          projeto_id: novo!.projeto_id || undefined,
           mes_referencia: novo!.mes,
           itens: novo!.itens.filter((i) => i.descricao.trim()),
         },
