@@ -296,7 +296,7 @@ function BotaoAddRepasse({ mes, projetoId, fn, onSaved }: { mes: string; projeto
   return <Button size="sm" variant="outline" onClick={add} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1" /> Adicionar</>}</Button>;
 }
 
-function BotaoAddPlano({ vigencia, naturezas, fn, onSaved }: { vigencia: string; naturezas: Array<{ codigo: string; descricao: string }>; fn: any; onSaved: () => void }) {
+function BotaoAddPlano({ vigencia, projetoId, naturezas, fn, onSaved }: { vigencia: string; projetoId?: string; naturezas: Array<{ codigo: string; descricao: string }>; fn: any; onSaved: () => void }) {
   const [cod, setCod] = useState("");
   const [val, setVal] = useState("");
   const [loading, setLoading] = useState(false);
@@ -313,6 +313,7 @@ function BotaoAddPlano({ vigencia, naturezas, fn, onSaved }: { vigencia: string;
           vigencia_fim: `${ano}-12-31`,
           natureza_codigo: cod,
           valor_previsto: Number(val.replace(",", ".")),
+          projeto_id: projetoId,
         },
       });
       toast.success("Adicionado"); setCod(""); setVal(""); setOpen(false); onSaved();
