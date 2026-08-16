@@ -55,6 +55,7 @@ function opcoesMes(): { value: string; label: string }[] {
 function CotacoesPage() {
   const fetchAll = useServerFn(listarCotacoes);
   const fetchPresets = useServerFn(listarPresets);
+  const fetchProjetos = useServerFn(listarProjetos);
   const criar = useServerFn(criarCotacao);
   const remover = useServerFn(removerCotacao);
   const criarDePreset = useServerFn(criarCotacaoDePreset);
