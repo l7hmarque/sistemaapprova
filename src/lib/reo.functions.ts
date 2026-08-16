@@ -69,6 +69,7 @@ export const salvarLinhaPlano = createServerFn({ method: "POST" })
       natureza_codigo: z.string(),
       valor_previsto: z.number().min(0),
       convenio: z.string().nullable().optional(),
+      projeto_id: z.string().uuid().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
