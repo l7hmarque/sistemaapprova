@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart } from "lucide-react";
+import { listarProjetosEscritorioComResumo } from "@/lib/projetos.functions";
+import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart, FolderKanban } from "lucide-react";
 
 type OscRow = {
   id: string;
@@ -109,6 +111,21 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
     { total: 0, pendentes: 0, completos: 0 },
   );
 
+  const fnProjetos = useServerFn(listarProjetosEscritorioComResumo);
+  const projetosQ = useQuery({
+    queryKey: ["escritorio-projetos", oscIds.join(",")],
+    enabled: oscIds.length > 0,
+    queryFn: async () => fnProjetos({ data: { organization_ids: oscIds } }),
+  });
+
+  const projetosCriticos = (projetosQ.data ?? [])
+    .filter((p: any) => p.valor_total > 0 && p.saldo < p.valor_total * 0.1)
+    .sort((a: any, b: any) => a.saldo - b.saldo)
+    .slice(0, 5);
+
+  const formatCurrency = (n: number) =>
+    `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="p-6 md:p-8 space-y-6 md:space-y-8" data-module="dashboard">
       <header className="border-l-4 pl-4" style={{ borderColor: "var(--module-accent)" }}>
@@ -128,6 +145,34 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
           kind={totals.pendentes > 0 ? "warning" : "success"}
         />
       </div>
+
+      {projetosCriticos.length > 0 && (
+        <section>
+          <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
+            Projetos com saldo crítico
+          </h2>
+          <Card className="border-[var(--destructive)]/40">
+            <CardContent className="p-0">
+              <ul className="divide-y">
+                {projetosCriticos.map((p: any) => (
+                  <li key={p.id} className="flex items-center gap-3 p-3">
+                    <FolderKanban className="h-4 w-4 text-[var(--destructive)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{p.nome}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.numero_termo ?? "Sem termo"} · saldo {formatCurrency(p.saldo)} de {formatCurrency(p.valor_total)}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[var(--destructive)] border-[var(--destructive)]/40 bg-[var(--destructive)]/10 shrink-0">
+                      {Math.round((p.saldo / p.valor_total) * 100)}% restante
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {cotaçõesQ.data && cotaçõesQ.data.length > 0 && (
         <section>

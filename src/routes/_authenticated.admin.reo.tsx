@@ -17,6 +17,7 @@ import {
   listarRepasses, salvarRepasse, removerRepasse,
   salvarMovimento, gerarReoPdf,
 } from "@/lib/reo.functions";
+import { listarProjetos } from "@/lib/projetos.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reo")({ component: ReoPage });
 
@@ -31,6 +32,7 @@ function moeda(n: number) {
 function ReoPage() {
   const [mes, setMes] = useState<string>(mesAtual());
   const [vigencia, setVigencia] = useState<string>(`${mes.slice(0, 4)}-01-01`);
+  const [filtroProjeto, setFiltroProjeto] = useState<string>("todos");
   const qc = useQueryClient();
 
   const fnReo = useServerFn(carregarReo);
@@ -44,13 +46,16 @@ function ReoPage() {
   const fnSaveMov = useServerFn(salvarMovimento);
   const fnPdf = useServerFn(gerarReoPdf);
 
-  const reoQ = useQuery({ queryKey: ["reo", mes], queryFn: () => fnReo({ data: { mes } }) });
+  const projetoId = filtroProjeto === "todos" ? undefined : filtroProjeto;
+
+  const reoQ = useQuery({ queryKey: ["reo", mes, projetoId], queryFn: () => fnReo({ data: { mes, projeto_id: projetoId } }) });
   const natQ = useQuery({ queryKey: ["reo-nat"], queryFn: () => fnNat(), staleTime: 300_000 });
+  const projetosQ = useQuery({ queryKey: ["projetos-reo"], queryFn: () => listarProjetos({ data: {} }), staleTime: 300_000 });
   const planoQ = useQuery({
-    queryKey: ["reo-plano", vigencia],
-    queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia } }),
+    queryKey: ["reo-plano", vigencia, projetoId],
+    queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia, projeto_id: projetoId } }),
   });
-  const repsQ = useQuery({ queryKey: ["reo-reps", mes], queryFn: () => fnReps({ data: { mes } }) });
+  const repsQ = useQuery({ queryKey: ["reo-reps", mes, projetoId], queryFn: () => fnReps({ data: { mes, projeto_id: projetoId } }) });
 
   const [mov, setMov] = useState({ saldo_anterior: "", rendimentos: "", estornos_extra: "", observacao: "" });
   useMemo(() => {
@@ -88,7 +93,7 @@ function ReoPage() {
   const baixarPdf = async () => {
     try {
       toast.loading("Gerando REO…", { id: "reo-pdf" });
-      const r = await fnPdf({ data: { mes } });
+      const r = await fnPdf({ data: { mes, projeto_id: projetoId } });
       const bin = atob(r.base64);
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
@@ -112,6 +117,20 @@ function ReoPage() {
           </p>
         </div>
         <div className="flex items-end gap-2">
+          <div>
+            <Label className="text-xs">Projeto / Termo</Label>
+            <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todos os projetos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os projetos</SelectItem>
+                {(projetosQ.data ?? []).map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-xs">Mês</Label>
             <Input value={mes} onChange={(e) => setMes(e.target.value)} placeholder="AAAA-MM" className="w-32" />
@@ -140,7 +159,7 @@ function ReoPage() {
 
       {/* 2.1 Repasses */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex justify-between">2.1 Valores transferidos <BotaoAddRepasse mes={mes} fn={fnSaveRep} onSaved={invalidateAll} /></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex justify-between">2.1 Valores transferidos <BotaoAddRepasse mes={mes} projetoId={projetoId} fn={fnSaveRep} onSaved={invalidateAll} /></CardTitle></CardHeader>
         <CardContent>
           {!repsQ.data?.length ? (
             <p className="text-sm text-muted-foreground">Nenhum repasse cadastrado neste mês.</p>
@@ -203,7 +222,7 @@ function ReoPage() {
                 <Label className="text-xs">Vigência (início)</Label>
                 <Input type="date" value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="w-40" />
               </div>
-              <BotaoAddPlano vigencia={vigencia} naturezas={natQ.data ?? []} fn={fnSavePlano} onSaved={invalidateAll} />
+              <BotaoAddPlano vigencia={vigencia} projetoId={projetoId} naturezas={natQ.data ?? []} fn={fnSavePlano} onSaved={invalidateAll} />
             </div>
           </CardTitle>
         </CardHeader>
@@ -260,7 +279,7 @@ function ReoPage() {
   );
 }
 
-function BotaoAddRepasse({ mes, fn, onSaved }: { mes: string; fn: any; onSaved: () => void }) {
+function BotaoAddRepasse({ mes, projetoId, fn, onSaved }: { mes: string; projetoId?: string; fn: any; onSaved: () => void }) {
   const [loading, setLoading] = useState(false);
   const add = async () => {
     const parcela = Number(prompt("Número da parcela?") || "0");
@@ -269,7 +288,7 @@ function BotaoAddRepasse({ mes, fn, onSaved }: { mes: string; fn: any; onSaved: 
     if (!parcela || !valor || !dt) return;
     setLoading(true);
     try {
-      await fn({ data: { mes_referencia: mes, numero_parcela: parcela, valor, data_recebimento: dt } });
+      await fn({ data: { mes_referencia: mes, numero_parcela: parcela, valor, data_recebimento: dt, projeto_id: projetoId } });
       toast.success("Repasse adicionado"); onSaved();
     } catch (e: any) { toast.error(e?.message || "Falha"); }
     finally { setLoading(false); }
@@ -277,7 +296,7 @@ function BotaoAddRepasse({ mes, fn, onSaved }: { mes: string; fn: any; onSaved: 
   return <Button size="sm" variant="outline" onClick={add} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1" /> Adicionar</>}</Button>;
 }
 
-function BotaoAddPlano({ vigencia, naturezas, fn, onSaved }: { vigencia: string; naturezas: Array<{ codigo: string; descricao: string }>; fn: any; onSaved: () => void }) {
+function BotaoAddPlano({ vigencia, projetoId, naturezas, fn, onSaved }: { vigencia: string; projetoId?: string; naturezas: Array<{ codigo: string; descricao: string }>; fn: any; onSaved: () => void }) {
   const [cod, setCod] = useState("");
   const [val, setVal] = useState("");
   const [loading, setLoading] = useState(false);
@@ -294,6 +313,7 @@ function BotaoAddPlano({ vigencia, naturezas, fn, onSaved }: { vigencia: string;
           vigencia_fim: `${ano}-12-31`,
           natureza_codigo: cod,
           valor_previsto: Number(val.replace(",", ".")),
+          projeto_id: projetoId,
         },
       });
       toast.success("Adicionado"); setCod(""); setVal(""); setOpen(false); onSaved();

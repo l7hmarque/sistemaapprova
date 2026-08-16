@@ -43,16 +43,17 @@ export const listarNaturezas = createServerFn({ method: "GET" })
 export const listarPlanoAplicacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ vigenciaInicio: z.string().optional() }).parse(d ?? {}),
+    z.object({ vigenciaInicio: z.string().optional(), projeto_id: z.string().uuid().optional() }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     let q = (context.supabase as any)
       .from("plano_aplicacao")
-      .select("id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio")
+      .select("id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio, projeto_id")
       .eq("organization_id", id)
       .order("natureza_codigo");
     if (data.vigenciaInicio) q = q.eq("vigencia_inicio", data.vigenciaInicio);
+    if (data.projeto_id) q = q.eq("projeto_id", data.projeto_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as any[];
@@ -68,6 +69,7 @@ export const salvarLinhaPlano = createServerFn({ method: "POST" })
       natureza_codigo: z.string(),
       valor_previsto: z.number().min(0),
       convenio: z.string().nullable().optional(),
+      projeto_id: z.string().uuid().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -110,15 +112,17 @@ export const removerLinhaPlano = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 export const listarRepasses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    const { data: rows, error } = await (context.supabase as any)
+    let q = (context.supabase as any)
       .from("repasses_recebidos")
       .select("*")
       .eq("organization_id", id)
       .eq("mes_referencia", data.mes)
       .order("numero_parcela");
+    if (data.projeto_id) q = q.eq("projeto_id", data.projeto_id);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as any[];
   });
@@ -134,6 +138,7 @@ export const salvarRepasse = createServerFn({ method: "POST" })
       data_recebimento: z.string(),
       convenio: z.string().nullable().optional(),
       observacao: z.string().nullable().optional(),
+      projeto_id: z.string().uuid().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -220,24 +225,28 @@ export const setNaturezaEvento = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 // Consolidação do REO de um mês
 // ─────────────────────────────────────────────────────────────
-async function computeReo(supabase: any, id: string, anoMes: string) {
+async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?: string | null) {
   const [ano] = anoMes.split("-");
 
-  const { data: repasses } = await supabase
+  let repassesQ = supabase
     .from("repasses_recebidos")
     .select("*")
     .eq("organization_id", id)
     .eq("mes_referencia", anoMes)
     .order("numero_parcela");
+  if (projeto_id) repassesQ = repassesQ.eq("projeto_id", projeto_id);
+  const { data: repasses } = await repassesQ;
 
-  const { data: eventos } = await supabase
+  let eventosQ = supabase
     .from("eventos_financeiros")
-    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado")
+    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado, projeto_id")
     .eq("organization_id", id)
     .eq("mes_referencia", anoMes)
     .is("excluido_em", null)
     .not("valor_efetivo", "is", null)
     .order("id_interno");
+  if (projeto_id) eventosQ = eventosQ.eq("projeto_id", projeto_id);
+  const { data: eventos } = await eventosQ;
 
   const { data: movRow } = await supabase
     .from("movimento_bancario_mensal")
@@ -247,21 +256,25 @@ async function computeReo(supabase: any, id: string, anoMes: string) {
     .maybeSingle();
 
   const dataAlvo = `${anoMes}-01`;
-  const { data: plano } = await supabase
+  let planoQ = supabase
     .from("plano_aplicacao")
-    .select("natureza_codigo, valor_previsto, vigencia_inicio, vigencia_fim, convenio")
+    .select("natureza_codigo, valor_previsto, vigencia_inicio, vigencia_fim, convenio, projeto_id")
     .eq("organization_id", id)
     .lte("vigencia_inicio", dataAlvo)
     .gte("vigencia_fim", dataAlvo);
+  if (projeto_id) planoQ = planoQ.eq("projeto_id", projeto_id);
+  const { data: plano } = await planoQ;
 
-  const { data: gastoRows } = await supabase
+  let gastoQ = supabase
     .from("eventos_financeiros")
-    .select("natureza_despesa_codigo, valor_efetivo, valor_estornado, mes_referencia")
+    .select("natureza_despesa_codigo, valor_efetivo, valor_estornado, mes_referencia, projeto_id")
     .eq("organization_id", id)
     .gte("mes_referencia", `${ano}-01`)
     .lte("mes_referencia", anoMes)
     .is("excluido_em", null)
     .not("valor_efetivo", "is", null);
+  if (projeto_id) gastoQ = gastoQ.eq("projeto_id", projeto_id);
+  const { data: gastoRows } = await gastoQ;
 
   const gastoPorNat = new Map<string, { gasto: number; estornado: number }>();
   for (const r of (gastoRows ?? []) as any[]) {
@@ -346,10 +359,10 @@ async function computeReo(supabase: any, id: string, anoMes: string) {
 
 export const carregarReo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    return computeReo(context.supabase, id, data.mes);
+    return computeReo(context.supabase, id, data.mes, data.projeto_id);
   });
 
 
@@ -378,10 +391,10 @@ function newPage(pdf: PDFDocument): PDFPage {
 
 export const gerarReoPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    const reo = await computeReo(context.supabase, id, data.mes);
+    const reo = await computeReo(context.supabase, id, data.mes, data.projeto_id);
 
 
     const pdf = await PDFDocument.create();

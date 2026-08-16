@@ -32,6 +32,7 @@ type Evento = {
   id: string;
   mes_referencia: string;
   fornecedor_id: string | null;
+  projeto_id: string | null;
   categoria: string;
   descricao: string | null;
   valor_previsto: number | null;
@@ -78,8 +79,10 @@ function mesAtual() {
 function PainelPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [projetos, setProjetos] = useState<{ id: string; nome: string }[]>([]);
   const [mes, setMes] = useState(mesAtual());
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [filtroProjeto, setFiltroProjeto] = useState<string>("todos");
   const [editing, setEditing] = useState<Evento | null>(null);
   // Strings locais para inputs numéricos (evita perder ponto decimal durante digitação)
   const [valorPrevStr, setValorPrevStr] = useState<string>("");
@@ -149,6 +152,17 @@ function PainelPage() {
     })();
   }, [activeOrgId]);
   useEffect(() => {
+    if (!activeOrgId) { setProjetos([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("projetos")
+        .select("id, nome")
+        .eq("organization_id", activeOrgId)
+        .order("nome");
+      setProjetos((data ?? []) as { id: string; nome: string }[]);
+    })();
+  }, [activeOrgId]);
+  useEffect(() => {
     if (!activeOrgId) { setRegras([]); return; }
     (async () => {
       try {
@@ -160,8 +174,12 @@ function PainelPage() {
   }, [activeOrgId]);
 
   const filtrados = useMemo(
-    () => eventos.filter((e) => filtroCategoria === "todas" || e.categoria === filtroCategoria),
-    [eventos, filtroCategoria],
+    () => eventos.filter((e) => {
+      const okCat = filtroCategoria === "todas" || e.categoria === filtroCategoria;
+      const okProj = filtroProjeto === "todos" || e.projeto_id === filtroProjeto;
+      return okCat && okProj;
+    }),
+    [eventos, filtroCategoria, filtroProjeto],
   );
 
   const totais = useMemo(() => {
@@ -183,6 +201,7 @@ function PainelPage() {
       id: "",
       mes_referencia: mes,
       fornecedor_id: null,
+      projeto_id: null,
       categoria: "outros",
       descricao: "",
       valor_previsto: null,
@@ -242,6 +261,7 @@ function PainelPage() {
     const payload = {
       mes_referencia: editing.mes_referencia,
       fornecedor_id: editing.fornecedor_id,
+      projeto_id: editing.projeto_id,
       categoria: editing.categoria,
       descricao: descricaoLimpa,
       valor_previsto: parseNum(valorPrevStr),
@@ -359,6 +379,16 @@ function PainelPage() {
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
                 {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Projeto</Label>
+            <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os projetos</SelectItem>
+                {projetos.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -488,6 +518,14 @@ function PainelPage() {
                       </div>
                     )}
                   </div>
+                  {e.projeto_id && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Projeto</div>
+                      <div className="text-sm font-medium">
+                        {projetos.find((p) => p.id === e.projeto_id)?.nome ?? "—"}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
@@ -583,6 +621,19 @@ function PainelPage() {
                     <SelectItem value="none">— sem fornecedor —</SelectItem>
                     {fornecedores.map((f) => (
                       <SelectItem key={f.id} value={f.id}>{f.razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label>Projeto / Termo</Label>
+                <Select value={editing.projeto_id ?? "none"}
+                  onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "none" ? null : v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— sem projeto —</SelectItem>
+                    {projetos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

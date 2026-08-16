@@ -27,6 +27,7 @@ const CotacaoCreateSchema = z.object({
   organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500),
   termo: z.string().max(120).default(""),
+  projeto_id: z.string().uuid().optional(),
   mes_referencia: z.string().max(7).optional(),
   itens: z.array(ItemSchema).min(1).max(200),
   observacoes: z.string().max(2000).optional(),
@@ -37,6 +38,7 @@ const CotacaoUpdateSchema = z.object({
   organization_id: z.string().uuid(),
   objeto: z.string().min(1).max(500).optional(),
   termo: z.string().max(120).optional(),
+  projeto_id: z.string().uuid().optional(),
   mes_referencia: z.string().max(7).optional(),
   itens: z.array(ItemSchema).optional(),
   status: z.enum(["coletando", "pronto_para_mapa", "finalizado"]).optional(),
@@ -85,6 +87,7 @@ export const criarCotacao = createServerFn({ method: "POST" })
         organization_id: data.organization_id,
         objeto: data.objeto,
         termo: data.termo || null,
+        projeto_id: data.projeto_id || null,
         mes_referencia: data.mes_referencia || null,
         itens: data.itens,
         observacoes: data.observacoes || null,
@@ -167,6 +170,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
     const patch: any = {};
     if (rest.objeto !== undefined) patch.objeto = rest.objeto;
     if (rest.termo !== undefined) patch.termo = rest.termo || null;
+    if (rest.projeto_id !== undefined) patch.projeto_id = rest.projeto_id || null;
     if (rest.mes_referencia !== undefined) patch.mes_referencia = rest.mes_referencia || null;
     if (rest.itens !== undefined) patch.itens = rest.itens;
     if (rest.status !== undefined) patch.status = rest.status;

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, FolderOpen, FileText, ArrowRight, Calendar } from "lucide-react";
 import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
+import { listarProjetos } from "@/lib/projetos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
   Select,
@@ -54,6 +55,7 @@ function opcoesMes(): { value: string; label: string }[] {
 function CotacoesPage() {
   const fetchAll = useServerFn(listarCotacoes);
   const fetchPresets = useServerFn(listarPresets);
+  const fetchProjetos = useServerFn(listarProjetos);
   const criar = useServerFn(criarCotacao);
   const remover = useServerFn(removerCotacao);
   const criarDePreset = useServerFn(criarCotacaoDePreset);
@@ -77,8 +79,13 @@ function CotacoesPage() {
     enabled: !!activeOrgId,
     queryFn: () => fetchPresets({ data: { organization_id: activeOrgId! } }),
   });
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: () => fetchProjetos({ data: { organization_id: activeOrgId! } }),
+  });
 
-  const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; mes: string; itens: Item[] } | null>(null);
+  const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; projeto_id: string | ""; mes: string; itens: Item[] } | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
 
   const mutCreate = useMutation({
@@ -89,6 +96,7 @@ function CotacoesPage() {
           organization_id: activeOrgId,
           objeto: novo!.objeto,
           termo: novo!.termo,
+          projeto_id: novo!.projeto_id || undefined,
           mes_referencia: novo!.mes,
           itens: novo!.itens.filter((i) => i.descricao.trim()),
         },
@@ -182,7 +190,7 @@ function CotacoesPage() {
           <DialogTrigger asChild>
             <Button
               className="gap-2 ml-auto"
-              onClick={() => setNovo({ open: true, objeto: "", termo: "", mes: mesAtual(), itens: [{ descricao: "", qtd: 1, unidade: "UN" }] })}
+              onClick={() => setNovo({ open: true, objeto: "", termo: "", projeto_id: "", mes: mesAtual(), itens: [{ descricao: "", qtd: 1, unidade: "UN" }] })}
             >
               <Plus className="h-4 w-4" /> Nova cotação
             </Button>
@@ -206,6 +214,20 @@ function CotacoesPage() {
                     <Label>Mês (AAAA-MM)</Label>
                     <Input value={novo.mes} onChange={(e) => setNovo({ ...novo, mes: e.target.value })} />
                   </div>
+                </div>
+                <div>
+                  <Label>Projeto/Termo</Label>
+                  <Select value={novo.projeto_id} onValueChange={(v) => setNovo({ ...novo, projeto_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um projeto (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {(projetos ?? []).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Itens</Label>
