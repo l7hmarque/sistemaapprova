@@ -391,10 +391,10 @@ function newPage(pdf: PDFDocument): PDFPage {
 
 export const gerarReoPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
-    const reo = await computeReo(context.supabase, id, data.mes);
+    const reo = await computeReo(context.supabase, id, data.mes, data.projeto_id);
 
 
     const pdf = await PDFDocument.create();
