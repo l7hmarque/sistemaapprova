@@ -9,20 +9,108 @@ import previewPainel from "@/assets/screens/painel.webp";
 
 const SITE = "https://sistemaapprova.lovable.app";
 
+const FAQ = [
+  {
+    q: "O Approva envia os dados direto para o TCE ou para o SIT?",
+    a: "Não. O Approva não tem integração com TCE, SIT ou sistema de nenhum órgão. O que ele faz é organizar as despesas, guardar os comprovantes e gerar os relatórios e o PDF da prestação de contas do mês — você usa esse material para fazer a entrega onde a sua OSC precisa entregar.",
+  },
+  {
+    q: "Como o sistema lê os documentos que eu envio?",
+    a: "Você envia o PDF do mês (mesmo com vários documentos dentro) ou os arquivos avulsos. O Approva separa cada documento, identifica fornecedor, valor e datas e cria uma despesa para cada um. Você só confere e confirma.",
+  },
+  {
+    q: "O que sai no PDF da prestação de contas?",
+    a: "Um arquivo único com o seu documento-modelo, as certidões e documentos cadastrados no mês e todos os comprovantes das despesas (nota fiscal, boleto e comprovante de pagamento), na ordem, com sumário.",
+  },
+  {
+    q: "Preciso cadastrar as certidões todo mês?",
+    a: "Não. Ao cadastrar um documento você informa até quando ele vale. Enquanto estiver válido, ele entra automaticamente na prestação dos meses seguintes.",
+  },
+  {
+    q: "Dá para atender mais de uma OSC no mesmo login?",
+    a: "Sim. Escritórios de contabilidade alternam entre as organizações que atendem sem misturar dados, e cada OSC convida a própria equipe por e-mail.",
+  },
+  {
+    q: "Preciso entender de contabilidade para usar?",
+    a: "Não para o dia a dia. Enviar documento, conferir e aprovar é simples. As partes mais técnicas, como a classificação da despesa, ficam pré-preenchidas e podem ser revisadas por quem cuida da contabilidade.",
+  },
+  {
+    q: "A demonstração é gratuita?",
+    a: "Sim, 30 dias, sem cartão de crédito. Você pode encerrar quando quiser.",
+  },
+];
+
+const RECURSOS = [
+  {
+    t: "Leitura automática dos documentos",
+    d: "Envie um PDF com nota fiscal, boleto, holerite e comprovante juntos. Cada documento vira uma despesa separada, já com fornecedor, valor e datas preenchidos para você conferir.",
+  },
+  {
+    t: "Painel do mês",
+    d: "Todas as despesas do mês em uma tela: o que já tem comprovante, o que está faltando, filtro por mês e por projeto.",
+  },
+  {
+    t: "Prestação de contas em um PDF só",
+    d: "O sistema junta o seu documento-modelo, as certidões cadastradas e os comprovantes de cada despesa em um único arquivo, com sumário e sem páginas repetidas.",
+  },
+  {
+    t: "Certidões que se renovam sozinhas",
+    d: "Documento com validade de vários meses continua aparecendo na prestação até a data de vencimento — e o sistema avisa quando está perto de vencer.",
+  },
+  {
+    t: "Relatório mensal de execução",
+    d: "Repasses recebidos, despesas classificadas, resumo bancário e comparação entre previsto e realizado, tudo em PDF.",
+  },
+  {
+    t: "Saldo por projeto ou termo",
+    d: "Quanto foi aprovado, quanto já entrou, quanto foi gasto e quanto resta em cada convênio ou termo de fomento.",
+  },
+  {
+    t: "Cotação com três orçamentos",
+    d: "Envie o pedido de orçamento por e-mail aos fornecedores, compare os preços recebidos, gere o mapa comparativo e transforme o vencedor em despesa.",
+  },
+  {
+    t: "Fornecedores e regras de classificação",
+    d: "Cadastre o fornecedor uma vez e defina a regra: nas próximas despesas o sistema já aplica a mesma classificação sozinho.",
+  },
+  {
+    t: "Todos os arquivos organizados",
+    d: "Os documentos do ano ficam separados por seção, com busca e download direto — sem depender de pasta física ou e-mail antigo.",
+  },
+];
+
+const PARA_OSC = [
+  "Pare de montar pasta e caçar comprovante no WhatsApp: tudo entra pelo sistema e fica junto da despesa.",
+  "Veja na hora quais despesas do mês ainda estão sem nota ou sem comprovante de pagamento.",
+  "Saiba o saldo de cada convênio ou termo antes de autorizar um novo gasto.",
+  "Gere o PDF da prestação do mês para entregar ao órgão que repassou o recurso.",
+  "Faça a cotação de três orçamentos e o mapa comparativo dentro do próprio sistema.",
+  "Convide a coordenação, o financeiro e a diretoria com acesso individual.",
+];
+
+const PARA_CONTABIL = [
+  "Atenda várias OSCs no mesmo login, alternando de cliente sem misturar dados.",
+  "Receba o mês já lançado pela OSC, com documento anexado — sem redigitar planilha.",
+  "Revise e aprove as despesas em uma fila só, devolvendo com motivo quando faltar algo.",
+  "Padronize a classificação por fornecedor com regras, para toda a equipe lançar igual.",
+  "Baixe o relatório mensal de execução e o pacote completo de documentos do cliente.",
+  "Consulte o histórico de edições, exclusões e aprovações de cada lançamento.",
+];
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Approva — Prestação de contas de OSCs, sem planilha paralela" },
+      { title: "Approva — Sistema de prestação de contas para OSCs" },
       {
         name: "description",
         content:
-          "Software para gestão financeira e prestação de contas de OSCs e escritórios contábeis. Feche o mês do seu convênio ou termo de fomento em horas — pronto para TCE-PR e prestações municipais. 30 dias grátis.",
+          "Sistema para OSCs e escritórios de contabilidade do terceiro setor: organiza as despesas do mês, guarda os comprovantes e gera a prestação de contas em um PDF único. 30 dias grátis.",
       },
-      { property: "og:title", content: "Approva — Prestação de contas para OSCs, sem planilha paralela" },
+      { property: "og:title", content: "Approva — Sistema de prestação de contas para OSCs" },
       {
         property: "og:description",
         content:
-          "Documentos capturados sem digitação, aprovação em duas mãos e exportação pronta para o órgão repassador. 30 dias grátis, sem cartão.",
+          "Envie os documentos, confira as despesas e gere a prestação de contas do mês em um PDF único, com todos os comprovantes anexos.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${SITE}/` },
@@ -43,7 +131,12 @@ export const Route = createFileRoute("/")({
           name: "3RD TECH",
           url: SITE,
           brand: { "@type": "Brand", name: "Approva" },
-          address: { "@type": "PostalAddress", addressLocality: "Medianeira", addressRegion: "PR", addressCountry: "BR" },
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Medianeira",
+            addressRegion: "PR",
+            addressCountry: "BR",
+          },
         }),
       },
       {
@@ -65,7 +158,7 @@ export const Route = createFileRoute("/")({
           operatingSystem: "Web",
           url: `${SITE}/`,
           description:
-            "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios contábeis do terceiro setor. Captura sem digitação, aprovação em duas mãos e exportação para TCE-PR e prestações municipais.",
+            "Sistema de gestão financeira e prestação de contas para OSCs e escritórios de contabilidade do terceiro setor: leitura automática de documentos, controle de despesas por projeto, cotação com mapa comparativo e geração da prestação de contas mensal em PDF único.",
           offers: { "@type": "Offer", price: "0", priceCurrency: "BRL", description: "30 dias grátis" },
         }),
       },
@@ -74,71 +167,17 @@ export const Route = createFileRoute("/")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
-          mainEntity: [
-            { "@type": "Question", name: "A demonstração é mesmo gratuita?", acceptedAnswer: { "@type": "Answer", text: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." } },
-            { "@type": "Question", name: "Preciso de conhecimento técnico para usar?", acceptedAnswer: { "@type": "Answer", text: "Não. O Approva foi desenhado para gestores de OSC e equipes financeiras que hoje operam em planilha. A curva é curta e o onboarding é guiado." } },
-            { "@type": "Question", name: "Funciona para prestações municipais além do TCE-PR?", acceptedAnswer: { "@type": "Answer", text: "Sim. Além da exportação no padrão oficial do TCE-PR, o Approva organiza a prestação de contas para termos e convênios municipais — o relatório PDF fica pronto para envio ao órgão repassador." } },
-            { "@type": "Question", name: "Atende à Lei 13.019 (MROSC)?", acceptedAnswer: { "@type": "Answer", text: "Sim. O sistema respeita a lógica de projeto/termo/convênio da Lei 13.019, com controle por rubrica, comprovação anexa e trilha auditável de aprovação." } },
-            { "@type": "Question", name: "O que acontece com o mês depois de fechado?", acceptedAnswer: { "@type": "Answer", text: "Períodos homologados ficam imutáveis. Qualquer ajuste posterior gera um evento de correção rastreável — nada é apagado silenciosamente." } },
-            { "@type": "Question", name: "Meus dados ficam seguros?", acceptedAnswer: { "@type": "Answer", text: "Sim. Infraestrutura criptografada, backups diários, acesso individual por usuário e trilha completa de auditoria. Aderência à LGPD." } },
-            { "@type": "Question", name: "Posso trocar de plano depois?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." } },
-          ],
+          mainEntity: FAQ.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
         }),
       },
     ],
   }),
   component: HomePage,
 });
-
-const DORES = [
-  {
-    t: "Planilha paralela que ninguém mais entende",
-    d: "Cada mês vira uma cópia da anterior, com fórmulas quebradas e histórico perdido. Quando o financiador pede, ninguém sabe qual arquivo é o oficial.",
-    fix: "Base única, versionada, com histórico por termo e mês.",
-  },
-  {
-    t: "Comprovante que sumiu no email",
-    d: "Boleto, NF-e e holerite chegam por WhatsApp, email e envelope. Na hora do fechamento, meia hora buscando cada anexo.",
-    fix: "Todo documento entra no Approva e fica preso ao lançamento certo.",
-  },
-  {
-    t: "Retrabalho no fim do mês",
-    d: "Contador redigita o que a OSC já lançou; a OSC refaz o que o contador ajustou. Duas pessoas, o mesmo dado, duas vezes.",
-    fix: "Um único fluxo compartilhado — sem exportar planilha para colar em outro sistema.",
-  },
-  {
-    t: "Medo do apontamento no controle externo",
-    d: "Uma rubrica errada, um CNPJ com dígito trocado, e o parecer volta com ressalva. A insegurança consome mais tempo que o próprio lançamento.",
-    fix: "Validações na hora do lançamento e exportação no formato oficial exigido.",
-  },
-];
-
-const FEATURES = [
-  {
-    t: "Captura sem digitação",
-    d: "Envie o PDF do mês ou os documentos avulsos — NF-e, boleto, holerite, guia. O sistema lê e propõe a categoria certa para você conferir.",
-  },
-  {
-    t: "Comprovação sempre anexa",
-    d: "Cada despesa carrega seu próprio comprovante. Nada de pasta física ou drive paralelo.",
-  },
-  {
-    t: "Aprovação em duas mãos",
-    d: "Solicitante e responsável assinam cada gasto. Trilha auditável de quem aprovou o quê e quando.",
-  },
-  {
-    t: "Financeiro por termo",
-    d: "Saldo, execução por rubrica e próximo repasse por convênio ou termo de fomento — a resposta que a diretoria pede na hora que ela pergunta.",
-  },
-  {
-    t: "Arquivos organizados em nuvem",
-    d: "Sincronização opcional com Google Drive: cada mês vira uma pasta com todos os comprovantes ordenados.",
-  },
-  {
-    t: "Exportações prontas",
-    d: "Relatório PDF para conselho e financiador, e arquivo no formato oficial do TCE-PR ou do órgão municipal.",
-  },
-];
 
 function HomePage() {
   return (
@@ -151,12 +190,13 @@ function HomePage() {
               Plataforma Approva · por 3RD TECH
             </p>
             <h1 className="mt-4 text-4xl md:text-6xl font-serif text-brand-navy leading-[1.05]">
-              Feche o mês da sua OSC <em className="not-italic text-brand-blue">em horas</em>, com cada real comprovado.
+              Organize as despesas da sua OSC e feche a{" "}
+              <em className="not-italic text-brand-blue">prestação de contas do mês</em> em um PDF só.
             </h1>
             <p className="mt-6 text-lg text-brand-muted max-w-xl leading-relaxed">
-              Gestão financeira e prestação de contas para convênios e termos
-              de fomento — pronto para o TCE-PR e para prestações municipais.
-              Sem planilha paralela, sem retrabalho entre gestor e contador.
+              Você envia os documentos, o Approva lê, separa cada despesa e monta
+              o relatório do mês com todos os comprovantes anexos. Feito para
+              OSCs e para escritórios de contabilidade que atendem o terceiro setor.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
@@ -175,7 +215,7 @@ function HomePage() {
               </a>
             </div>
             <p className="mt-6 text-sm text-brand-muted">
-              Sem cartão de crédito · Sem fidelidade · Suporte humano em português
+              Sem cartão de crédito · Sem fidelidade · Suporte em português
             </p>
           </div>
 
@@ -184,10 +224,9 @@ function HomePage() {
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
                 src={previewPrestacao}
-                alt="Painel de Prestação do Convênio 042/2025 no Approva: total do mês, quantos documentos já têm comprovante e tabela de lançamentos aprovados e pendentes."
+                alt="Tela de prestação de contas do Approva mostrando o total do mês, quantas despesas já têm comprovante e a lista de documentos do período."
                 width={1600}
                 height={896}
-                fetchPriority="high"
                 className="w-full h-auto"
               />
             </div>
@@ -195,28 +234,51 @@ function HomePage() {
         </div>
       </section>
 
-      {/* DORES */}
+      {/* PARA QUEM É */}
       <section className="bg-white border-y border-brand-line">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="max-w-2xl">
-            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
-              Dores que resolvemos
-            </p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
-              O que o mês de fechamento parece hoje — e não precisa parecer.
-            </h2>
-          </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            {DORES.map((d) => (
-              <div key={d.t} className="rounded-xl border border-brand-line bg-brand-cream-soft p-6">
-                <h3 className="text-xl font-serif text-brand-navy">{d.t}</h3>
-                <p className="mt-3 text-brand-muted text-sm leading-relaxed">{d.d}</p>
-                <p className="mt-4 text-sm text-brand-navy font-medium">
-                  <span className="text-brand-blue">→ </span>
-                  {d.fix}
-                </p>
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <h2 className="text-3xl md:text-4xl font-serif text-brand-navy leading-tight max-w-2xl">
+            Para quem é o Approva
+          </h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-brand-line p-8 bg-brand-cream-soft">
+              <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+                Para a sua OSC
               </div>
-            ))}
+              <h3 className="mt-3 text-2xl font-serif text-brand-navy">
+                Quem cuida do financeiro da organização
+              </h3>
+              <p className="mt-3 text-brand-muted leading-relaxed">
+                Chega de montar pasta no fim do mês. Você envia os documentos ao
+                longo do período, vê o que ainda falta e gera a prestação de
+                contas para entregar a quem repassou o recurso.
+              </p>
+              <Link
+                to="/gestores"
+                className="mt-6 inline-block text-brand-blue font-medium hover:underline underline-offset-4"
+              >
+                Ver como funciona para gestores de OSC →
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-brand-line p-8 bg-brand-cream-soft">
+              <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+                Para escritórios de contabilidade
+              </div>
+              <h3 className="mt-3 text-2xl font-serif text-brand-navy">
+                Quem atende várias OSCs
+              </h3>
+              <p className="mt-3 text-brand-muted leading-relaxed">
+                Todas as organizações da sua carteira no mesmo login. O cliente
+                lança com o documento anexo, você revisa, aprova e baixa o
+                pacote do mês pronto.
+              </p>
+              <Link
+                to="/contadores"
+                className="mt-6 inline-block text-brand-blue font-medium hover:underline underline-offset-4"
+              >
+                Ver como funciona para contabilidade →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -226,11 +288,11 @@ function HomePage() {
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Como funciona</p>
           <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
-            Três passos, um único lugar.
+            Três passos, do documento ao relatório.
           </h2>
           <p className="mt-4 text-brand-muted leading-relaxed">
-            Do repasse recebido até o relatório entregue ao órgão — com
-            comprovação documental anexa em cada linha.
+            O mesmo caminho todo mês, sem planilha paralela e sem procurar
+            comprovante solto no e-mail.
           </p>
         </div>
 
@@ -239,7 +301,7 @@ function HomePage() {
             <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
               <img
                 src={previewCaptura}
-                alt="Tela de Captura do Approva: área de upload de PDF e XMLs com fila de leitura mostrando NF-e, boletos e holerites já reconhecidos."
+                alt="Tela de envio de documentos do Approva com a fila de leitura mostrando notas fiscais, boletos e holerites já reconhecidos."
                 loading="lazy"
                 width={1600}
                 height={896}
@@ -248,18 +310,18 @@ function HomePage() {
             </div>
             <div className="mt-5 flex items-baseline gap-3">
               <span className="text-brand-blue font-serif text-2xl">01</span>
-              <h3 className="text-xl font-serif text-brand-navy">Capture os documentos</h3>
+              <h3 className="text-xl font-serif text-brand-navy">Envie os documentos</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              Suba o PDF do mês ou os documentos avulsos. O Approva lê e
-              propõe categoria, fornecedor e valor — você só confere.
+              Um PDF com vários documentos dentro ou arquivos avulsos. O sistema
+              separa cada um e já preenche fornecedor, valor e datas.
             </p>
           </li>
           <li>
             <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
               <img
                 src={previewPrestacao}
-                alt="Tabela de lançamentos da prestação com colunas de rubrica, valor, comprovante anexado e status de aprovação em duas mãos."
+                alt="Lista de despesas do mês no Approva, com valor, documento anexado e situação de aprovação de cada lançamento."
                 loading="lazy"
                 width={1600}
                 height={896}
@@ -268,18 +330,18 @@ function HomePage() {
             </div>
             <div className="mt-5 flex items-baseline gap-3">
               <span className="text-brand-blue font-serif text-2xl">02</span>
-              <h3 className="text-xl font-serif text-brand-navy">Organize por mês e aprove</h3>
+              <h3 className="text-xl font-serif text-brand-navy">Confira e aprove</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              Cada despesa fica com o comprovante anexo, categoria certa e
-              dupla assinatura registrada. O painel mostra o que falta.
+              Cada despesa fica com o comprovante junto. A fila de aprovação
+              mostra o que falta e registra quem aprovou.
             </p>
           </li>
           <li>
             <div className="rounded-lg overflow-hidden border border-brand-line shadow-md bg-brand-cream">
               <img
                 src={previewPainel}
-                alt="Painel financeiro do Approva mostrando saldo do termo, próximo repasse e execução por rubrica."
+                alt="Painel financeiro do Approva com o total do mês, o saldo do projeto e a execução das despesas."
                 loading="lazy"
                 width={1600}
                 height={896}
@@ -288,11 +350,11 @@ function HomePage() {
             </div>
             <div className="mt-5 flex items-baseline gap-3">
               <span className="text-brand-blue font-serif text-2xl">03</span>
-              <h3 className="text-xl font-serif text-brand-navy">Exporte para o órgão</h3>
+              <h3 className="text-xl font-serif text-brand-navy">Gere o relatório do mês</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              Relatório PDF para conselho e financiador; arquivo no padrão
-              oficial do TCE-PR ou do controle municipal, com um clique.
+              A prestação de contas sai em um PDF único, com sumário, certidões
+              e todos os comprovantes. É só baixar e entregar.
             </p>
           </li>
         </ol>
@@ -301,18 +363,22 @@ function HomePage() {
       {/* INFOGRÁFICO — FLUXO MENSAL */}
       <FluxoMensal />
 
-      {/* FEATURES */}
+      {/* RECURSOS */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
-            Um sistema, não um exportador
+            Recursos
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
-            O que o Approva faz pelo seu financeiro.
+            O que o Approva faz hoje.
           </h2>
+          <p className="mt-4 text-brand-muted leading-relaxed">
+            Tudo o que está listado abaixo já está no sistema e pode ser testado
+            nos 30 dias gratuitos.
+          </p>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {FEATURES.map((f) => (
+          {RECURSOS.map((f) => (
             <div key={f.t} className="rounded-xl border border-brand-line bg-white p-6">
               <h3 className="text-lg font-serif text-brand-navy">{f.t}</h3>
               <p className="mt-2 text-brand-muted text-sm leading-relaxed">{f.d}</p>
@@ -321,55 +387,94 @@ function HomePage() {
         </div>
       </section>
 
-      {/* SEGMENTOS */}
-      <section className="mx-auto max-w-6xl px-6 pb-4 grid gap-6 md:grid-cols-2">
-        <Link
-          to="/contadores"
-          className="group rounded-2xl border border-brand-line p-10 hover:border-brand-navy transition-colors"
-        >
-          <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">Para escritórios contábeis</div>
-          <h2 className="mt-3 text-3xl font-serif text-brand-navy">Contadores que atendem OSCs</h2>
-          <p className="mt-3 text-brand-muted leading-relaxed">
-            Padronize a prestação mensal de toda a carteira do terceiro setor.
-            Menos retrabalho, mais lastro auditável.
-          </p>
-          <div className="mt-6 text-brand-blue font-medium group-hover:underline underline-offset-4">
-            Ver vantagens para contadores →
+      {/* CONTEÚDO SEPARADO POR PÚBLICO */}
+      <section className="bg-brand-cream-soft border-y border-brand-line">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="text-3xl md:text-4xl font-serif text-brand-navy leading-tight max-w-2xl">
+            O que muda no seu dia a dia
+          </h2>
+          <div className="mt-10 grid gap-8 md:grid-cols-2">
+            <div className="rounded-2xl border border-brand-line bg-white p-8">
+              <h3 className="text-2xl font-serif text-brand-navy">
+                Se você é gestor ou financeiro de OSC
+              </h3>
+              <ul className="mt-5 space-y-3">
+                {PARA_OSC.map((i) => (
+                  <li key={i} className="flex gap-3 text-brand-muted text-sm leading-relaxed">
+                    <span className="text-brand-blue" aria-hidden="true">
+                      →
+                    </span>
+                    <span>{i}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/gestores"
+                className="mt-6 inline-block text-brand-blue font-medium hover:underline underline-offset-4"
+              >
+                Página para gestores de OSC →
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-brand-line bg-white p-8">
+              <h3 className="text-2xl font-serif text-brand-navy">
+                Se você é de escritório de contabilidade
+              </h3>
+              <ul className="mt-5 space-y-3">
+                {PARA_CONTABIL.map((i) => (
+                  <li key={i} className="flex gap-3 text-brand-muted text-sm leading-relaxed">
+                    <span className="text-brand-blue" aria-hidden="true">
+                      →
+                    </span>
+                    <span>{i}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/contadores"
+                className="mt-6 inline-block text-brand-blue font-medium hover:underline underline-offset-4"
+              >
+                Página para contabilidade →
+              </Link>
+            </div>
           </div>
-        </Link>
-        <Link
-          to="/gestores"
-          className="group rounded-2xl border border-brand-line p-10 hover:border-brand-navy transition-colors"
-        >
-          <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">Para a sua OSC</div>
-          <h2 className="mt-3 text-3xl font-serif text-brand-navy">Gestores e equipes financeiras</h2>
-          <p className="mt-3 text-brand-muted leading-relaxed">
-            Feche o mês do seu termo em horas, não em dias. Comprovante
-            anexado, aprovação registrada e exportação pronta.
-          </p>
-          <div className="mt-6 text-brand-blue font-medium group-hover:underline underline-offset-4">
-            Ver vantagens para gestores →
-          </div>
-        </Link>
+        </div>
       </section>
 
-      {/* SEGURANÇA & LASTRO */}
+      {/* O QUE O APPROVA NÃO FAZ */}
       <section className="bg-brand-navy text-white">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-widest text-brand-accent font-medium">
-              Segurança & lastro auditável
+              Transparência
             </p>
             <h2 className="mt-3 text-3xl md:text-4xl font-serif text-white leading-tight">
-              Feito para aguentar auditoria — porque OSC boa aguenta.
+              O que o Approva faz — e o que ele não faz.
             </h2>
+            <p className="mt-4 text-white/80 leading-relaxed">
+              O Approva organiza os dados e gera os documentos da prestação de
+              contas. Ele não se conecta a sistemas de órgãos públicos e não
+              envia nada no seu lugar: a entrega continua sendo feita por você,
+              com o material pronto em mãos.
+            </p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { t: "Período homologado é imutável", d: "Fechou o mês, ninguém mais altera. Ajustes viram evento de correção rastreável." },
-              { t: "Trilha completa de auditoria", d: "Cada aprovação, edição e exclusão fica registrada com autor, data e motivo." },
-              { t: "Criptografia e backup diário", d: "Dados protegidos em trânsito e em repouso; backups automáticos todos os dias." },
-              { t: "Multi-cliente para escritórios", d: "Contador vê várias OSCs sem misturar dados. Cada organização isolada por padrão." },
+              {
+                t: "Cada acesso é individual",
+                d: "Convite por e-mail, com registro de quem entrou e do que alterou.",
+              },
+              {
+                t: "Histórico de alterações",
+                d: "Edições, exclusões e aprovações ficam registradas com autor e data.",
+              },
+              {
+                t: "Dados de cada OSC separados",
+                d: "Quem atende várias organizações troca de cliente sem misturar informação.",
+              },
+              {
+                t: "Seus arquivos disponíveis",
+                d: "Todos os documentos enviados ficam guardados e podem ser baixados quando quiser.",
+              },
             ].map((c) => (
               <div key={c.t} className="rounded-xl border border-white/15 p-6">
                 <h3 className="text-lg font-serif text-white">{c.t}</h3>
@@ -382,15 +487,7 @@ function HomePage() {
 
       <PlanCards />
 
-      <FaqAccordion items={[
-        { q: "A demonstração é mesmo gratuita?", a: "Sim. 30 dias completos, com acesso a todas as funcionalidades do plano escolhido. Não pedimos cartão de crédito e você pode encerrar quando quiser." },
-        { q: "Preciso de conhecimento técnico para usar?", a: "Não. O Approva foi desenhado para gestores de OSC e equipes financeiras que hoje operam em planilha. A curva é curta e o onboarding é guiado." },
-        { q: "Funciona para prestações municipais além do TCE-PR?", a: "Sim. Além da exportação no padrão oficial do TCE-PR, o Approva organiza a prestação de contas para termos e convênios municipais — o relatório PDF fica pronto para envio ao órgão repassador." },
-        { q: "Atende à Lei 13.019 (MROSC)?", a: "Sim. O sistema respeita a lógica de projeto/termo/convênio da Lei 13.019, com controle por rubrica, comprovação anexa e trilha auditável de aprovação." },
-        { q: "O que acontece com o mês depois de fechado?", a: "Períodos homologados ficam imutáveis. Qualquer ajuste posterior gera um evento de correção rastreável — nada é apagado silenciosamente." },
-        { q: "Meus dados ficam seguros?", a: "Sim. Infraestrutura criptografada, backups diários, acesso individual por usuário e trilha completa de auditoria. Aderência à LGPD." },
-        { q: "Posso trocar de plano depois?", a: "Sim. Você pode aumentar ou reduzir o plano a qualquer momento, sem multa." },
-      ]} />
+      <FaqAccordion items={FAQ.map((f) => ({ q: f.q, a: f.a }))} />
     </MarketingLayout>
   );
 }

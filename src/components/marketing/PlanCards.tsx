@@ -21,7 +21,7 @@ export const PLANOS: Plano[] = [
     itens: [
       "Até 100 lançamentos/mês",
       "2 usuários",
-      "Exportação SIT (TCE-PR)",
+      "Leitura automática de documentos",
       "Prestação mensal consolidada",
       "Suporte por email",
     ],
@@ -37,8 +37,9 @@ export const PLANOS: Plano[] = [
     itens: [
       "Até 500 lançamentos/mês",
       "5 usuários",
-      "Agenda fiscal + alertas",
-      "Modelos personalizados de orçamento",
+      "Cotações com mapa comparativo",
+      "Controle de saldo por projeto/termo",
+
       "Cadastro ilimitado de fornecedores",
       "Suporte prioritário (até 4h úteis)",
     ],
@@ -55,7 +56,7 @@ export const PLANOS: Plano[] = [
       "15 usuários",
       "Multi-OSC (carteira até 5 entidades)",
       "Painel consolidado por cliente",
-      "Logo do escritório nos relatórios",
+      "Regras de classificação por fornecedor",
       "Gestor de conta dedicado",
     ],
     cta: "Falar com a equipe",
