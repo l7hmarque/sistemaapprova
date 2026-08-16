@@ -170,6 +170,7 @@ export const atualizarCotacao = createServerFn({ method: "POST" })
     const patch: any = {};
     if (rest.objeto !== undefined) patch.objeto = rest.objeto;
     if (rest.termo !== undefined) patch.termo = rest.termo || null;
+    if (rest.projeto_id !== undefined) patch.projeto_id = rest.projeto_id || null;
     if (rest.mes_referencia !== undefined) patch.mes_referencia = rest.mes_referencia || null;
     if (rest.itens !== undefined) patch.itens = rest.itens;
     if (rest.status !== undefined) patch.status = rest.status;
