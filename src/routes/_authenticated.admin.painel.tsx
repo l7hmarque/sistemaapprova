@@ -617,6 +617,19 @@ function PainelPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="col-span-2">
+                <Label>Projeto / Termo</Label>
+                <Select value={editing.projeto_id ?? "none"}
+                  onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "none" ? null : v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— sem projeto —</SelectItem>
+                    {projetos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Valor previsto</Label>
                 <Input type="text" inputMode="decimal" placeholder="0,00"
