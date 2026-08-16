@@ -118,6 +118,20 @@ function ReoPage() {
         </div>
         <div className="flex items-end gap-2">
           <div>
+            <Label className="text-xs">Projeto / Termo</Label>
+            <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todos os projetos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os projetos</SelectItem>
+                {(projetosQ.data ?? []).map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <Label className="text-xs">Mês</Label>
             <Input value={mes} onChange={(e) => setMes(e.target.value)} placeholder="AAAA-MM" className="w-32" />
           </div>
