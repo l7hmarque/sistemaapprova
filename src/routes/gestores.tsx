@@ -8,10 +8,11 @@ import aprovacoesShot from "@/assets/screens/aprovacoes.webp";
 export const Route = createFileRoute("/gestores")({
   head: () => ({
     meta: [
-      { title: "Approva para Gestores e Equipes Financeiras de OSCs" },
-      { name: "description", content: "Menos planilha, mais missão. Controle orçamento, prestação de contas e prazos da sua OSC em um único lugar. 30 dias grátis." },
-      { property: "og:title", content: "Approva para Gestores de OSCs" },
-      { property: "og:description", content: "Acompanhe orçamento, metas e prazos da sua OSC sem planilhas paralelas." },
+      { title: "Sistema para OSC: despesas e prestação de contas | Approva" },
+      { name: "description", content: "Organize as despesas do mês da sua OSC, guarde os comprovantes de cada convênio ou termo de fomento e gere a prestação de contas em um PDF único. 30 dias grátis." },
+      { property: "og:title", content: "Approva para gestores e equipes financeiras de OSCs" },
+      { property: "og:description", content: "Despesas com comprovante anexo, saldo por projeto e prestação de contas do mês em um PDF só." },
+
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://sistemaapprova.lovable.app/gestores" },
     ],
