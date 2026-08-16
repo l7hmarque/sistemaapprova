@@ -17,6 +17,7 @@ import {
   listarRepasses, salvarRepasse, removerRepasse,
   salvarMovimento, gerarReoPdf,
 } from "@/lib/reo.functions";
+import { listarProjetos } from "@/lib/projetos.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reo")({ component: ReoPage });
 
