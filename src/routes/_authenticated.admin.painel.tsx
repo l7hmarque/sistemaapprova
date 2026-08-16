@@ -174,8 +174,12 @@ function PainelPage() {
   }, [activeOrgId]);
 
   const filtrados = useMemo(
-    () => eventos.filter((e) => filtroCategoria === "todas" || e.categoria === filtroCategoria),
-    [eventos, filtroCategoria],
+    () => eventos.filter((e) => {
+      const okCat = filtroCategoria === "todas" || e.categoria === filtroCategoria;
+      const okProj = filtroProjeto === "todos" || e.projeto_id === filtroProjeto;
+      return okCat && okProj;
+    }),
+    [eventos, filtroCategoria, filtroProjeto],
   );
 
   const totais = useMemo(() => {
