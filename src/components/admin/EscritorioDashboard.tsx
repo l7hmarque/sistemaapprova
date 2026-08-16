@@ -111,6 +111,21 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
     { total: 0, pendentes: 0, completos: 0 },
   );
 
+  const fnProjetos = useServerFn(listarProjetosEscritorioComResumo);
+  const projetosQ = useQuery({
+    queryKey: ["escritorio-projetos", oscIds.join(",")],
+    enabled: oscIds.length > 0,
+    queryFn: async () => fnProjetos({ data: { organization_ids: oscIds } }),
+  });
+
+  const projetosCriticos = (projetosQ.data ?? [])
+    .filter((p: any) => p.valor_total > 0 && p.saldo < p.valor_total * 0.1)
+    .sort((a: any, b: any) => a.saldo - b.saldo)
+    .slice(0, 5);
+
+  const formatCurrency = (n: number) =>
+    `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="p-6 md:p-8 space-y-6 md:space-y-8" data-module="dashboard">
       <header className="border-l-4 pl-4" style={{ borderColor: "var(--module-accent)" }}>
