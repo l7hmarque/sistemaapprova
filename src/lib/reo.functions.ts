@@ -274,6 +274,7 @@ async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?
     .is("excluido_em", null)
     .not("valor_efetivo", "is", null);
   if (projeto_id) gastoQ = gastoQ.eq("projeto_id", projeto_id);
+  const { data: gastoRows } = await gastoQ;
 
   const gastoPorNat = new Map<string, { gasto: number; estornado: number }>();
   for (const r of (gastoRows ?? []) as any[]) {
