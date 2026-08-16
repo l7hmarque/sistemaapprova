@@ -225,24 +225,28 @@ export const setNaturezaEvento = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 // Consolidação do REO de um mês
 // ─────────────────────────────────────────────────────────────
-async function computeReo(supabase: any, id: string, anoMes: string) {
+async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?: string | null) {
   const [ano] = anoMes.split("-");
 
-  const { data: repasses } = await supabase
+  let repassesQ = supabase
     .from("repasses_recebidos")
     .select("*")
     .eq("organization_id", id)
     .eq("mes_referencia", anoMes)
     .order("numero_parcela");
+  if (projeto_id) repassesQ = repassesQ.eq("projeto_id", projeto_id);
+  const { data: repasses } = await repassesQ;
 
-  const { data: eventos } = await supabase
+  let eventosQ = supabase
     .from("eventos_financeiros")
-    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado")
+    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado, projeto_id")
     .eq("organization_id", id)
     .eq("mes_referencia", anoMes)
     .is("excluido_em", null)
     .not("valor_efetivo", "is", null)
     .order("id_interno");
+  if (projeto_id) eventosQ = eventosQ.eq("projeto_id", projeto_id);
+  const { data: eventos } = await eventosQ;
 
   const { data: movRow } = await supabase
     .from("movimento_bancario_mensal")
@@ -252,21 +256,24 @@ async function computeReo(supabase: any, id: string, anoMes: string) {
     .maybeSingle();
 
   const dataAlvo = `${anoMes}-01`;
-  const { data: plano } = await supabase
+  let planoQ = supabase
     .from("plano_aplicacao")
-    .select("natureza_codigo, valor_previsto, vigencia_inicio, vigencia_fim, convenio")
+    .select("natureza_codigo, valor_previsto, vigencia_inicio, vigencia_fim, convenio, projeto_id")
     .eq("organization_id", id)
     .lte("vigencia_inicio", dataAlvo)
     .gte("vigencia_fim", dataAlvo);
+  if (projeto_id) planoQ = planoQ.eq("projeto_id", projeto_id);
+  const { data: plano } = await planoQ;
 
-  const { data: gastoRows } = await supabase
+  let gastoQ = supabase
     .from("eventos_financeiros")
-    .select("natureza_despesa_codigo, valor_efetivo, valor_estornado, mes_referencia")
+    .select("natureza_despesa_codigo, valor_efetivo, valor_estornado, mes_referencia, projeto_id")
     .eq("organization_id", id)
     .gte("mes_referencia", `${ano}-01`)
     .lte("mes_referencia", anoMes)
     .is("excluido_em", null)
     .not("valor_efetivo", "is", null);
+  if (projeto_id) gastoQ = gastoQ.eq("projeto_id", projeto_id);
 
   const gastoPorNat = new Map<string, { gasto: number; estornado: number }>();
   for (const r of (gastoRows ?? []) as any[]) {
