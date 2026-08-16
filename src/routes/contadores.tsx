@@ -22,11 +22,13 @@ export const Route = createFileRoute("/contadores")({
         "@context": "https://schema.org",
         "@type": "FAQPage",
         mainEntity: [
-          { "@type": "Question", name: "Funciona para mais de uma OSC?", acceptedAnswer: { "@type": "Answer", text: "Sim. O plano Escritório atende até 5 OSCs com painel consolidado. Para mais entidades, fale conosco — temos condições por carteira." } },
-          { "@type": "Question", name: "Posso importar dados de planilhas que já uso?", acceptedAnswer: { "@type": "Answer", text: "Sim. Na implantação ajudamos na migração inicial dos saldos e fornecedores ativos." } },
-          { "@type": "Question", name: "E se o TCE ou o município atualizar o layout de exportação?", acceptedAnswer: { "@type": "Answer", text: "Mantemos o sistema atualizado conforme as portarias do TCE-PR e conforme os leiautes municipais em uso pelos nossos clientes. Atualizações de layout não geram custo adicional." } },
-          { "@type": "Question", name: "Tem treinamento da equipe?", acceptedAnswer: { "@type": "Answer", text: "Sim. Todos os planos incluem onboarding em vídeo. Plano Escritório inclui sessão ao vivo." } },
+          { "@type": "Question", name: "Funciona para mais de uma OSC?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você alterna entre as organizações da carteira no mesmo login, sem misturar dados. O plano Escritório atende até 5 OSCs; para mais entidades, fale conosco." } },
+          { "@type": "Question", name: "O Approva exporta ou envia dados para o TCE ou para o SIT?", acceptedAnswer: { "@type": "Answer", text: "Não. Não há integração com sistemas de órgãos de controle. O Approva organiza os lançamentos, guarda os documentos e gera os relatórios e o PDF da prestação de contas que a sua equipe usa para fazer a entrega." } },
+          { "@type": "Question", name: "O cliente lança e eu só reviso?", acceptedAnswer: { "@type": "Answer", text: "Sim. A OSC envia os documentos, o sistema cria as despesas já preenchidas e elas chegam a uma fila de aprovação. Você aprova ou devolve com o motivo, e tudo fica registrado." } },
+          { "@type": "Question", name: "Dá para padronizar a classificação das despesas?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você cria regras por fornecedor ou tipo de documento e o sistema passa a aplicar a mesma classificação automaticamente para toda a equipe." } },
+          { "@type": "Question", name: "Tem treinamento da equipe?", acceptedAnswer: { "@type": "Answer", text: "Sim. Todos os planos incluem onboarding em vídeo. O plano Escritório inclui sessão ao vivo." } },
         ],
+
       }),
     }],
   }),
