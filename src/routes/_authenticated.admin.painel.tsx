@@ -261,6 +261,7 @@ function PainelPage() {
     const payload = {
       mes_referencia: editing.mes_referencia,
       fornecedor_id: editing.fornecedor_id,
+      projeto_id: editing.projeto_id,
       categoria: editing.categoria,
       descricao: descricaoLimpa,
       valor_previsto: parseNum(valorPrevStr),
