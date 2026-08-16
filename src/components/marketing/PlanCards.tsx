@@ -21,7 +21,7 @@ export const PLANOS: Plano[] = [
     itens: [
       "Até 100 lançamentos/mês",
       "2 usuários",
-      "Exportação SIT (TCE-PR)",
+      "Leitura automática de documentos",
       "Prestação mensal consolidada",
       "Suporte por email",
     ],
