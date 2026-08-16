@@ -112,7 +112,7 @@ export const excluirProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => IdInput.parse(d))
   .handler(async ({ data, context }) => {
-    const tabelas = [
+    const tabelas: { nome: "eventos_financeiros" | "cotacoes" | "orcamentos_salvos" | "repasses_recebidos" | "plano_aplicacao"; campo: "projeto_id" }[] = [
       { nome: "eventos_financeiros", campo: "projeto_id" },
       { nome: "cotacoes", campo: "projeto_id" },
       { nome: "orcamentos_salvos", campo: "projeto_id" },
