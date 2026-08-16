@@ -31,6 +31,7 @@ function moeda(n: number) {
 function ReoPage() {
   const [mes, setMes] = useState<string>(mesAtual());
   const [vigencia, setVigencia] = useState<string>(`${mes.slice(0, 4)}-01-01`);
+  const [filtroProjeto, setFiltroProjeto] = useState<string>("todos");
   const qc = useQueryClient();
 
   const fnReo = useServerFn(carregarReo);
@@ -44,13 +45,16 @@ function ReoPage() {
   const fnSaveMov = useServerFn(salvarMovimento);
   const fnPdf = useServerFn(gerarReoPdf);
 
-  const reoQ = useQuery({ queryKey: ["reo", mes], queryFn: () => fnReo({ data: { mes } }) });
+  const projetoId = filtroProjeto === "todos" ? undefined : filtroProjeto;
+
+  const reoQ = useQuery({ queryKey: ["reo", mes, projetoId], queryFn: () => fnReo({ data: { mes, projeto_id: projetoId } }) });
   const natQ = useQuery({ queryKey: ["reo-nat"], queryFn: () => fnNat(), staleTime: 300_000 });
+  const projetosQ = useQuery({ queryKey: ["projetos-reo"], queryFn: () => listarProjetos({ data: {} }), staleTime: 300_000 });
   const planoQ = useQuery({
-    queryKey: ["reo-plano", vigencia],
-    queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia } }),
+    queryKey: ["reo-plano", vigencia, projetoId],
+    queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia, projeto_id: projetoId } }),
   });
-  const repsQ = useQuery({ queryKey: ["reo-reps", mes], queryFn: () => fnReps({ data: { mes } }) });
+  const repsQ = useQuery({ queryKey: ["reo-reps", mes, projetoId], queryFn: () => fnReps({ data: { mes, projeto_id: projetoId }) });
 
   const [mov, setMov] = useState({ saldo_anterior: "", rendimentos: "", estornos_extra: "", observacao: "" });
   useMemo(() => {
