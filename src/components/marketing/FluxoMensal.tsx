@@ -107,9 +107,10 @@ export function FluxoMensal() {
               Fluxo mensal de prestação de contas no Approva
             </title>
             <desc id="fluxo-desc">
-              Quatro etapas em duas raias: gestor da OSC e contador. Do
-              registro do repasse até a exportação para TCE-PR ou município.
+              Quatro etapas em duas raias: gestor da OSC e contabilidade. Do
+              registro do repasse até o relatório mensal em PDF.
             </desc>
+
 
             {/* Header — fase */}
             {ETAPAS.map((e, i) => {
