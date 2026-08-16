@@ -32,6 +32,7 @@ type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
 const ITEMS: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard", module: "dashboard" },
   { to: "/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel", module: "painel" },
+  { to: "/admin/projetos", label: "Projetos/Termos", icon: FolderKanban, tour: "nav-projetos", module: "projetos" },
   { to: "/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura", module: "captura" },
   { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos", module: "orcamentos" },
   { to: "/admin/fornecedores", label: "Fornecedores", icon: Users, tour: "nav-fornecedores", module: "fornecedores" },
