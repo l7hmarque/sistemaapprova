@@ -222,7 +222,7 @@ function ReoPage() {
                 <Label className="text-xs">Vigência (início)</Label>
                 <Input type="date" value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="w-40" />
               </div>
-              <BotaoAddPlano vigencia={vigencia} naturezas={natQ.data ?? []} fn={fnSavePlano} onSaved={invalidateAll} />
+              <BotaoAddPlano vigencia={vigencia} projetoId={projetoId} naturezas={natQ.data ?? []} fn={fnSavePlano} onSaved={invalidateAll} />
             </div>
           </CardTitle>
         </CardHeader>
