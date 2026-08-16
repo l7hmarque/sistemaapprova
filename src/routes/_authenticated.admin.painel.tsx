@@ -382,6 +382,16 @@ function PainelPage() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Projeto</Label>
+            <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os projetos</SelectItem>
+                {projetos.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
           <Button onClick={() => setValidarSITAberto(true)} variant="outline">
             <AlertCircle className="mr-1 h-4 w-4" /> Validar antes de exportar
