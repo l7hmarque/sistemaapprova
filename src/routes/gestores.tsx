@@ -123,10 +123,12 @@ function GestoresPage() {
 
       <FaqAccordion items={[
         { q: "Minha OSC é pequena, vale a pena?", a: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema." },
-        { q: "Como funciona com convênios e termos de fomento?", a: "Você cadastra cada projeto/convênio e vincula despesas. O sistema gera relatórios por fonte de recurso, prontos para prestação." },
-        { q: "Posso dar acesso para meu contador?", a: "Sim. Cada plano inclui usuários adicionais. Seu contador acessa o que precisa para fechar o mês — sem trocar email com planilha." },
+        { q: "Como funciona com convênios e termos de fomento?", a: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto." },
+        { q: "O Approva envia a prestação para o TCE ou para o SIT?", a: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC." },
+        { q: "Posso dar acesso para meu contador?", a: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail." },
         { q: "E LGPD?", a: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC." },
       ]} />
+
     </MarketingLayout>
   );
 }
