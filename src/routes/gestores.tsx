@@ -24,10 +24,12 @@ export const Route = createFileRoute("/gestores")({
         "@type": "FAQPage",
         mainEntity: [
           { "@type": "Question", name: "Minha OSC é pequena, vale a pena?", acceptedAnswer: { "@type": "Answer", text: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema." } },
-          { "@type": "Question", name: "Como funciona com convênios e termos de fomento?", acceptedAnswer: { "@type": "Answer", text: "Você cadastra cada projeto/convênio e vincula despesas. O sistema gera relatórios por fonte de recurso, prontos para prestação." } },
-          { "@type": "Question", name: "Posso dar acesso para meu contador?", acceptedAnswer: { "@type": "Answer", text: "Sim. Cada plano inclui usuários adicionais. Seu contador acessa o que precisa para fechar o mês — sem trocar email com planilha." } },
+          { "@type": "Question", name: "Como funciona com convênios e termos de fomento?", acceptedAnswer: { "@type": "Answer", text: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto." } },
+          { "@type": "Question", name: "O Approva envia a prestação para o TCE ou para o SIT?", acceptedAnswer: { "@type": "Answer", text: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC." } },
+          { "@type": "Question", name: "Posso dar acesso para meu contador?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail." } },
           { "@type": "Question", name: "E LGPD?", acceptedAnswer: { "@type": "Answer", text: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC." } },
         ],
+
       }),
     }],
   }),
