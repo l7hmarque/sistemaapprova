@@ -484,7 +484,9 @@ export async function montarPdfBytes(args: {
         const src = await PDFDocument.load(errBytes);
         const pages = await merged.copyPages(src, src.getPageIndices());
         pages.forEach((p) => merged.addPage(p));
-      } catch {}
+      } catch (err2) {
+        console.warn(`[prestacao] falha ao inserir página de erro de ${label}:`, err2);
+      }
       return false;
     }
   };
