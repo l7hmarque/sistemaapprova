@@ -122,7 +122,12 @@ function EventosTab() {
   }
 
   const toggle = (id: string) => {
-    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSel((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   };
   const toggleAll = () => {
     if (sel.size === eventos.length) setSel(new Set());

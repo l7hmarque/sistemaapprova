@@ -226,7 +226,7 @@ export function gerarIdInterno(mesReferencia: string, seq: number): string {
   // ex.: 2025-03-0042-a1b2c3 → ≤30 chars. Sufixo aleatório evita colisão
   // dentro do mesmo lote/concorrência (UNIQUE INDEX no banco confirma).
   const arr = new Uint8Array(3);
-  (globalThis.crypto ?? require("crypto")).getRandomValues(arr);
+  globalThis.crypto.getRandomValues(arr);
   const rand = Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
   return `${mesReferencia}-${String(seq).padStart(4, "0")}-${rand}`.slice(0, 30);
 }
