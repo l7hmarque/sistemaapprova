@@ -36,7 +36,7 @@ function getUtm() {
       const stored = sessionStorage.getItem(UTM_STORAGE);
       if (stored) return JSON.parse(stored);
     }
-  } catch {}
+  } catch { /* ignorado: recurso opcional indisponível */ }
   return out;
 }
 
@@ -58,7 +58,7 @@ function isInternalTraffic(): boolean {
         if (r.endsWith("lovable.dev")) return true;
         if (r.endsWith("lovableproject.com")) return true;
         if (r.includes("id-preview--")) return true;
-      } catch {}
+      } catch { /* ignorado: recurso opcional indisponível */ }
     }
 
     // Marca persistente: usuário logado já flagado como interno
@@ -67,7 +67,7 @@ function isInternalTraffic(): boolean {
     // Query param de bypass do editor
     const sp = new URLSearchParams(window.location.search);
     if (sp.has("lovable_preview") || sp.has("__lovable")) return true;
-  } catch {}
+  } catch { /* ignorado: recurso opcional indisponível */ }
   return false;
 }
 

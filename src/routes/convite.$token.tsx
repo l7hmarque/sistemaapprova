@@ -33,7 +33,7 @@ function ConvitePage() {
       const r = await aceitar({ data: { token } });
       setEstado("ok");
       toast.success("Convite aceito");
-      try { localStorage.setItem("approva.activeOrgId", (r as any).organization_id); } catch {}
+      try { localStorage.setItem("approva.activeOrgId", (r as any).organization_id); } catch { /* ignorado: recurso opcional indisponível */ }
       setTimeout(() => nav({ to: "/admin", replace: true }), 800);
     } catch (e: any) {
       setMsg(e?.message || "Erro ao aceitar convite");

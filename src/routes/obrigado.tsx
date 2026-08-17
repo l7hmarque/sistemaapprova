@@ -27,8 +27,8 @@ function ObrigadoPage() {
       fbq?: (command: string, eventName: string, params?: Record<string, unknown>) => void;
     };
     const w = window as ConversionWindow;
-    try { w.gtag?.("event", "generate_lead", { plano }); } catch {}
-    try { w.fbq?.("track", "Lead", { plano }); } catch {}
+    try { w.gtag?.("event", "generate_lead", { plano }); } catch { /* ignorado: recurso opcional indisponível */ }
+    try { w.fbq?.("track", "Lead", { plano }); } catch { /* ignorado: recurso opcional indisponível */ }
   }, [plano]);
 
   return (

@@ -74,7 +74,7 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
         setActiveOrgIdState(stored);
         return;
       }
-    } catch {}
+    } catch { /* ignorado: recurso opcional indisponível */ }
     if (orgs.length > 0 && !activeOrgId) {
       setActiveOrgIdState(orgs[0].id);
     }
@@ -88,7 +88,7 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(KEY, id);
       // Limpa rascunhos e fila de captura escopados pela org anterior
       localStorage.removeItem("synsit:rascunho-auto");
-    } catch {}
+    } catch { /* ignorado: recurso opcional indisponível */ }
     // Invalida todo o cache pra não vazar dados da org anterior
     queryClient.removeQueries();
   };

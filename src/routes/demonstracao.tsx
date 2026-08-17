@@ -47,7 +47,7 @@ function DemoPage() {
       utm_content: search.utm_content,
     };
     if (Object.values(utms).some(Boolean)) {
-      try { sessionStorage.setItem("__attr", JSON.stringify(utms)); } catch {}
+      try { sessionStorage.setItem("__attr", JSON.stringify(utms)); } catch { /* ignorado: recurso opcional indisponível */ }
     }
   }, [search]);
 
@@ -67,7 +67,7 @@ function DemoPage() {
     try {
       const stored = sessionStorage.getItem("__attr");
       if (stored) utms = { ...JSON.parse(stored), ...Object.fromEntries(Object.entries(utms).filter(([, v]) => v)) };
-    } catch {}
+    } catch { /* ignorado: recurso opcional indisponível */ }
 
     try {
       await enviar({

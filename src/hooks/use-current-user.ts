@@ -57,7 +57,7 @@ export function useCurrentUser() {
     if (typeof window === "undefined") return;
     try {
       if (isSuperAdmin) localStorage.setItem("synsit_interno", "1");
-    } catch {}
+    } catch { /* ignorado: recurso opcional indisponível */ }
   }, [isSuperAdmin]);
 
   return {
