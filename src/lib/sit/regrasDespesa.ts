@@ -35,7 +35,8 @@ export type CamposDespesa = {
 
 function bate(regra: RegraDespesa, e: CamposDespesa): boolean {
   if (regra.match_tp_despesa != null && e.tp_despesa !== regra.match_tp_despesa) return false;
-  if (regra.match_tp_documento != null && e.tp_documento_despesa !== regra.match_tp_documento) return false;
+  if (regra.match_tp_documento != null && e.tp_documento_despesa !== regra.match_tp_documento)
+    return false;
   if (regra.match_favorecido_regex) {
     try {
       const re = new RegExp(regra.match_favorecido_regex, "i");
@@ -87,7 +88,8 @@ export function aplicarRegrasDespesa<T extends CamposDespesa>(
       mudou = true;
     }
     if (r.set_nr_documento_favorecido && !out.nr_doc_fav) {
-      out.nr_doc_fav = r.set_nr_documento_favorecido.replace(/\D/g, "") || r.set_nr_documento_favorecido;
+      out.nr_doc_fav =
+        r.set_nr_documento_favorecido.replace(/\D/g, "") || r.set_nr_documento_favorecido;
       mudou = true;
     }
     if (r.set_nm_favorecido && !out.nm_favorecido) {

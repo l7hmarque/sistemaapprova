@@ -1,12 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Building2,
-  LifeBuoy,
-  DollarSign,
-  ArrowLeft,
-  LogOut,
-} from "lucide-react";
+import { LayoutDashboard, Building2, LifeBuoy, DollarSign, ArrowLeft, LogOut } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { signOutLimpo } from "@/lib/auth/signOutLimpo";
 import { useAuth } from "@/hooks/use-auth";

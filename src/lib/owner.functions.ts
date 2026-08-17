@@ -25,12 +25,32 @@ export const getDriveQueueStats = createServerFn({ method: "GET" })
     const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const [pend, em, retry, fail, done, atras] = await Promise.all([
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).eq("status", "pendente"),
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).eq("status", "falhou_retry"),
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).eq("status", "falhou_permanente"),
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).eq("status", "concluido").gte("atualizado_em", last24h),
-      supabaseAdmin.from("drive_sync_queue").select("id", { count: "exact", head: true }).in("status", ["pendente", "falhou_retry"]).lt("proximo_retry", nowIso),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente"),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "em_andamento"),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "falhou_retry"),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "falhou_permanente"),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "concluido")
+        .gte("atualizado_em", last24h),
+      supabaseAdmin
+        .from("drive_sync_queue")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["pendente", "falhou_retry"])
+        .lt("proximo_retry", nowIso),
     ]);
 
     return {

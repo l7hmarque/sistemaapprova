@@ -7,7 +7,14 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Package } from "lucide-react";
 import { listarObjetos, salvarObjeto, removerObjeto } from "@/lib/objetos.functions";
@@ -18,7 +25,13 @@ export const Route = createFileRoute("/_authenticated/admin/objetos")({
   component: ObjetosPage,
 });
 
-type Objeto = { id: string; descricao: string; unidade_padrao: string | null; categoria: string | null; uso_count: number };
+type Objeto = {
+  id: string;
+  descricao: string;
+  unidade_padrao: string | null;
+  categoria: string | null;
+  uso_count: number;
+};
 
 function ObjetosPage() {
   const fetchAll = useServerFn(listarObjetos);
@@ -70,13 +83,20 @@ function ObjetosPage() {
   });
 
   const lista = (data ?? []).filter((o) =>
-    busca ? (o.descricao + " " + (o.categoria ?? "")).toLowerCase().includes(busca.toLowerCase()) : true,
+    busca
+      ? (o.descricao + " " + (o.categoria ?? "")).toLowerCase().includes(busca.toLowerCase())
+      : true,
   );
 
   return (
     <AdminShell title="Objetos de cotação" subtitle="Catálogo de itens reutilizáveis em cotações">
       <div className="flex gap-3 items-center mb-4">
-        <Input placeholder="Buscar..." value={busca} onChange={(e) => setBusca(e.target.value)} className="max-w-sm" />
+        <Input
+          placeholder="Buscar..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="max-w-sm"
+        />
         <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditing({ descricao: "" })} className="gap-2 ml-auto">
@@ -91,22 +111,37 @@ function ObjetosPage() {
               <div className="space-y-3">
                 <div>
                   <Label>Descrição</Label>
-                  <Input value={editing.descricao ?? ""} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} />
+                  <Input
+                    value={editing.descricao ?? ""}
+                    onChange={(e) => setEditing({ ...editing, descricao: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Unidade padrão</Label>
-                    <Input value={editing.unidade_padrao ?? ""} onChange={(e) => setEditing({ ...editing, unidade_padrao: e.target.value })} placeholder="UN, KG, CX..." />
+                    <Input
+                      value={editing.unidade_padrao ?? ""}
+                      onChange={(e) => setEditing({ ...editing, unidade_padrao: e.target.value })}
+                      placeholder="UN, KG, CX..."
+                    />
                   </div>
                   <div>
                     <Label>Categoria</Label>
-                    <Input value={editing.categoria ?? ""} onChange={(e) => setEditing({ ...editing, categoria: e.target.value })} />
+                    <Input
+                      value={editing.categoria ?? ""}
+                      onChange={(e) => setEditing({ ...editing, categoria: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-                <Button onClick={() => mutSave.mutate(editing)} disabled={!editing.descricao?.trim() || mutSave.isPending}>
+                <Button variant="outline" onClick={() => setEditing(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => mutSave.mutate(editing)}
+                  disabled={!editing.descricao?.trim() || mutSave.isPending}
+                >
                   Salvar
                 </Button>
               </DialogFooter>
@@ -137,7 +172,14 @@ function ObjetosPage() {
                   <Button size="sm" variant="ghost" onClick={() => setEditing(o)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Remover?")) mutDel.mutate(o.id); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("Remover?")) mutDel.mutate(o.id);
+                    }}
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>

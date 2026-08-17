@@ -2,7 +2,13 @@ import { useState } from "react";
 
 export type FaqItem = { q: string; a: string };
 
-export function FaqAccordion({ items, title = "Perguntas frequentes" }: { items: FaqItem[]; title?: string }) {
+export function FaqAccordion({
+  items,
+  title = "Perguntas frequentes",
+}: {
+  items: FaqItem[];
+  title?: string;
+}) {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
@@ -26,9 +32,7 @@ export function FaqAccordion({ items, title = "Perguntas frequentes" }: { items:
                 </span>
               </button>
               {isOpen && (
-                <div className="pb-6 text-brand-muted leading-relaxed text-[15px]">
-                  {it.a}
-                </div>
+                <div className="pb-6 text-brand-muted leading-relaxed text-[15px]">{it.a}</div>
               )}
             </div>
           );

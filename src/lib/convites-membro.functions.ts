@@ -9,7 +9,9 @@ import { tplConvite } from "./email-templates";
 function gerarToken(): string {
   const arr = new Uint8Array(24);
   crypto.getRandomValues(arr);
-  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(arr)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 const RoleSchema = z.enum(["owner", "admin", "membro"]);
@@ -49,7 +51,9 @@ export const criarConviteMembro = createServerFn({ method: "POST" })
         .eq("id", data.organization_id)
         .maybeSingle();
       const req = getRequest();
-      const origin = req?.headers.get("origin") || `https://${req?.headers.get("host") ?? "sistemaapprova.lovable.app"}`;
+      const origin =
+        req?.headers.get("origin") ||
+        `https://${req?.headers.get("host") ?? "sistemaapprova.lovable.app"}`;
       const url = `${origin}/convite/${token}`;
       const { subject, html } = tplConvite(org?.nome ?? "sua organização", url, data.role);
       await sendEmailViaResend({ to: data.email, subject, html });
@@ -77,10 +81,7 @@ export const removerConviteMembro = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("convites_membro")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("convites_membro").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -118,13 +119,11 @@ export const aceitarConviteMembro = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!jaMembro) {
-      const { error: errIns } = await supabaseAdmin
-        .from("organization_members")
-        .insert({
-          organization_id: convite.organization_id,
-          user_id: userId,
-          role: convite.role as "owner" | "admin" | "membro",
-        });
+      const { error: errIns } = await supabaseAdmin.from("organization_members").insert({
+        organization_id: convite.organization_id,
+        user_id: userId,
+        role: convite.role as "owner" | "admin" | "membro",
+      });
       if (errIns) throw new Error(errIns.message);
     }
 

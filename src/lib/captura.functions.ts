@@ -4,16 +4,17 @@ import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 
-const InputSchema = z.object({
-  texto: z.string().max(120_000).optional(),
-  imagemBase64: z.string().max(12_000_000).optional(),
-  pdfBase64: z.string().max(12_000_000).optional(),
-  mimeType: z.string().max(100).optional(),
-  nomeArquivo: z.string().max(255).optional(),
-}).refine(
-  (d) => !!(d.texto && d.texto.length > 0) || !!d.imagemBase64 || !!d.pdfBase64,
-  { message: "Informe texto, imagemBase64 ou pdfBase64" },
-);
+const InputSchema = z
+  .object({
+    texto: z.string().max(120_000).optional(),
+    imagemBase64: z.string().max(12_000_000).optional(),
+    pdfBase64: z.string().max(12_000_000).optional(),
+    mimeType: z.string().max(100).optional(),
+    nomeArquivo: z.string().max(255).optional(),
+  })
+  .refine((d) => !!(d.texto && d.texto.length > 0) || !!d.imagemBase64 || !!d.pdfBase64, {
+    message: "Informe texto, imagemBase64 ou pdfBase64",
+  });
 
 const SYSTEM = `Você extrai dados de documentos financeiros brasileiros (boleto, NF/NFS-e, fatura, holerite, comprovante de pagamento, guia DARF/GPS/GFIP, cupom fiscal).
 O PDF/imagem pode conter MAIS DE UM documento (ex.: a nota/boleto + o comprovante de pagamento juntos). Leia TODAS as páginas e CONSOLIDE em um único JSON: use os dados do fornecedor/valor/número da nota ou boleto e a data efetiva do comprovante de pagamento, quando houver.
@@ -60,12 +61,15 @@ export type DadosExtraidos = {
   numero_pagamento: string | null;
 };
 
-export type ExtracaoResposta =
-  | { ok: true; dados: DadosExtraidos }
-  | { ok: false; erro: string };
+export type ExtracaoResposta = { ok: true; dados: DadosExtraidos } | { ok: false; erro: string };
 
 function sanitizeJson(text: string): string {
-  let s = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+  let s = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const a = s.indexOf("{");
   const b = s.lastIndexOf("}");
   if (a !== -1 && b > a) s = s.slice(a, b + 1);
@@ -80,10 +84,17 @@ function parseData(v: unknown): string | null {
 
 function parseDados(raw: string): DadosExtraidos {
   let p: Record<string, unknown> = {};
-  try { p = JSON.parse(sanitizeJson(raw)); } catch { /* noop */ }
+  try {
+    p = JSON.parse(sanitizeJson(raw));
+  } catch {
+    /* noop */
+  }
   const valorNum =
-    typeof p.valor === "number" ? p.valor
-    : typeof p.valor === "string" ? Number(String(p.valor).replace(/\./g, "").replace(",", ".")) : null;
+    typeof p.valor === "number"
+      ? p.valor
+      : typeof p.valor === "string"
+        ? Number(String(p.valor).replace(/\./g, "").replace(",", "."))
+        : null;
   const cnpjStr = typeof p.cnpj === "string" ? p.cnpj.replace(/\D/g, "") : null;
   const razao = typeof p.razao_social === "string" ? p.razao_social.trim() : null;
   const descricaoRaw = typeof p.descricao === "string" ? p.descricao.trim() : null;
@@ -138,7 +149,10 @@ async function chamarIA(args: ChamadaArgs): Promise<DadosExtraidos> {
   > = [];
 
   const prefixo = `Arquivo: ${args.nomeArquivo ?? "(sem nome)"}`;
-  parts.push({ type: "text", text: `${prefixo}\nExtraia os campos e responda SOMENTE com o JSON.` });
+  parts.push({
+    type: "text",
+    text: `${prefixo}\nExtraia os campos e responda SOMENTE com o JSON.`,
+  });
 
   if (args.pdfBase64) {
     parts.push({
@@ -152,7 +166,10 @@ async function chamarIA(args: ChamadaArgs): Promise<DadosExtraidos> {
       : `data:${args.mimeType ?? "image/jpeg"};base64,${args.imagemBase64}`;
     parts.push({ type: "image", image: dataUrl });
   } else if (args.texto) {
-    parts.push({ type: "text", text: `Texto extraído do documento:\n${args.texto.slice(0, 60_000)}` });
+    parts.push({
+      type: "text",
+      text: `Texto extraído do documento:\n${args.texto.slice(0, 60_000)}`,
+    });
   }
 
   const { text } = await generateText({

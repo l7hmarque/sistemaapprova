@@ -8,9 +8,13 @@ const FornecedorSchema = z.object({
   id: z.string().uuid().optional(),
   organization_id: z.string().uuid().optional(),
   razao_social: z.string().min(1).max(255),
-  cnpj: z.string().min(1).max(40).refine((v) => validarCNPJ(v) || validarCPF(v), {
-    message: "CNPJ/CPF inválido (dígitos verificadores)",
-  }),
+  cnpj: z
+    .string()
+    .min(1)
+    .max(40)
+    .refine((v) => validarCNPJ(v) || validarCPF(v), {
+      message: "CNPJ/CPF inválido (dígitos verificadores)",
+    }),
   representante_legal: z.string().max(255).nullish(),
   cpf_representante: z
     .string()
@@ -29,7 +33,10 @@ export const listarFornecedores = createServerFn({ method: "GET" })
     z.object({ organization_id: z.string().uuid().optional() }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("fornecedores").select("*").order("razao_social", { ascending: true });
+    let q = context.supabase
+      .from("fornecedores")
+      .select("*")
+      .order("razao_social", { ascending: true });
     if (data.organization_id) q = q.eq("organization_id", data.organization_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);

@@ -7,10 +7,25 @@ export const TIPOS_DOC_DESPESA = [
   { codigo: 3, nome: "Fatura" },
   { codigo: 4, nome: "Recibo de Pagamento a Autônomo - RPA" },
   { codigo: 5, nome: "Folha Pagamento/Holerite" },
-  { codigo: 6, nome: "GR/PR", cnpj: "76416890000189", favorecido: "SECRETARIA DE ESTADO DA FAZENDA" },
-  { codigo: 7, nome: "DARF - Federal", cnpj: "00394460000141", favorecido: "MINISTERIO DA FAZENDA - MATRIZ" },
+  {
+    codigo: 6,
+    nome: "GR/PR",
+    cnpj: "76416890000189",
+    favorecido: "SECRETARIA DE ESTADO DA FAZENDA",
+  },
+  {
+    codigo: 7,
+    nome: "DARF - Federal",
+    cnpj: "00394460000141",
+    favorecido: "MINISTERIO DA FAZENDA - MATRIZ",
+  },
   { codigo: 8, nome: "DAM - Municipal" },
-  { codigo: 9, nome: "GPS", cnpj: "16727230000197", favorecido: "FUNDO DO REGIME GERAL DE PREVIDENCIA SOCIAL" },
+  {
+    codigo: 9,
+    nome: "GPS",
+    cnpj: "16727230000197",
+    favorecido: "FUNDO DO REGIME GERAL DE PREVIDENCIA SOCIAL",
+  },
   { codigo: 10, nome: "GFIP", cnpj: "00360305000104", favorecido: "CAIXA ECONOMICA FEDERAL" },
   { codigo: 11, nome: "Romaneio" },
   { codigo: 12, nome: "Bilhete de Passagem" },
@@ -24,15 +39,22 @@ export const TIPOS_DOC_DESPESA = [
   { codigo: 20, nome: "GRRF", cnpj: "00360305000104", favorecido: "CAIXA ECONOMICA FEDERAL" },
   { codigo: 21, nome: "Guia Sindical" },
   { codigo: 22, nome: "Bolsa a Pesquisadores Estrangeiros" },
-  { codigo: 23, nome: "GFD - Guia do FGTS Digital", cnpj: "00360305000104", favorecido: "CAIXA ECONOMICA FEDERAL" },
+  {
+    codigo: 23,
+    nome: "GFD - Guia do FGTS Digital",
+    cnpj: "00360305000104",
+    favorecido: "CAIXA ECONOMICA FEDERAL",
+  },
 ] as const;
 
 /** Override por código de tpDocumentoDespesa (CNPJ + favorecido fixos). */
-export const FAVORECIDO_OVERRIDES: Record<number, { cnpj: string; nome: string }> = Object.fromEntries(
-  TIPOS_DOC_DESPESA.filter((t): t is typeof t & { cnpj: string; favorecido: string } =>
-    "cnpj" in t && typeof t.cnpj === "string",
-  ).map((t) => [t.codigo, { cnpj: t.cnpj, nome: t.favorecido }]),
-);
+export const FAVORECIDO_OVERRIDES: Record<number, { cnpj: string; nome: string }> =
+  Object.fromEntries(
+    TIPOS_DOC_DESPESA.filter(
+      (t): t is typeof t & { cnpj: string; favorecido: string } =>
+        "cnpj" in t && typeof t.cnpj === "string",
+    ).map((t) => [t.codigo, { cnpj: t.cnpj, nome: t.favorecido }]),
+  );
 
 /** Tipos de transferência — Apêndice A item 1. */
 export const TIPOS_TRANSFERENCIA = [
@@ -103,10 +125,7 @@ export const CATEGORIA_TO_TPDESPESA: Record<string, number> = {
 };
 
 /** Migração: (tipo, subtipo) do esquema legado → tpDocumentoDespesa oficial. */
-export function migrarTipoLegacy(
-  tipo: number,
-  subtipo: number | null | undefined,
-): number {
+export function migrarTipoLegacy(tipo: number, subtipo: number | null | undefined): number {
   if (tipo === 1) return 1; // NF
   if (tipo === 8) return 2; // Cupom
   if (tipo === 2) return 14; // Recibo
@@ -180,4 +199,3 @@ export type CategoriaCodigo = (typeof CATEGORIAS)[number]["codigo"];
  * real aqui.
  */
 export const CATEGORIA_GASTO_BASELINE: Record<string, number> = {};
-

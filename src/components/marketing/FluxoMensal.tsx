@@ -67,7 +67,6 @@ const ETAPAS: Etapa[] = [
   },
 ];
 
-
 export function FluxoMensal() {
   const cols = ETAPAS.length;
   const W = 1120;
@@ -90,9 +89,9 @@ export function FluxoMensal() {
             Como fica a rotina do gestor de OSC e do contador.
           </h2>
           <p className="mt-4 text-brand-muted leading-relaxed">
-            Cada mês tem quatro momentos. O Approva conecta os dois lados —
-            quem opera a OSC e quem responde tecnicamente pela prestação —
-            para que ninguém trabalhe duas vezes o mesmo documento.
+            Cada mês tem quatro momentos. O Approva conecta os dois lados — quem opera a OSC e quem
+            responde tecnicamente pela prestação — para que ninguém trabalhe duas vezes o mesmo
+            documento.
           </p>
         </div>
 
@@ -103,28 +102,18 @@ export function FluxoMensal() {
             viewBox={`0 0 ${W} ${H}`}
             className="min-w-[900px] w-full h-auto"
           >
-            <title id="fluxo-title">
-              Fluxo mensal de prestação de contas no Approva
-            </title>
+            <title id="fluxo-title">Fluxo mensal de prestação de contas no Approva</title>
             <desc id="fluxo-desc">
-              Quatro etapas em duas raias: gestor da OSC e contabilidade. Do
-              registro do repasse até o relatório mensal em PDF.
+              Quatro etapas em duas raias: gestor da OSC e contabilidade. Do registro do repasse até
+              o relatório mensal em PDF.
             </desc>
-
 
             {/* Header — fase */}
             {ETAPAS.map((e, i) => {
               const x = padX + colW * i;
               return (
                 <g key={`h-${i}`}>
-                  <rect
-                    x={x + 8}
-                    y={16}
-                    width={colW - 16}
-                    height={56}
-                    rx={10}
-                    fill={NAVY}
-                  />
+                  <rect x={x + 8} y={16} width={colW - 16} height={56} rx={10} fill={NAVY} />
                   <text
                     x={x + colW / 2}
                     y={40}
@@ -206,9 +195,8 @@ export function FluxoMensal() {
         </div>
 
         <p className="mt-8 text-sm text-brand-muted max-w-3xl leading-relaxed">
-          O mesmo mês, dois papéis, uma única base de documentos. O gestor
-          nunca envia planilha por email; o contador nunca precisa redigitar
-          o que já foi lançado.
+          O mesmo mês, dois papéis, uma única base de documentos. O gestor nunca envia planilha por
+          email; o contador nunca precisa redigitar o que já foi lançado.
         </p>
       </div>
     </section>
@@ -236,11 +224,25 @@ function LaneLabel({ y, label, color }: { y: number; label: string; color: strin
 }
 
 function Card({
-  x, y, w, h, titulo, detalhe, fill, border, accent,
+  x,
+  y,
+  w,
+  h,
+  titulo,
+  detalhe,
+  fill,
+  border,
+  accent,
 }: {
-  x: number; y: number; w: number; h: number;
-  titulo: string; detalhe: string;
-  fill: string; border: string; accent: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  titulo: string;
+  detalhe: string;
+  fill: string;
+  border: string;
+  accent: string;
 }) {
   return (
     <g>
@@ -278,10 +280,7 @@ function Arrow({ x, y, color }: { x: number; y: number; color: string }) {
   return (
     <g>
       <line x1={x - 12} y1={y} x2={x + 4} y2={y} stroke={color} strokeWidth={2} />
-      <polygon
-        points={`${x + 4},${y - 5} ${x + 12},${y} ${x + 4},${y + 5}`}
-        fill={color}
-      />
+      <polygon points={`${x + 4},${y - 5} ${x + 12},${y} ${x + 4},${y + 5}`} fill={color} />
     </g>
   );
 }

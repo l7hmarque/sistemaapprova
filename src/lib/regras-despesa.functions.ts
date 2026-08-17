@@ -41,9 +41,7 @@ export const listarRegrasDespesa = createServerFn({ method: "GET" })
 export const criarRegraDespesa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z
-      .object({ organizationId: z.string().uuid(), regra: RegraInput })
-      .parse(data),
+    z.object({ organizationId: z.string().uuid(), regra: RegraInput }).parse(data),
   )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("regras_despesa").insert({
@@ -70,14 +68,9 @@ export const atualizarRegraDespesa = createServerFn({ method: "POST" })
 
 export const excluirRegraDespesa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("regras_despesa")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("regras_despesa").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

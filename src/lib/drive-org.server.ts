@@ -22,7 +22,11 @@ function driveHeaders(): HeadersInit {
 async function jsonOrThrow(res: Response, ctx: string): Promise<any> {
   const txt = await res.text();
   if (!res.ok) throw new Error(`${ctx} falhou [${res.status}]: ${txt.slice(0, 400)}`);
-  try { return JSON.parse(txt); } catch { return {}; }
+  try {
+    return JSON.parse(txt);
+  } catch {
+    return {};
+  }
 }
 
 async function findFolder(name: string, parent?: string): Promise<string | null> {
@@ -106,7 +110,8 @@ export async function ensureMesFolder(
 ): Promise<string> {
   const folders = await ensureOrgFolders(orgId);
   const parent = folders.subfolders[section];
-  const mes = mesRef && /^\d{4}-\d{2}$/.test(mesRef) ? mesRef : new Date().toISOString().slice(0, 7);
+  const mes =
+    mesRef && /^\d{4}-\d{2}$/.test(mesRef) ? mesRef : new Date().toISOString().slice(0, 7);
   return ensureFolder(mes, parent);
 }
 
@@ -214,12 +219,14 @@ export async function listSectionFilesRecursive(args: {
   return out;
 }
 
-
 /** Stream binário do arquivo (proxy de preview). */
 export async function fetchDriveFileMedia(fileId: string): Promise<Response> {
-  const metaRes = await fetch(`${DRIVE}/files/${fileId}?fields=mimeType,name&supportsAllDrives=true`, {
-    headers: driveHeaders(),
-  });
+  const metaRes = await fetch(
+    `${DRIVE}/files/${fileId}?fields=mimeType,name&supportsAllDrives=true`,
+    {
+      headers: driveHeaders(),
+    },
+  );
   const meta = await jsonOrThrow(metaRes, "drive.files.get");
   const mt: string = meta.mimeType ?? "";
   const isGoogleNative = mt.startsWith("application/vnd.google-apps.");
@@ -262,4 +269,3 @@ export async function trashDriveFile(fileId: string): Promise<void> {
     throw new Error(`drive.files.trash falhou [${res.status}]: ${t.slice(0, 300)}`);
   }
 }
-

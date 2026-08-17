@@ -34,7 +34,9 @@ function PortalFornecedor() {
     observacao: "",
     validade_dias: 30,
   });
-  const [respostas, setRespostas] = useState<Array<{ precoUnitario: number; indisponivel: boolean }>>([]);
+  const [respostas, setRespostas] = useState<
+    Array<{ precoUnitario: number; indisponivel: boolean }>
+  >([]);
 
   useEffect(() => {
     fetch(`/api/public/cotacao/${token}`)
@@ -54,7 +56,9 @@ function PortalFornecedor() {
           }));
         }
         if (d.cotacao?.itens) {
-          setRespostas((d.cotacao.itens as Item[]).map(() => ({ precoUnitario: 0, indisponivel: false })));
+          setRespostas(
+            (d.cotacao.itens as Item[]).map(() => ({ precoUnitario: 0, indisponivel: false })),
+          );
         }
         if (d.status === "preenchido") {
           setSubmitted({ pdf_url: `/api/public/cotacao/${token}/pdf` });
@@ -65,15 +69,23 @@ function PortalFornecedor() {
   }, [token]);
 
   if (loading) {
-    return <div className="min-h-screen grid place-items-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
   if (!data || data.status === "expirado") {
     return (
       <div className="min-h-screen grid place-items-center p-6">
         <Card className="max-w-md w-full">
-          <CardHeader><CardTitle>Convite indisponível</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Convite indisponível</CardTitle>
+          </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Este link expirou ou não é válido. Solicite um novo convite ao solicitante.</p>
+            <p className="text-sm text-muted-foreground">
+              Este link expirou ou não é válido. Solicite um novo convite ao solicitante.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -114,7 +126,8 @@ function PortalFornecedor() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Obrigado! Baixe abaixo o PDF do orçamento para imprimir, assinar e carimbar em sua unidade.
+              Obrigado! Baixe abaixo o PDF do orçamento para imprimir, assinar e carimbar em sua
+              unidade.
             </p>
             <a href={submitted.pdf_url} target="_blank" rel="noreferrer" download>
               <Button className="w-full gap-2">
@@ -131,36 +144,69 @@ function PortalFornecedor() {
     <div className="min-h-screen bg-muted/30 py-10">
       <div className="max-w-3xl mx-auto px-4 space-y-6">
         <header className="space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Portal do Fornecedor</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">
+            Portal do Fornecedor
+          </p>
           <h1 className="text-2xl font-semibold">Cotação: {cot?.objeto}</h1>
           {cot?.termo && <p className="text-sm text-muted-foreground">Termo: {cot.termo}</p>}
         </header>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Seus dados</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Seus dados</CardTitle>
+          </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Field label="Razão social" v={form.razao_social} on={(v) => setForm({ ...form, razao_social: v })} />
+            <Field
+              label="Razão social"
+              v={form.razao_social}
+              on={(v) => setForm({ ...form, razao_social: v })}
+            />
             <Field label="CNPJ" v={form.cnpj} on={(v) => setForm({ ...form, cnpj: v })} />
             <Field label="E-mail" v={form.email} on={(v) => setForm({ ...form, email: v })} />
-            <Field label="Telefone" v={form.telefone} on={(v) => setForm({ ...form, telefone: v })} />
-            <Field label="Representante legal" v={form.representante_legal} on={(v) => setForm({ ...form, representante_legal: v })} />
-            <Field label="CPF do representante" v={form.cpf_representante} on={(v) => setForm({ ...form, cpf_representante: v })} />
+            <Field
+              label="Telefone"
+              v={form.telefone}
+              on={(v) => setForm({ ...form, telefone: v })}
+            />
+            <Field
+              label="Representante legal"
+              v={form.representante_legal}
+              on={(v) => setForm({ ...form, representante_legal: v })}
+            />
+            <Field
+              label="CPF do representante"
+              v={form.cpf_representante}
+              on={(v) => setForm({ ...form, cpf_representante: v })}
+            />
             <div className="sm:col-span-2">
-              <Field label="Endereço" v={form.endereco} on={(v) => setForm({ ...form, endereco: v })} />
+              <Field
+                label="Endereço"
+                v={form.endereco}
+                on={(v) => setForm({ ...form, endereco: v })}
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" /> Itens ({itens.length})</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" /> Itens ({itens.length})
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {itens.map((it, i) => (
-              <div key={i} className="grid grid-cols-[1fr_140px_auto] gap-3 items-center border-b pb-2 last:border-b-0">
+              <div
+                key={i}
+                className="grid grid-cols-[1fr_140px_auto] gap-3 items-center border-b pb-2 last:border-b-0"
+              >
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{i + 1}. {it.descricao}</div>
-                  <div className="text-xs text-muted-foreground">{it.qtd} {it.unidade}</div>
+                  <div className="text-sm font-medium truncate">
+                    {i + 1}. {it.descricao}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {it.qtd} {it.unidade}
+                  </div>
                 </div>
                 <Input
                   type="number"
@@ -180,7 +226,11 @@ function PortalFornecedor() {
                     checked={respostas[i]?.indisponivel ?? false}
                     onCheckedChange={(v) => {
                       const arr = [...respostas];
-                      arr[i] = { ...arr[i], indisponivel: !!v, precoUnitario: v ? 0 : arr[i].precoUnitario };
+                      arr[i] = {
+                        ...arr[i],
+                        indisponivel: !!v,
+                        precoUnitario: v ? 0 : arr[i].precoUnitario,
+                      };
                       setRespostas(arr);
                     }}
                   />
@@ -192,7 +242,9 @@ function PortalFornecedor() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Validade da proposta</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Validade da proposta</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -202,7 +254,9 @@ function PortalFornecedor() {
                   min={1}
                   max={180}
                   value={form.validade_dias}
-                  onChange={(e) => setForm({ ...form, validade_dias: Number(e.target.value) || 30 })}
+                  onChange={(e) =>
+                    setForm({ ...form, validade_dias: Number(e.target.value) || 30 })
+                  }
                 />
               </div>
             </div>

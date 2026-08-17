@@ -9,9 +9,7 @@ export function isValidCNPJ(input: string | null | undefined): boolean {
   if (/^(\d)\1{13}$/.test(c)) return false;
 
   const calcDV = (base: string, weights: number[]): number => {
-    const sum = base
-      .split("")
-      .reduce((acc, d, i) => acc + Number(d) * weights[i], 0);
+    const sum = base.split("").reduce((acc, d, i) => acc + Number(d) * weights[i], 0);
     const r = sum % 11;
     return r < 2 ? 0 : 11 - r;
   };

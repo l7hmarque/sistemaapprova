@@ -11,8 +11,11 @@ function getOrCreateSid(): string {
   try {
     let sid = localStorage.getItem(SID_KEY);
     if (!sid) {
-      sid =
-        (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/-/g, "").slice(0, 24);
+      sid = (
+        crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+      )
+        .replace(/-/g, "")
+        .slice(0, 24);
       localStorage.setItem(SID_KEY, sid);
     }
     return sid;
@@ -29,14 +32,19 @@ function getUtm() {
     let captured = false;
     for (const k of UTM_KEYS) {
       const v = url.searchParams.get(k);
-      if (v) { out[k] = v; captured = true; }
+      if (v) {
+        out[k] = v;
+        captured = true;
+      }
     }
     if (captured) sessionStorage.setItem(UTM_STORAGE, JSON.stringify(out));
     else {
       const stored = sessionStorage.getItem(UTM_STORAGE);
       if (stored) return JSON.parse(stored);
     }
-  } catch { /* ignorado: recurso opcional indisponível */ }
+  } catch {
+    /* ignorado: recurso opcional indisponível */
+  }
   return out;
 }
 
@@ -58,7 +66,9 @@ function isInternalTraffic(): boolean {
         if (r.endsWith("lovable.dev")) return true;
         if (r.endsWith("lovableproject.com")) return true;
         if (r.includes("id-preview--")) return true;
-      } catch { /* ignorado: recurso opcional indisponível */ }
+      } catch {
+        /* ignorado: recurso opcional indisponível */
+      }
     }
 
     // Marca persistente: usuário logado já flagado como interno
@@ -67,7 +77,9 @@ function isInternalTraffic(): boolean {
     // Query param de bypass do editor
     const sp = new URLSearchParams(window.location.search);
     if (sp.has("lovable_preview") || sp.has("__lovable")) return true;
-  } catch { /* ignorado: recurso opcional indisponível */ }
+  } catch {
+    /* ignorado: recurso opcional indisponível */
+  }
   return false;
 }
 
@@ -92,11 +104,12 @@ function send(evento: string, rota: string, payload: Record<string, unknown> = {
     }
   };
   // Defer to idle to never compete with FCP/LCP
-  const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout: number }) => number);
+  const ric = (window as any).requestIdleCallback as
+    | undefined
+    | ((cb: () => void, opts?: { timeout: number }) => number);
   if (ric) ric(dispatch, { timeout: 3000 });
   else setTimeout(dispatch, 1500);
 }
-
 
 export function useAnalytics() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -172,7 +185,10 @@ export function useAnalytics() {
   }, [pathname]);
 }
 
-export function trackEvent(evento: "form_submit" | "cta_click", payload: Record<string, unknown> = {}) {
+export function trackEvent(
+  evento: "form_submit" | "cta_click",
+  payload: Record<string, unknown> = {},
+) {
   if (typeof window === "undefined") return;
   send(evento, window.location.pathname, payload);
 }

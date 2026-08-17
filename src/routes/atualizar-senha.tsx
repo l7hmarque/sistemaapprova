@@ -68,37 +68,40 @@ function AtualizarSenhaPage() {
           ) : !autorizado ? (
             <div className="text-sm text-muted-foreground">
               Link inválido ou expirado. Solicite um novo em
-              <a href="/esqueci-senha" className="ml-1 underline">esqueci-senha</a>.
+              <a href="/esqueci-senha" className="ml-1 underline">
+                esqueci-senha
+              </a>
+              .
             </div>
           ) : (
-          <form onSubmit={submit} className="space-y-3">
-            <div>
-              <Label className="text-xs">Nova senha</Label>
-              <Input
-                type="password"
-                required
-                minLength={8}
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Confirmar nova senha</Label>
-              <Input
-                type="password"
-                required
-                minLength={8}
-                value={confirma}
-                onChange={(e) => setConfirma(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar senha
-            </Button>
-          </form>
+            <form onSubmit={submit} className="space-y-3">
+              <div>
+                <Label className="text-xs">Nova senha</Label>
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Confirmar nova senha</Label>
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirma}
+                  onChange={(e) => setConfirma(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar senha
+              </Button>
+            </form>
           )}
         </CardContent>
       </Card>

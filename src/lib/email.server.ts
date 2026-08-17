@@ -10,7 +10,9 @@ export type EmailInput = {
   from?: string;
 };
 
-export async function sendEmailViaResend(input: EmailInput): Promise<{ ok: true; id: string | null }> {
+export async function sendEmailViaResend(
+  input: EmailInput,
+): Promise<{ ok: true; id: string | null }> {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurado");
   const RESEND_API_KEY = process.env.RESEND_API_KEY;

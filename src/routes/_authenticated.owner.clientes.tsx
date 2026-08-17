@@ -6,8 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -27,7 +40,12 @@ type Org = {
 function ClientesPage() {
   const qc = useQueryClient();
   const [novoOpen, setNovoOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", tipo: "osc" as "osc" | "escritorio", plano: "essencial" });
+  const [form, setForm] = useState({
+    nome: "",
+    cnpj: "",
+    tipo: "osc" as "osc" | "escritorio",
+    plano: "essencial",
+  });
 
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["owner-orgs"],
@@ -76,7 +94,9 @@ function ClientesPage() {
       <header className="flex items-end justify-between">
         <div>
           <h1 className="font-display text-3xl uppercase">Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-1">Todas as organizações (OSCs e escritórios).</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Todas as organizações (OSCs e escritórios).
+          </p>
         </div>
         <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
           <DialogTrigger asChild>
@@ -89,16 +109,27 @@ function ClientesPage() {
             <div className="space-y-3">
               <div>
                 <Label className="text-xs">Nome</Label>
-                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                />
               </div>
               <div>
                 <Label className="text-xs">CNPJ</Label>
-                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                <Input
+                  value={form.cnpj}
+                  onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                />
               </div>
               <div>
                 <Label className="text-xs">Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={form.tipo}
+                  onValueChange={(v) => setForm({ ...form, tipo: v as any })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="osc">OSC</SelectItem>
                     <SelectItem value="escritorio">Escritório contábil</SelectItem>
@@ -108,7 +139,9 @@ function ClientesPage() {
               <div>
                 <Label className="text-xs">Plano</Label>
                 <Select value={form.plano} onValueChange={(v) => setForm({ ...form, plano: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="essencial">Essencial</SelectItem>
                     <SelectItem value="completo">Completo</SelectItem>
@@ -118,7 +151,9 @@ function ClientesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setNovoOpen(false)}>Cancelar</Button>
+              <Button variant="ghost" onClick={() => setNovoOpen(false)}>
+                Cancelar
+              </Button>
               <Button onClick={criar}>Criar</Button>
             </DialogFooter>
           </DialogContent>
@@ -141,7 +176,11 @@ function ClientesPage() {
               {orgs.map((o) => (
                 <div key={o.id} className="grid grid-cols-12 gap-3 items-center py-3">
                   <div className="col-span-4">
-                    <Link to="/owner/clientes/$id" params={{ id: o.id }} className="font-medium hover:underline">
+                    <Link
+                      to="/owner/clientes/$id"
+                      params={{ id: o.id }}
+                      className="font-medium hover:underline"
+                    >
                       {o.nome}
                     </Link>
                     <div className="text-xs text-muted-foreground">
@@ -150,7 +189,9 @@ function ClientesPage() {
                   </div>
                   <div className="col-span-3">
                     <Select value={o.plano} onValueChange={(v) => mudarPlano(o, v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="essencial">Essencial</SelectItem>
                         <SelectItem value="completo">Completo</SelectItem>
@@ -159,8 +200,13 @@ function ClientesPage() {
                     </Select>
                   </div>
                   <div className="col-span-3">
-                    <Select value={o.status} onValueChange={(v) => mudarStatus(o, v as Org["status"])}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <Select
+                      value={o.status}
+                      onValueChange={(v) => mudarStatus(o, v as Org["status"])}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="trial">Trial</SelectItem>
                         <SelectItem value="ativo">Ativo</SelectItem>
@@ -170,7 +216,10 @@ function ClientesPage() {
                     </Select>
                   </div>
                   <div className="col-span-2 text-right">
-                    <Badge variant={o.status === "ativo" ? "default" : "secondary"} className="uppercase text-[10px]">
+                    <Badge
+                      variant={o.status === "ativo" ? "default" : "secondary"}
+                      className="uppercase text-[10px]"
+                    >
                       {o.status}
                     </Badge>
                   </div>

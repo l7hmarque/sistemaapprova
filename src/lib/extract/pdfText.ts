@@ -6,9 +6,7 @@ export type PaginaTexto = {
   texto: string;
 };
 
-export async function extrairTextoPorPagina(
-  pdfBytes: Uint8Array,
-): Promise<PaginaTexto[]> {
+export async function extrairTextoPorPagina(pdfBytes: Uint8Array): Promise<PaginaTexto[]> {
   const pdf = await getDocumentProxy(pdfBytes);
   const { text } = await extractText(pdf, { mergePages: false });
   const arr = Array.isArray(text) ? text : [text];

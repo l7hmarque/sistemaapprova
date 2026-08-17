@@ -84,30 +84,56 @@ async function montarCapa(opts: {
   const { width, height } = page.getSize();
 
   page.drawText("PRESTAÇÃO DE CONTAS", {
-    x: 50, y: height - 120, size: 28, font, color: rgb(0, 0, 0),
+    x: 50,
+    y: height - 120,
+    size: 28,
+    font,
+    color: rgb(0, 0, 0),
   });
   page.drawText(opts.titulo, {
-    x: 50, y: height - 160, size: 16, font: body, color: rgb(0.3, 0.3, 0.3),
+    x: 50,
+    y: height - 160,
+    size: 16,
+    font: body,
+    color: rgb(0.3, 0.3, 0.3),
   });
   page.drawText(`Mês de referência: ${opts.mes}`, {
-    x: 50, y: height - 220, size: 12, font: body,
+    x: 50,
+    y: height - 220,
+    size: 12,
+    font: body,
   });
   page.drawText(`Total de eventos: ${opts.totalEventos}`, {
-    x: 50, y: height - 240, size: 12, font: body,
+    x: 50,
+    y: height - 240,
+    size: 12,
+    font: body,
   });
   page.drawText(`Total de documentos: ${opts.totalDocs}`, {
-    x: 50, y: height - 260, size: 12, font: body,
+    x: 50,
+    y: height - 260,
+    size: 12,
+    font: body,
   });
   page.drawText(`Gerado em: ${opts.geradoEm.toLocaleString("pt-BR")}`, {
-    x: 50, y: height - 280, size: 12, font: body,
+    x: 50,
+    y: height - 280,
+    size: 12,
+    font: body,
   });
 
   page.drawLine({
-    start: { x: 50, y: 80 }, end: { x: width - 50, y: 80 },
-    thickness: 0.5, color: rgb(0.7, 0.7, 0.7),
+    start: { x: 50, y: 80 },
+    end: { x: width - 50, y: 80 },
+    thickness: 0.5,
+    color: rgb(0.7, 0.7, 0.7),
   });
   page.drawText("Documento imutável. Hash SHA-256 registrado no rodapé do índice.", {
-    x: 50, y: 60, size: 8, font: body, color: rgb(0.5, 0.5, 0.5),
+    x: 50,
+    y: 60,
+    size: 8,
+    font: body,
+    color: rgb(0.5, 0.5, 0.5),
   });
   return pdf.save();
 }
@@ -134,10 +160,14 @@ async function montarIndice(opts: {
 
   for (const e of opts.eventos) {
     if (y < 100) novaPagina();
-    const forn = e.fornecedor_id ? opts.fornecedores.get(e.fornecedor_id) ?? "—" : "—";
+    const forn = e.fornecedor_id ? (opts.fornecedores.get(e.fornecedor_id) ?? "—") : "—";
     const anexos = opts.anexosPorEvento.get(e.id) ?? [];
     page.drawText(`[${e.categoria}] ${e.descricao ?? "—"}`, {
-      x: 50, y, size: 11, font, color: rgb(0, 0, 0),
+      x: 50,
+      y,
+      size: 11,
+      font,
+      color: rgb(0, 0, 0),
     });
     y -= 14;
     const linha = `Fornec: ${forn}  ·  Venc: ${fmtDate(e.data_vencimento)}  ·  Pgto: ${fmtDate(e.data_pagamento)}  ·  Prev: ${fmtBRL(e.valor_previsto)}  ·  Efet: ${fmtBRL(e.valor_efetivo)}  ·  Status: ${e.status_documental}`;
@@ -162,8 +192,10 @@ async function montarIndice(opts: {
   // espaço para hash adicionado depois (write final)
   const last = pdf.getPage(pdf.getPageCount() - 1);
   last.drawLine({
-    start: { x: 50, y: 50 }, end: { x: width - 50, y: 50 },
-    thickness: 0.5, color: rgb(0.7, 0.7, 0.7),
+    start: { x: 50, y: 50 },
+    end: { x: width - 50, y: 50 },
+    thickness: 0.5,
+    color: rgb(0.7, 0.7, 0.7),
   });
   return pdf.save();
 }
@@ -178,7 +210,9 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     // 1) Eventos do mês
     const { data: eventos, error: e1 } = await adm
       .from("eventos_financeiros")
-      .select("id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental, status_workflow")
+      .select(
+        "id, organization_id, categoria, descricao, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, status_documental, status_workflow",
+      )
       .eq("mes_referencia", mes)
       .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (e1) throw new Error("Falha ao ler eventos: " + e1.message);
@@ -188,22 +222,22 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
 
     // Bloqueia homologação se houver eventos ainda em rascunho ou pendentes de revisão.
     const pendentes = (eventos as any[]).filter((e) =>
-      ["rascunho", "pendente_revisao"].includes(e.status_workflow)
+      ["rascunho", "pendente_revisao"].includes(e.status_workflow),
     );
     if (pendentes.length > 0) {
       throw new Error(
-        `Não é possível gerar snapshot: ${pendentes.length} evento(s) ainda pendente(s) de aprovação em ${mes}. Aprove-os em Admin → Aprovações.`
+        `Não é possível gerar snapshot: ${pendentes.length} evento(s) ainda pendente(s) de aprovação em ${mes}. Aprove-os em Admin → Aprovações.`,
       );
     }
-
-
 
     const eventoIds = eventos.map((e) => e.id);
 
     // 2) Anexos vinculados
     const { data: anexos, error: e2 } = await adm
       .from("documentos_anexos")
-      .select("id, evento_id, tipo, arquivo_url, arquivo_hash, valor_extraido, data_extraida, numero_extraido")
+      .select(
+        "id, evento_id, tipo, arquivo_url, arquivo_hash, valor_extraido, data_extraida, numero_extraido",
+      )
       .in("evento_id", eventoIds);
     if (e2) throw new Error("Falha ao ler anexos: " + e2.message);
 
@@ -216,10 +250,15 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     }
 
     // 3) Fornecedores p/ exibir
-    const fornIds = Array.from(new Set(eventos.map((e) => e.fornecedor_id).filter(Boolean) as string[]));
+    const fornIds = Array.from(
+      new Set(eventos.map((e) => e.fornecedor_id).filter(Boolean) as string[]),
+    );
     const fornMap = new Map<string, string>();
     if (fornIds.length) {
-      const { data: forns } = await adm.from("fornecedores").select("id, razao_social").in("id", fornIds);
+      const { data: forns } = await adm
+        .from("fornecedores")
+        .select("id, razao_social")
+        .in("id", fornIds);
       for (const f of forns ?? []) fornMap.set(f.id, f.razao_social);
     }
 
@@ -227,10 +266,16 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     const totalDocs = (anexos ?? []).length;
     const titulo = data.titulo ?? `Prestação ${mes}`;
     const capaBytes = await montarCapa({
-      titulo, mes, totalEventos: eventos.length, totalDocs, geradoEm: new Date(),
+      titulo,
+      mes,
+      totalEventos: eventos.length,
+      totalDocs,
+      geradoEm: new Date(),
     });
     const indiceBytes = await montarIndice({
-      eventos: eventos as Evento[], fornecedores: fornMap, anexosPorEvento,
+      eventos: eventos as Evento[],
+      fornecedores: fornMap,
+      anexosPorEvento,
     });
 
     // 5) Merge: capa + índice + cada PDF de cada anexo
@@ -254,7 +299,10 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
       for (const a of lista) {
         if (!a.arquivo_url) continue;
         const path = pathFromUrl(a.arquivo_url);
-        if (!path) { docsManifest.push({ id: a.id, skipped: "url-no-bucket-path" }); continue; }
+        if (!path) {
+          docsManifest.push({ id: a.id, skipped: "url-no-bucket-path" });
+          continue;
+        }
         const { data: blob, error: edl } = await adm.storage.from("documentos").download(path);
         if (edl || !blob) {
           docsManifest.push({ id: a.id, skipped: "download-failed", err: edl?.message });
@@ -267,19 +315,32 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
           await addPdf(buf);
           docsManifest.push({ id: a.id, tipo: a.tipo, hash: a.arquivo_hash, incluido: true });
         } else {
-          docsManifest.push({ id: a.id, tipo: a.tipo, hash: a.arquivo_hash, incluido: false, motivo: "nao-pdf" });
+          docsManifest.push({
+            id: a.id,
+            tipo: a.tipo,
+            hash: a.arquivo_hash,
+            incluido: false,
+            motivo: "nao-pdf",
+          });
         }
       }
       manifest.push({
-        evento_id: e.id, categoria: e.categoria, descricao: e.descricao,
-        valor_previsto: e.valor_previsto, valor_efetivo: e.valor_efetivo,
-        status: e.status_documental, docs: docsManifest,
+        evento_id: e.id,
+        categoria: e.categoria,
+        descricao: e.descricao,
+        valor_previsto: e.valor_previsto,
+        valor_efetivo: e.valor_efetivo,
+        status: e.status_documental,
+        docs: docsManifest,
       });
     }
 
     // 6) Salva PDF final, hash, upload
     const finalBytes = await merged.save();
-    const buf = finalBytes.buffer.slice(finalBytes.byteOffset, finalBytes.byteOffset + finalBytes.byteLength) as ArrayBuffer;
+    const buf = finalBytes.buffer.slice(
+      finalBytes.byteOffset,
+      finalBytes.byteOffset + finalBytes.byteLength,
+    ) as ArrayBuffer;
     const hash = await bytesToHex(buf);
     const path = `${mes}/${Date.now()}-${hash.slice(0, 8)}.pdf`;
     const { error: eup } = await adm.storage.from("prestacoes").upload(path, finalBytes, {
@@ -288,7 +349,9 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
     });
     if (eup) throw new Error("Upload falhou: " + eup.message);
 
-    const { data: signed } = await adm.storage.from("prestacoes").createSignedUrl(path, 60 * 60 * 24 * 7);
+    const { data: signed } = await adm.storage
+      .from("prestacoes")
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
 
     // 7) Insert snapshot — calcula próxima revisão para o mesmo (org, mês)
     const orgId = (eventos[0] as { organization_id?: string }).organization_id;
@@ -316,7 +379,11 @@ export const gerarPrestacaoSnapshot = createServerFn({ method: "POST" })
         pdf_url: signed?.signedUrl ?? null,
         pdf_path: path,
         assinatura_hash: hash,
-        manifest: { eventos: manifest, gerado_em: new Date().toISOString(), revisao: proximaRevisao } as unknown as Record<string, never>,
+        manifest: {
+          eventos: manifest,
+          gerado_em: new Date().toISOString(),
+          revisao: proximaRevisao,
+        } as unknown as Record<string, never>,
         total_eventos: eventos.length,
         total_documentos: totalDocs,
         gerado_por: context.userId,
@@ -369,11 +436,13 @@ export const obterUrlSnapshot = createServerFn({ method: "POST" })
 export const reabrirPrestacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      snapshotId: z.string().uuid(),
-      activeOrgId: z.string().uuid(),
-      motivo: z.string().min(3).max(500),
-    }).parse(d),
+    z
+      .object({
+        snapshotId: z.string().uuid(),
+        activeOrgId: z.string().uuid(),
+        motivo: z.string().min(3).max(500),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

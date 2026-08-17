@@ -43,13 +43,17 @@ export const listarNaturezas = createServerFn({ method: "GET" })
 export const listarPlanoAplicacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ vigenciaInicio: z.string().optional(), projeto_id: z.string().uuid().optional() }).parse(d ?? {}),
+    z
+      .object({ vigenciaInicio: z.string().optional(), projeto_id: z.string().uuid().optional() })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     let q = (context.supabase as any)
       .from("plano_aplicacao")
-      .select("id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio, projeto_id")
+      .select(
+        "id, vigencia_inicio, vigencia_fim, natureza_codigo, valor_previsto, convenio, projeto_id",
+      )
       .eq("organization_id", id)
       .order("natureza_codigo");
     if (data.vigenciaInicio) q = q.eq("vigencia_inicio", data.vigenciaInicio);
@@ -62,15 +66,17 @@ export const listarPlanoAplicacao = createServerFn({ method: "POST" })
 export const salvarLinhaPlano = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      vigencia_inicio: z.string(),
-      vigencia_fim: z.string(),
-      natureza_codigo: z.string(),
-      valor_previsto: z.number().min(0),
-      convenio: z.string().nullable().optional(),
-      projeto_id: z.string().uuid().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        vigencia_inicio: z.string(),
+        vigencia_fim: z.string(),
+        natureza_codigo: z.string(),
+        valor_previsto: z.number().min(0),
+        convenio: z.string().nullable().optional(),
+        projeto_id: z.string().uuid().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
@@ -112,7 +118,9 @@ export const removerLinhaPlano = createServerFn({ method: "POST" })
 // ─────────────────────────────────────────────────────────────
 export const listarRepasses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     let q = (context.supabase as any)
@@ -130,16 +138,18 @@ export const listarRepasses = createServerFn({ method: "POST" })
 export const salvarRepasse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      mes_referencia: MesSchema,
-      numero_parcela: z.number().int().min(1),
-      valor: z.number().min(0),
-      data_recebimento: z.string(),
-      convenio: z.string().nullable().optional(),
-      observacao: z.string().nullable().optional(),
-      projeto_id: z.string().uuid().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        mes_referencia: MesSchema,
+        numero_parcela: z.number().int().min(1),
+        valor: z.number().min(0),
+        data_recebimento: z.string(),
+        convenio: z.string().nullable().optional(),
+        observacao: z.string().nullable().optional(),
+        projeto_id: z.string().uuid().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
@@ -182,13 +192,15 @@ export const removerRepasse = createServerFn({ method: "POST" })
 export const salvarMovimento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      mes_referencia: MesSchema,
-      saldo_anterior: z.number(),
-      rendimentos: z.number(),
-      estornos_extra: z.number(),
-      observacao: z.string().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        mes_referencia: MesSchema,
+        saldo_anterior: z.number(),
+        rendimentos: z.number(),
+        estornos_extra: z.number(),
+        observacao: z.string().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
@@ -206,10 +218,12 @@ export const salvarMovimento = createServerFn({ method: "POST" })
 export const setNaturezaEvento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      evento_id: z.string().uuid(),
-      natureza_codigo: z.string().nullable(),
-    }).parse(d),
+    z
+      .object({
+        evento_id: z.string().uuid(),
+        natureza_codigo: z.string().nullable(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
@@ -239,7 +253,9 @@ async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?
 
   let eventosQ = supabase
     .from("eventos_financeiros")
-    .select("id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado, projeto_id")
+    .select(
+      "id, id_interno, nm_favorecido, descricao, valor_efetivo, natureza_despesa_codigo, data_pagamento, valor_estornado, projeto_id",
+    )
     .eq("organization_id", id)
     .eq("mes_referencia", anoMes)
     .is("excluido_em", null)
@@ -322,14 +338,24 @@ async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?
 
   const semNatureza = gastoPorNat.get("__sem__") ?? { gasto: 0, estornado: 0 };
 
-  const valorTransferido = ((repasses ?? []) as any[]).reduce((a, r) => a + Number(r.valor ?? 0), 0);
-  const valorExecutado = ((eventos ?? []) as any[]).reduce((a, e) => a + Number(e.valor_efetivo ?? 0), 0);
-  const estornosEventosMes = ((eventos ?? []) as any[]).reduce((a, e) => a + Number(e.valor_estornado ?? 0), 0);
+  const valorTransferido = ((repasses ?? []) as any[]).reduce(
+    (a, r) => a + Number(r.valor ?? 0),
+    0,
+  );
+  const valorExecutado = ((eventos ?? []) as any[]).reduce(
+    (a, e) => a + Number(e.valor_efetivo ?? 0),
+    0,
+  );
+  const estornosEventosMes = ((eventos ?? []) as any[]).reduce(
+    (a, e) => a + Number(e.valor_estornado ?? 0),
+    0,
+  );
   const saldoAnterior = Number(movRow?.saldo_anterior ?? 0);
   const rendimentos = Number(movRow?.rendimentos ?? 0);
   const estornosExtra = Number(movRow?.estornos_extra ?? 0);
   const totalEstornos = estornosEventosMes + estornosExtra;
-  const saldoProximo = saldoAnterior + valorTransferido + rendimentos - valorExecutado + totalEstornos;
+  const saldoProximo =
+    saldoAnterior + valorTransferido + rendimentos - valorExecutado + totalEstornos;
 
   const { data: org } = await supabase
     .from("organizations")
@@ -359,14 +385,13 @@ async function computeReo(supabase: any, id: string, anoMes: string, projeto_id?
 
 export const carregarReo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     return computeReo(context.supabase, id, data.mes, data.projeto_id);
   });
-
-
-
 
 // ─────────────────────────────────────────────────────────────
 // Geração do PDF
@@ -375,7 +400,15 @@ function moeda(n: number): string {
   return `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function drawText(page: PDFPage, txt: string, x: number, y: number, font: PDFFont, size: number, opts?: { color?: any; maxWidth?: number }) {
+function drawText(
+  page: PDFPage,
+  txt: string,
+  x: number,
+  y: number,
+  font: PDFFont,
+  size: number,
+  opts?: { color?: any; maxWidth?: number },
+) {
   const color = opts?.color ?? rgb(0, 0, 0);
   const clean = (txt ?? "").replace(/[^\x00-\xFF]/g, (c) => {
     // pdf-lib StandardFonts (WinAnsi) — troca acentos/símbolos fora do repertório
@@ -391,11 +424,12 @@ function newPage(pdf: PDFDocument): PDFPage {
 
 export const gerarReoPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ mes: MesSchema, projeto_id: z.string().uuid().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
     const reo = await computeReo(context.supabase, id, data.mes, data.projeto_id);
-
 
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -416,18 +450,29 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
       y -= 12;
       drawText(page, `Mês de referência: ${reo.mes}`, M, y, font, 9);
       y -= 6;
-      page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6) });
+      page.drawLine({
+        start: { x: M, y },
+        end: { x: W - M, y },
+        thickness: 0.5,
+        color: rgb(0.6, 0.6, 0.6),
+      });
       y -= 16;
     };
     const ensure = (need: number) => {
-      if (y - need < 60) { page = newPage(pdf); y = 800; header(); }
+      if (y - need < 60) {
+        page = newPage(pdf);
+        y = 800;
+        header();
+      }
     };
     header();
 
     // 2.1 Valores transferidos
-    drawText(page, "2.1 Valores transferidos", M, y, bold, 11); y -= 16;
+    drawText(page, "2.1 Valores transferidos", M, y, bold, 11);
+    y -= 16;
     if (!reo.repasses.length) {
-      drawText(page, "Sem repasses recebidos neste mês.", M, y, font, 9); y -= 14;
+      drawText(page, "Sem repasses recebidos neste mês.", M, y, font, 9);
+      y -= 14;
     } else {
       drawText(page, "Parcela", M, y, bold, 9);
       drawText(page, "Valor", M + 80, y, bold, 9);
@@ -447,13 +492,20 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
 
     // 2.2 Despesas
     ensure(40);
-    drawText(page, "2.2 Despesas efetuadas no mês", M, y, bold, 11); y -= 16;
+    drawText(page, "2.2 Despesas efetuadas no mês", M, y, bold, 11);
+    y -= 16;
     drawText(page, "Código", M, y, bold, 9);
     drawText(page, "Favorecido", M + 60, y, bold, 9);
     drawText(page, "Natureza", M + 320, y, bold, 9);
     drawText(page, "Valor", W - M - 55, y, bold, 9);
     y -= 10;
-    page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.3, color: rgb(0.7, 0.7, 0.7) }); y -= 8;
+    page.drawLine({
+      start: { x: M, y },
+      end: { x: W - M, y },
+      thickness: 0.3,
+      color: rgb(0.7, 0.7, 0.7),
+    });
+    y -= 8;
     let totalDespesas = 0;
     for (const e of reo.eventos as any[]) {
       ensure(12);
@@ -467,14 +519,20 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
       y -= 12;
     }
     ensure(20);
-    page.drawLine({ start: { x: M, y: y + 4 }, end: { x: W - M, y: y + 4 }, thickness: 0.3, color: rgb(0.7, 0.7, 0.7) });
+    page.drawLine({
+      start: { x: M, y: y + 4 },
+      end: { x: W - M, y: y + 4 },
+      thickness: 0.3,
+      color: rgb(0.7, 0.7, 0.7),
+    });
     drawText(page, "TOTAL GERAL", M, y - 6, bold, 10);
     drawText(page, moeda(totalDespesas), W - M - 60, y - 6, bold, 10);
     y -= 26;
 
     // 2.3 Resumo financeiro
     ensure(120);
-    drawText(page, "2.3 Resumo financeiro", M, y, bold, 11); y -= 16;
+    drawText(page, "2.3 Resumo financeiro", M, y, bold, 11);
+    y -= 16;
     const linhasMov: Array<[string, string]> = [
       ["Saldo Anterior", moeda(reo.movimento.saldo_anterior)],
       ["Valores Transferidos", moeda(reo.movimento.valor_transferido)],
@@ -492,13 +550,15 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
     if (reo.movimento.observacao) {
       ensure(20);
       y -= 4;
-      drawText(page, `Obs.: ${reo.movimento.observacao}`, M, y, font, 9); y -= 14;
+      drawText(page, `Obs.: ${reo.movimento.observacao}`, M, y, font, 9);
+      y -= 14;
     }
     y -= 8;
 
     // 2.4 Saldo por natureza
     ensure(60);
-    drawText(page, "2.4 Saldo atualizado por categoria (natureza da despesa)", M, y, bold, 11); y -= 16;
+    drawText(page, "2.4 Saldo atualizado por categoria (natureza da despesa)", M, y, bold, 11);
+    y -= 16;
     drawText(page, "Código", M, y, bold, 8);
     drawText(page, "Descrição", M + 70, y, bold, 8);
     drawText(page, "Previsto", M + 265, y, bold, 8);
@@ -506,8 +566,17 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
     drawText(page, "Estornado", M + 400, y, bold, 8);
     drawText(page, "Disponível", W - M - 60, y, bold, 8);
     y -= 10;
-    page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.3, color: rgb(0.7, 0.7, 0.7) }); y -= 8;
-    let tPrev = 0, tGasto = 0, tEst = 0, tDisp = 0;
+    page.drawLine({
+      start: { x: M, y },
+      end: { x: W - M, y },
+      thickness: 0.3,
+      color: rgb(0.7, 0.7, 0.7),
+    });
+    y -= 8;
+    let tPrev = 0,
+      tGasto = 0,
+      tEst = 0,
+      tDisp = 0;
     for (const l of reo.linhas24 as any[]) {
       ensure(11);
       drawText(page, l.codigo, M, y, font, 8);
@@ -517,11 +586,19 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
       drawText(page, moeda(l.estornado), M + 390, y, font, 8);
       const color = l.disponivel < 0 ? rgb(0.7, 0.1, 0.1) : undefined;
       drawText(page, moeda(l.disponivel), W - M - 65, y, font, 8, color ? { color } : undefined);
-      tPrev += l.previsto; tGasto += l.gasto; tEst += l.estornado; tDisp += l.disponivel;
+      tPrev += l.previsto;
+      tGasto += l.gasto;
+      tEst += l.estornado;
+      tDisp += l.disponivel;
       y -= 11;
     }
     ensure(20);
-    page.drawLine({ start: { x: M, y: y + 4 }, end: { x: W - M, y: y + 4 }, thickness: 0.3, color: rgb(0.7, 0.7, 0.7) });
+    page.drawLine({
+      start: { x: M, y: y + 4 },
+      end: { x: W - M, y: y + 4 },
+      thickness: 0.3,
+      color: rgb(0.7, 0.7, 0.7),
+    });
     drawText(page, "TOTAL", M, y - 6, bold, 9);
     drawText(page, moeda(tPrev), M + 245, y - 6, bold, 9);
     drawText(page, moeda(tGasto), M + 320, y - 6, bold, 9);
@@ -531,9 +608,15 @@ export const gerarReoPdf = createServerFn({ method: "POST" })
 
     if (reo.semNaturezaGasto > 0) {
       ensure(20);
-      drawText(page,
+      drawText(
+        page,
         `Atenção: ${moeda(reo.semNaturezaGasto)} em despesas do ano ainda sem natureza classificada.`,
-        M, y, font, 9, { color: rgb(0.7, 0.1, 0.1) });
+        M,
+        y,
+        font,
+        9,
+        { color: rgb(0.7, 0.1, 0.1) },
+      );
       y -= 14;
     }
 

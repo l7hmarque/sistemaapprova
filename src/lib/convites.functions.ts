@@ -6,7 +6,9 @@ import { sendEmailViaResend } from "./email.server";
 function gerarToken(): string {
   const arr = new Uint8Array(24);
   crypto.getRandomValues(arr);
-  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(arr)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function appOrigin(): string {
@@ -14,8 +16,9 @@ function appOrigin(): string {
 }
 
 function esc(s: string | null | undefined): string {
-  return String(s ?? "").replace(/[&<>"]/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string),
+  return String(s ?? "").replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string,
   );
 }
 
@@ -34,7 +37,10 @@ function buildConviteEmail(args: {
         `<tr><td style="padding:4px 8px;color:#555;">${i + 1}</td><td style="padding:4px 8px;">${esc(it.descricao)}</td><td style="padding:4px 8px;text-align:right;color:#555;">${it.qtd} ${esc(it.unidade)}</td></tr>`,
     )
     .join("");
-  const maisItens = args.itens.length > 20 ? `<p style="color:#888;font-size:12px;margin:8px 0 0;">+ ${args.itens.length - 20} itens adicionais</p>` : "";
+  const maisItens =
+    args.itens.length > 20
+      ? `<p style="color:#888;font-size:12px;margin:8px 0 0;">+ ${args.itens.length - 20} itens adicionais</p>`
+      : "";
   const dataExp = new Date(args.expiraEm).toLocaleDateString("pt-BR");
   return {
     subject: `Solicitação de orçamento — ${args.objeto}`,
@@ -63,8 +69,15 @@ function buildConviteEmail(args: {
   };
 }
 
-async function dispararEmailConvite(supabase: any, conviteId: string): Promise<{ enviado: boolean; motivo?: string }> {
-  const { data: c } = await supabase.from("convites_cotacao").select("*").eq("id", conviteId).single();
+async function dispararEmailConvite(
+  supabase: any,
+  conviteId: string,
+): Promise<{ enviado: boolean; motivo?: string }> {
+  const { data: c } = await supabase
+    .from("convites_cotacao")
+    .select("*")
+    .eq("id", conviteId)
+    .single();
   if (!c) return { enviado: false, motivo: "convite não encontrado" };
   if (!c.email) return { enviado: false, motivo: "sem e-mail" };
   const { data: cot } = await supabase
@@ -128,7 +141,10 @@ export const criarConvite = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    let emailStatus: { enviado: boolean; motivo?: string } = { enviado: false, motivo: "sem e-mail" };
+    let emailStatus: { enviado: boolean; motivo?: string } = {
+      enviado: false,
+      motivo: "sem e-mail",
+    };
     if (row.email) {
       try {
         emailStatus = await dispararEmailConvite(context.supabase, row.id);
@@ -172,10 +188,14 @@ export const reenviarConvite = createServerFn({ method: "POST" })
       .from("convites_cotacao")
       .update({
         ultimo_envio_em: new Date().toISOString(),
-        envios_count: (
-          (await context.supabase.from("convites_cotacao").select("envios_count").eq("id", data.id).single())
-            .data?.envios_count ?? 1
-        ) + 1,
+        envios_count:
+          ((
+            await context.supabase
+              .from("convites_cotacao")
+              .select("envios_count")
+              .eq("id", data.id)
+              .single()
+          ).data?.envios_count ?? 1) + 1,
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);

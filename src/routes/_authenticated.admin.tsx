@@ -36,7 +36,6 @@ function AdminLayout() {
   const { activeOrg } = useActiveOrg();
   const { isSuperAdmin } = useCurrentUser();
 
-
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar desktop */}
@@ -87,7 +86,7 @@ function AdminLayout() {
             <Outlet />
           </PlanoGuard>
         </div>
-        
+
         <Toaster richColors position="top-right" />
       </main>
     </div>

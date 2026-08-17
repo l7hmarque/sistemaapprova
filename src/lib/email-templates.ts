@@ -19,7 +19,10 @@ const BASE = (titulo: string, corpo: string, cta?: { url: string; label: string 
 </body></html>`;
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
 }
 
 export function tplBoasVindas(nomeOuEmail: string, urlPainel: string) {
@@ -28,7 +31,7 @@ export function tplBoasVindas(nomeOuEmail: string, urlPainel: string) {
     html: BASE(
       `Olá, ${escapeHtml(nomeOuEmail)}`,
       `<p>Sua conta foi criada com sucesso. Você já pode acessar o painel e começar a configurar sua organização.</p>`,
-      { url: urlPainel, label: "Acessar painel" }
+      { url: urlPainel, label: "Acessar painel" },
     ),
   };
 }
@@ -40,7 +43,7 @@ export function tplConvite(orgNome: string, urlConvite: string, role: string) {
       `Convite para ${escapeHtml(orgNome)}`,
       `<p>Você foi convidado(a) como <strong>${escapeHtml(role)}</strong>. Clique no botão abaixo para aceitar.</p>
        <p style="font-size:12px;color:#6b7280;">O link expira em alguns dias. Se você não esperava este convite, ignore este e-mail.</p>`,
-      { url: urlConvite, label: "Aceitar convite" }
+      { url: urlConvite, label: "Aceitar convite" },
     ),
   };
 }

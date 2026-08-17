@@ -4,8 +4,6 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-
-
 const EventoSchema = z.object({
   session_id: z.string().min(8).max(64),
   rota: z.string().min(1).max(255),
@@ -35,9 +33,7 @@ export const registrarEvento = createServerFn({ method: "POST" })
     if (BOT_RE.test(ua)) return { ok: true, skipped: "bot" as const };
 
     const country =
-      getRequestHeader("cf-ipcountry") ??
-      getRequestHeader("x-vercel-ip-country") ??
-      null;
+      getRequestHeader("cf-ipcountry") ?? getRequestHeader("x-vercel-ip-country") ?? null;
 
     const { error } = await supabaseAdmin.from("eventos_visita").insert({
       session_id: data.session_id,
@@ -61,9 +57,7 @@ export const registrarEvento = createServerFn({ method: "POST" })
 export const obterAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z
-      .object({ dias: z.number().int().min(1).max(90).optional().default(30) })
-      .parse(input ?? {}),
+    z.object({ dias: z.number().int().min(1).max(90).optional().default(30) }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     // Apenas super_admin pode ver analytics globais
@@ -78,7 +72,9 @@ export const obterAnalytics = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabaseAdmin
       .from("eventos_visita")
-      .select("rota,evento,referrer,utm_source,utm_medium,utm_campaign,session_id,country,created_at,payload")
+      .select(
+        "rota,evento,referrer,utm_source,utm_medium,utm_campaign,session_id,country,created_at,payload",
+      )
       .gte("created_at", desde)
       .order("created_at", { ascending: false })
       .limit(10000);
@@ -96,13 +92,25 @@ export const obterAnalytics = createServerFn({ method: "GET" })
     const ctas = new Map<string, number>();
     const funilPorRota = new Map<
       string,
-      { views: Set<string>; scroll50: Set<string>; cta: Set<string>; formStart: Set<string>; formSubmit: Set<string> }
+      {
+        views: Set<string>;
+        scroll50: Set<string>;
+        cta: Set<string>;
+        formStart: Set<string>;
+        formSubmit: Set<string>;
+      }
     >();
 
     const get = (m: Map<string, ReturnType<typeof funilPorRota.get>>, k: string) => {
       let v = funilPorRota.get(k);
       if (!v) {
-        v = { views: new Set(), scroll50: new Set(), cta: new Set(), formStart: new Set(), formSubmit: new Set() };
+        v = {
+          views: new Set(),
+          scroll50: new Set(),
+          cta: new Set(),
+          formStart: new Set(),
+          formSubmit: new Set(),
+        };
         funilPorRota.set(k, v);
       }
       return v;
@@ -118,7 +126,11 @@ export const obterAnalytics = createServerFn({ method: "GET" })
         porRota.set(rota, (porRota.get(rota) ?? 0) + 1);
         if (r.referrer) {
           const host = (() => {
-            try { return new URL(r.referrer as string).hostname; } catch { return "direto"; }
+            try {
+              return new URL(r.referrer as string).hostname;
+            } catch {
+              return "direto";
+            }
           })();
           porReferrer.set(host, (porReferrer.get(host) ?? 0) + 1);
         } else {
@@ -127,7 +139,10 @@ export const obterAnalytics = createServerFn({ method: "GET" })
         if (r.utm_source) porUtmSource.set(r.utm_source, (porUtmSource.get(r.utm_source) ?? 0) + 1);
 
         let s = sessoesPorRota.get(rota);
-        if (!s) { s = new Set(); sessoesPorRota.set(rota, s); }
+        if (!s) {
+          s = new Set();
+          sessoesPorRota.set(rota, s);
+        }
         s.add(sid);
 
         get(funilPorRota, rota).views.add(sid);
@@ -148,18 +163,29 @@ export const obterAnalytics = createServerFn({ method: "GET" })
     return {
       ok: true as const,
       total: list.length,
-      visitasPorDia: [...porDia.entries()].map(([dia, n]) => ({ dia, n })).sort((a, b) => a.dia.localeCompare(b.dia)),
-      visitasPorRota: [...porRota.entries()].map(([rota, n]) => ({ rota, n })).sort((a, b) => b.n - a.n),
-      referrers: [...porReferrer.entries()].map(([fonte, n]) => ({ fonte, n })).sort((a, b) => b.n - a.n).slice(0, 20),
-      utmSources: [...porUtmSource.entries()].map(([source, n]) => ({ source, n })).sort((a, b) => b.n - a.n),
+      visitasPorDia: [...porDia.entries()]
+        .map(([dia, n]) => ({ dia, n }))
+        .sort((a, b) => a.dia.localeCompare(b.dia)),
+      visitasPorRota: [...porRota.entries()]
+        .map(([rota, n]) => ({ rota, n }))
+        .sort((a, b) => b.n - a.n),
+      referrers: [...porReferrer.entries()]
+        .map(([fonte, n]) => ({ fonte, n }))
+        .sort((a, b) => b.n - a.n)
+        .slice(0, 20),
+      utmSources: [...porUtmSource.entries()]
+        .map(([source, n]) => ({ source, n }))
+        .sort((a, b) => b.n - a.n),
       ctasTop: [...ctas.entries()].map(([cta, n]) => ({ cta, n })).sort((a, b) => b.n - a.n),
-      funil: [...funilPorRota.entries()].map(([rota, f]) => ({
-        rota,
-        views: f.views.size,
-        scroll50: f.scroll50.size,
-        cta: f.cta.size,
-        formStart: f.formStart.size,
-        formSubmit: f.formSubmit.size,
-      })).sort((a, b) => b.views - a.views),
+      funil: [...funilPorRota.entries()]
+        .map(([rota, f]) => ({
+          rota,
+          views: f.views.size,
+          scroll50: f.scroll50.size,
+          cta: f.cta.size,
+          formStart: f.formStart.size,
+          formSubmit: f.formSubmit.size,
+        }))
+        .sort((a, b) => b.views - a.views),
     };
   });

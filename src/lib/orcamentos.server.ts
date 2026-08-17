@@ -30,7 +30,11 @@ async function jsonOrThrow(res: Response, ctx: string): Promise<any> {
   if (!res.ok) {
     throw new Error(`${ctx} falhou [${res.status}]: ${txt.slice(0, 400)}`);
   }
-  try { return JSON.parse(txt); } catch { return {}; }
+  try {
+    return JSON.parse(txt);
+  } catch {
+    return {};
+  }
 }
 
 /* ============================ DRIVE ============================ */
@@ -51,9 +55,12 @@ export async function driveCopyFile(args: {
   const data = await jsonOrThrow(res, "drive.files.copy");
   // Se webViewLink não veio, busca em separado.
   if (!data.webViewLink) {
-    const res2 = await fetch(`${DRIVE}/files/${data.id}?fields=id,name,webViewLink&supportsAllDrives=true`, {
-      headers: driveHeaders(),
-    });
+    const res2 = await fetch(
+      `${DRIVE}/files/${data.id}?fields=id,name,webViewLink&supportsAllDrives=true`,
+      {
+        headers: driveHeaders(),
+      },
+    );
     const meta = await jsonOrThrow(res2, "drive.files.get");
     return { id: data.id, name: data.name, webViewLink: meta.webViewLink };
   }
@@ -88,18 +95,23 @@ export async function sheetsValuesBatchUpdate(
 }
 
 /** Retorna o sheetId real da primeira aba do arquivo copiado. */
-export async function getFirstSheetId(spreadsheetId: string): Promise<{ sheetId: number; title: string }> {
-  const res = await fetch(
-    `${SHEETS}/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
-    { headers: sheetsHeaders() },
-  );
+export async function getFirstSheetId(
+  spreadsheetId: string,
+): Promise<{ sheetId: number; title: string }> {
+  const res = await fetch(`${SHEETS}/spreadsheets/${spreadsheetId}?fields=sheets.properties`, {
+    headers: sheetsHeaders(),
+  });
   const data = await jsonOrThrow(res, "sheets.spreadsheets.get");
   const p = data.sheets?.[0]?.properties;
   if (!p) throw new Error("Planilha sem abas");
   return { sheetId: p.sheetId, title: p.title };
 }
 
-export async function renameSheet(spreadsheetId: string, sheetId: number, title: string): Promise<void> {
+export async function renameSheet(
+  spreadsheetId: string,
+  sheetId: number,
+  title: string,
+): Promise<void> {
   await sheetsBatchUpdate(spreadsheetId, [
     {
       updateSheetProperties: {
@@ -126,7 +138,15 @@ export async function expandirLinhasItens(args: {
   qtdNecessaria: number;
   colCount: number;
 }): Promise<{ linhaTotaisFinal0: number }> {
-  const { spreadsheetId, sheetId, linhaPrimeiroItem0, qtdLinhasExistentes, linhaTotais0, qtdNecessaria, colCount } = args;
+  const {
+    spreadsheetId,
+    sheetId,
+    linhaPrimeiroItem0,
+    qtdLinhasExistentes,
+    linhaTotais0,
+    qtdNecessaria,
+    colCount,
+  } = args;
 
   if (qtdNecessaria <= qtdLinhasExistentes) {
     return { linhaTotaisFinal0: linhaTotais0 };

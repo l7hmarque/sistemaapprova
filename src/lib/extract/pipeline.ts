@@ -16,12 +16,7 @@ import { parseBoletoAll, type BoletoParsed } from "./parsers/boleto";
 import { parseGuiaAll, type GuiaParsed } from "./parsers/guia";
 import { aplicarFavorecidoPadrao, carregarFavorecidos } from "./favorecidosPadrao";
 
-export type OrigemCampo =
-  | "nfe-chave"
-  | "boleto-linha"
-  | "guia-linha"
-  | "favorecido-padrao"
-  | "ia";
+export type OrigemCampo = "nfe-chave" | "boleto-linha" | "guia-linha" | "favorecido-padrao" | "ia";
 
 export type DespesaEnriquecida = DespesaExtraida & {
   origem: OrigemCampo;
@@ -127,11 +122,7 @@ export async function reforcarComDeterministico(
             origem: "guia-linha",
             evidencia: `Pág ${it.paginaInicial} — guia ${it.tipo} (seg ${it.segmento}), linha ${it.linhaDigitavel.slice(0, 6)}…${it.linhaDigitavel.slice(-4)}`,
           };
-        } else if (
-          (nf && "ambiguo" in nf) ||
-          (bol && "ambiguo" in bol) ||
-          (g && "ambiguo" in g)
-        ) {
+        } else if ((nf && "ambiguo" in nf) || (bol && "ambiguo" in bol) || (g && "ambiguo" in g)) {
           console.info(
             `[pipeline] override pulado por ambiguidade de valor (R$ ${d.valor.toFixed(2)} — ${d.favorecido})`,
           );
@@ -140,7 +131,10 @@ export async function reforcarComDeterministico(
     }
 
     // Fase 6: favorecido padrão (DARF/GPS/GFIP/Sanepar/Copel).
-    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(enriquecida, catalogoFavorecidos);
+    const { despesa: comOverride, ajuste } = aplicarFavorecidoPadrao(
+      enriquecida,
+      catalogoFavorecidos,
+    );
     if (ajuste.aplicado) {
       const evidenciaPrev = enriquecida.evidencia ? `${enriquecida.evidencia} · ` : "";
       return {

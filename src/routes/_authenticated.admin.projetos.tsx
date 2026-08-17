@@ -8,13 +8,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, FolderKanban, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { useActiveOrg } from "@/hooks/use-active-org";
-import { listarProjetosComResumo, criarProjeto, atualizarProjeto, excluirProjeto } from "@/lib/projetos.functions";
+import {
+  listarProjetosComResumo,
+  criarProjeto,
+  atualizarProjeto,
+  excluirProjeto,
+} from "@/lib/projetos.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/projetos")({
   head: () => ({ meta: [{ title: "Projetos/Termos — Approva" }] }),
@@ -90,7 +108,10 @@ function ProjetosPage() {
   const form = editing ?? {};
 
   return (
-    <AdminShell title="Projetos / Termos" subtitle="Cadastre termos, convênios e acompanhe execução orçamentária.">
+    <AdminShell
+      title="Projetos / Termos"
+      subtitle="Cadastre termos, convênios e acompanhe execução orçamentária."
+    >
       <div className="flex gap-3 items-center mb-4">
         <Input
           placeholder="Buscar por nome ou número do termo..."
@@ -100,7 +121,10 @@ function ProjetosPage() {
         />
         <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditing({ nome: "", status: "ativo" })} className="gap-2 ml-auto">
+            <Button
+              onClick={() => setEditing({ nome: "", status: "ativo" })}
+              className="gap-2 ml-auto"
+            >
               <Plus className="h-4 w-4" /> Novo projeto
             </Button>
           </DialogTrigger>

@@ -20,7 +20,11 @@ export const Route = createFileRoute("/demonstracao")({
   head: () => ({
     meta: [
       { title: "Solicitar demonstração gratuita — Approva" },
-      { name: "description", content: "Teste o Approva por 30 dias sem cartão de crédito. Preencha o formulário e nossa equipe entra em contato." },
+      {
+        name: "description",
+        content:
+          "Teste o Approva por 30 dias sem cartão de crédito. Preencha o formulário e nossa equipe entra em contato.",
+      },
       { name: "robots", content: "noindex,follow" },
     ],
   }),
@@ -47,7 +51,11 @@ function DemoPage() {
       utm_content: search.utm_content,
     };
     if (Object.values(utms).some(Boolean)) {
-      try { sessionStorage.setItem("__attr", JSON.stringify(utms)); } catch { /* ignorado: recurso opcional indisponível */ }
+      try {
+        sessionStorage.setItem("__attr", JSON.stringify(utms));
+      } catch {
+        /* ignorado: recurso opcional indisponível */
+      }
     }
   }, [search]);
 
@@ -66,8 +74,14 @@ function DemoPage() {
     };
     try {
       const stored = sessionStorage.getItem("__attr");
-      if (stored) utms = { ...JSON.parse(stored), ...Object.fromEntries(Object.entries(utms).filter(([, v]) => v)) };
-    } catch { /* ignorado: recurso opcional indisponível */ }
+      if (stored)
+        utms = {
+          ...JSON.parse(stored),
+          ...Object.fromEntries(Object.entries(utms).filter(([, v]) => v)),
+        };
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
 
     try {
       await enviar({
@@ -106,19 +120,31 @@ function DemoPage() {
           30 dias para conhecer o Approva por dentro.
         </h1>
         <p className="mt-4 text-brand-muted leading-relaxed">
-          Sem cartão de crédito, sem fidelidade. Preencha os dados abaixo e nossa
-          equipe entra em contato em até 1 dia útil para liberar seu ambiente.
+          Sem cartão de crédito, sem fidelidade. Preencha os dados abaixo e nossa equipe entra em
+          contato em até 1 dia útil para liberar seu ambiente.
         </p>
 
         <form onSubmit={onSubmit} className="mt-10 grid gap-5">
-          <input type="text" name="hp" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
+          <input
+            type="text"
+            name="hp"
+            tabIndex={-1}
+            autoComplete="off"
+            className="hidden"
+            aria-hidden
+          />
 
           <div className="grid md:grid-cols-2 gap-5">
             <Field label="Seu nome" name="nome" required minLength={2} />
             <Field label="Email profissional" name="email" type="email" required />
             <Field label="Telefone / WhatsApp" name="telefone" type="tel" required />
             <Field label="Seu cargo" name="cargo" required />
-            <Field label="Nome da OSC ou escritório" name="osc_nome" required className="md:col-span-2" />
+            <Field
+              label="Nome da OSC ou escritório"
+              name="osc_nome"
+              required
+              className="md:col-span-2"
+            />
           </div>
 
           <div className="grid md:grid-cols-2 gap-5">
@@ -154,14 +180,30 @@ function DemoPage() {
             </summary>
             <div className="mt-4 grid gap-5 md:grid-cols-2">
               <Field label="Quantas OSCs você atende?" name="qtd_oscs" type="number" min={0} />
-              <Field label="Lançamentos por mês (estimativa)" name="qtd_lancamentos" type="number" min={0} />
+              <Field
+                label="Lançamentos por mês (estimativa)"
+                name="qtd_lancamentos"
+                type="number"
+                min={0}
+              />
               <div className="md:col-span-2">
-                <label className="text-sm text-brand-navy font-medium">O que mais te incomoda hoje?</label>
-                <textarea name="dor" rows={3} className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy" />
+                <label className="text-sm text-brand-navy font-medium">
+                  O que mais te incomoda hoje?
+                </label>
+                <textarea
+                  name="dor"
+                  rows={3}
+                  className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy"
+                />
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm text-brand-navy font-medium">Como conheceu o Approva?</label>
-                <input name="origem_descoberta" className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy" />
+                <label className="text-sm text-brand-navy font-medium">
+                  Como conheceu o Approva?
+                </label>
+                <input
+                  name="origem_descoberta"
+                  className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy"
+                />
               </div>
             </div>
           </details>
@@ -182,7 +224,10 @@ function DemoPage() {
           </button>
           <p className="text-xs text-brand-muted">
             Ao enviar, você concorda com nossa{" "}
-            <a href="/privacidade" className="underline">Política de Privacidade</a>.
+            <a href="/privacidade" className="underline">
+              Política de Privacidade
+            </a>
+            .
           </p>
         </form>
       </section>
@@ -191,16 +236,34 @@ function DemoPage() {
 }
 
 function Field({
-  label, name, type = "text", required, minLength, min, className,
+  label,
+  name,
+  type = "text",
+  required,
+  minLength,
+  min,
+  className,
 }: {
-  label: string; name: string; type?: string; required?: boolean;
-  minLength?: number; min?: number; className?: string;
+  label: string;
+  name: string;
+  type?: string;
+  required?: boolean;
+  minLength?: number;
+  min?: number;
+  className?: string;
 }) {
   return (
     <div className={className}>
-      <label className="text-sm text-brand-navy font-medium">{label}{required && <span className="text-brand-blue"> *</span>}</label>
+      <label className="text-sm text-brand-navy font-medium">
+        {label}
+        {required && <span className="text-brand-blue"> *</span>}
+      </label>
       <input
-        type={type} name={name} required={required} minLength={minLength} min={min}
+        type={type}
+        name={name}
+        required={required}
+        minLength={minLength}
+        min={min}
         className="mt-1.5 w-full rounded-md border border-brand-line bg-white px-3 py-2.5 text-brand-navy outline-none focus:border-brand-navy"
       />
     </div>

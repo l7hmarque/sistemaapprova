@@ -37,8 +37,7 @@ const JSON_SHAPE_HINT =
   `{\n  "mesReferencia": "MM/AAAA",\n  "receitas": [{"numeroParcela": number|null, "valor": number, "dataRecebimento": "AAAA-MM-DD"}],\n  "despesas": [{"idInterno": string, "data": "AAAA-MM-DD", "dataEmissao": "AAAA-MM-DD"|null, "favorecido": string, "documento": string, "valor": number, "tipoDocumento": number, "subtipoDocumento": number|null, "tpDocFav": "CPF"|"CNPJ"|"EXT", "nrDocFav": string, "descricao": string, "sugestaoCategoria": string}],\n  "resumo": {"saldoAnterior": number, "transferidos": number, "rendimentos": number, "estornados": number}\n}`;
 
 async function sha256Hex(input: Uint8Array | string): Promise<string> {
-  const buf =
-    typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const buf = typeof input === "string" ? new TextEncoder().encode(input) : input;
   const ab = new ArrayBuffer(buf.byteLength);
   new Uint8Array(ab).set(buf);
   const digest = await crypto.subtle.digest("SHA-256", ab);
@@ -104,29 +103,28 @@ export const Route = createFileRoute("/api/extract")({
         // ─── Autenticação obrigatória ──────────────────────────────
         const authHeader = request.headers.get("authorization");
         if (!authHeader?.startsWith("Bearer ")) {
-          return new Response(
-            JSON.stringify({ error: "Não autenticado." }),
-            { status: 401, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "Não autenticado." }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
         const token = authHeader.slice("Bearer ".length).trim();
         const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
         if (userErr || !userRes?.user) {
-          return new Response(
-            JSON.stringify({ error: "Token inválido ou expirado." }),
-            { status: 401, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "Token inválido ou expirado." }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) {
           console.error("[api/extract] LOVABLE_API_KEY ausente");
-          return new Response(
-            JSON.stringify({ error: "LOVABLE_API_KEY ausente no servidor." }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "LOVABLE_API_KEY ausente no servidor." }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
-
 
         let pdfText = "";
         let mimeType = "application/pdf";
@@ -156,10 +154,10 @@ export const Route = createFileRoute("/api/extract")({
         }
 
         if (!pdfBytes && !pdfText) {
-          return new Response(
-            JSON.stringify({ error: "Envie um arquivo PDF ou texto." }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "Envie um arquivo PDF ou texto." }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const MAX_PDF_BYTES = 8 * 1024 * 1024;
@@ -234,15 +232,9 @@ export const Route = createFileRoute("/api/extract")({
           let final: ExtracaoResultado = comRegras;
           if (pdfBytes) {
             try {
-              final = (await reforcarComDeterministico(
-                pdfBytes,
-                comRegras,
-              )) as ExtracaoResultado;
+              final = (await reforcarComDeterministico(pdfBytes, comRegras)) as ExtracaoResultado;
             } catch (e) {
-              console.warn(
-                "[api/extract] pipeline determinístico falhou, retornando só IA",
-                e,
-              );
+              console.warn("[api/extract] pipeline determinístico falhou, retornando só IA", e);
             }
           }
 
@@ -281,7 +273,7 @@ export const Route = createFileRoute("/api/extract")({
                 ? "Créditos esgotados na workspace Lovable AI. Adicione créditos em Settings > Workspace > Usage."
                 : status === 502 || status === 504
                   ? "O PDF é muito grande ou a IA demorou demais para responder. Tente um PDF com texto selecionável ou divida o arquivo em partes menores."
-                  : err.message ?? "Falha ao extrair dados do PDF.";
+                  : (err.message ?? "Falha ao extrair dados do PDF.");
           return new Response(JSON.stringify({ error: msg }), {
             status,
             headers: { "Content-Type": "application/json" },

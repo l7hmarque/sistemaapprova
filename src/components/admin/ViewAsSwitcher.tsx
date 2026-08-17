@@ -40,19 +40,25 @@ export function ViewAsSwitcher() {
         >
           {isOverriding ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           <span className="font-medium truncate">
-            {isOverriding ? `Ver como ${role !== "real" ? role : ""}${role !== "real" && tipo !== "real" ? " · " : ""}${tipo !== "real" ? tipo : ""}` : "Ver como…"}
+            {isOverriding
+              ? `Ver como ${role !== "real" ? role : ""}${role !== "real" && tipo !== "real" ? " · " : ""}${tipo !== "real" ? tipo : ""}`
+              : "Ver como…"}
           </span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs uppercase tracking-wide">Papel efetivo</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs uppercase tracking-wide">
+          Papel efetivo
+        </DropdownMenuLabel>
         {ROLES.map((r) => (
           <DropdownMenuItem key={r.value} onSelect={() => setRole(r.value)}>
             <span className={role === r.value ? "font-semibold" : ""}>{r.label}</span>
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs uppercase tracking-wide">Tipo de organização</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs uppercase tracking-wide">
+          Tipo de organização
+        </DropdownMenuLabel>
         {TIPOS.map((t) => (
           <DropdownMenuItem key={t.value} onSelect={() => setTipo(t.value)}>
             <span className={tipo === t.value ? "font-semibold" : ""}>{t.label}</span>

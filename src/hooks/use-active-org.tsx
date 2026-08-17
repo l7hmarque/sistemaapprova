@@ -37,7 +37,10 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
     enabled: !!user && memberships.some((m) => m.organizations?.tipo === "escritorio"),
     queryFn: async () => {
       const parents = memberships
-        .filter((m) => m.organizations?.tipo === "escritorio" && (m.role === "owner" || m.role === "admin"))
+        .filter(
+          (m) =>
+            m.organizations?.tipo === "escritorio" && (m.role === "owner" || m.role === "admin"),
+        )
         .map((m) => m.organization_id);
       if (parents.length === 0) return [] as Org[];
       const { data, error } = await supabase
@@ -74,11 +77,13 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
         setActiveOrgIdState(stored);
         return;
       }
-    } catch { /* ignorado: recurso opcional indisponível */ }
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
     if (orgs.length > 0 && !activeOrgId) {
       setActiveOrgIdState(orgs[0].id);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, orgs.length]);
 
   const setActiveOrgId = (id: string) => {
@@ -88,7 +93,9 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(KEY, id);
       // Limpa rascunhos e fila de captura escopados pela org anterior
       localStorage.removeItem("synsit:rascunho-auto");
-    } catch { /* ignorado: recurso opcional indisponível */ }
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
     // Invalida todo o cache pra não vazar dados da org anterior
     queryClient.removeQueries();
   };
@@ -98,12 +105,22 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   // o papel da org-mãe quando o usuário não é membro direto da filha.
   const directRole = memberships.find((m) => m.organization_id === activeOrgId)?.role ?? null;
   const inheritedRole = activeOrg?.parent_organization_id
-    ? memberships.find((m) => m.organization_id === activeOrg.parent_organization_id)?.role ?? null
+    ? (memberships.find((m) => m.organization_id === activeOrg.parent_organization_id)?.role ??
+      null)
     : null;
   const activeRole = directRole ?? inheritedRole;
 
   return (
-    <Ctx.Provider value={{ activeOrgId, setActiveOrgId, orgs, loading: userLoading || childrenQ.isLoading, activeOrg, activeRole }}>
+    <Ctx.Provider
+      value={{
+        activeOrgId,
+        setActiveOrgId,
+        orgs,
+        loading: userLoading || childrenQ.isLoading,
+        activeOrg,
+        activeRole,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
@@ -111,7 +128,15 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
 
 export function useActiveOrg(): ActiveOrgValue {
   const v = useContext(Ctx);
-  if (!v) return { activeOrgId: null, setActiveOrgId: () => {}, orgs: [], loading: false, activeOrg: null, activeRole: null };
+  if (!v)
+    return {
+      activeOrgId: null,
+      setActiveOrgId: () => {},
+      orgs: [],
+      loading: false,
+      activeOrg: null,
+      activeRole: null,
+    };
   return v;
 }
 
@@ -126,4 +151,3 @@ export function useRequireActiveOrg(): string {
   if (!activeOrgId) throw new Error("Nenhuma organização ativa selecionada.");
   return activeOrgId;
 }
-

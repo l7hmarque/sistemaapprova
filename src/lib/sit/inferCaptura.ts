@@ -18,11 +18,19 @@ export type CamposSIT = {
 };
 
 const TIPO_TO_DOC_DESPESA: Record<string, number> = {
-  nf: 1, "nf-e": 1, nfe: 1, nfse: 1, "nfs-e": 1, "nota fiscal": 1,
-  cupom: 2, "cupom fiscal": 2,
+  nf: 1,
+  "nf-e": 1,
+  nfe: 1,
+  nfse: 1,
+  "nfs-e": 1,
+  "nota fiscal": 1,
+  cupom: 2,
+  "cupom fiscal": 2,
   fatura: 3,
-  rpa: 4, "recibo de pagamento a autônomo": 4,
-  holerite: 5, folha: 5,
+  rpa: 4,
+  "recibo de pagamento a autônomo": 4,
+  holerite: 5,
+  folha: 5,
   "gr/pr": 6,
   darf: 7,
   dam: 8,
@@ -31,7 +39,8 @@ const TIPO_TO_DOC_DESPESA: Record<string, number> = {
   grrf: 20,
   gfd: 23,
   recibo: 14,
-  comprovante_pgto: 14, comprovante: 14,
+  comprovante_pgto: 14,
+  comprovante: 14,
   boleto: 3, // boleto sem nota → fatura
   guia: 14,
   outro: 14,
@@ -42,10 +51,14 @@ const PAG_TO_CODIGO: Record<string, number> = {
   ted: 5,
   doc: 4,
   cheque: 1,
-  "ordem bancaria": 2, "ordem bancária": 2,
-  deposito: 3, depósito: 3,
-  "debito em conta": 6, "débito em conta": 6,
-  "debito automatico": 6, "débito automático": 6,
+  "ordem bancaria": 2,
+  "ordem bancária": 2,
+  deposito: 3,
+  depósito: 3,
+  "debito em conta": 6,
+  "débito em conta": 6,
+  "debito automatico": 6,
+  "débito automático": 6,
 };
 
 export function inferirTpDocDespesa(
@@ -68,9 +81,7 @@ export function inferirTpDocDespesa(
   return null;
 }
 
-export function inferirTpDocPagamento(
-  tipoOuDescricao: string | null | undefined,
-): number | null {
+export function inferirTpDocPagamento(tipoOuDescricao: string | null | undefined): number | null {
   const txt = (tipoOuDescricao ?? "").toLowerCase();
   if (!txt) return null;
   if (/\bpix\b/.test(txt)) return 7;
@@ -131,9 +142,16 @@ export function inferirTpDespesa(
 }
 
 const FAVORECIDO_REGEX_OVERRIDES: Array<{
-  regex: RegExp; cnpj: string; nome: string; tpDocDespesa?: number;
+  regex: RegExp;
+  cnpj: string;
+  nome: string;
+  tpDocDespesa?: number;
 }> = [
-  { regex: /\bsanepar\b/i, cnpj: "76484013000145", nome: "COMPANHIA DE SANEAMENTO DO PARANA - SANEPAR" },
+  {
+    regex: /\bsanepar\b/i,
+    cnpj: "76484013000145",
+    nome: "COMPANHIA DE SANEAMENTO DO PARANA - SANEPAR",
+  },
   { regex: /\bcopel\b/i, cnpj: "76483817000120", nome: "COPEL DISTRIBUICAO S.A." },
 ];
 
@@ -197,9 +215,11 @@ export function resolverCamposSIT(input: {
   razao_social_ia?: string | null;
 }): CamposSIT {
   const regras = parseRegrasSit(input.regras_sit ?? {});
-  const tpDocDespesa = regras.tp_documento_despesa ?? inferirTpDocDespesa(input.tipo, input.descricao);
-  const tpDocPag = regras.tp_documento_pagamento
-    ?? inferirTpDocPagamento(`${input.forma_pagamento ?? ""} ${input.descricao ?? ""}`);
+  const tpDocDespesa =
+    regras.tp_documento_despesa ?? inferirTpDocDespesa(input.tipo, input.descricao);
+  const tpDocPag =
+    regras.tp_documento_pagamento ??
+    inferirTpDocPagamento(`${input.forma_pagamento ?? ""} ${input.descricao ?? ""}`);
   const tpDespesa = regras.tp_despesa ?? inferirTpDespesa(input.descricao, input.tipo);
   const tpDocFavInicial = regras.tp_doc_fav ?? inferirTpDocFav(input.cnpj_favorecido);
   const override = aplicarOverrideFavorecido({
@@ -227,7 +247,9 @@ export function gerarIdInterno(mesReferencia: string, seq: number): string {
   // dentro do mesmo lote/concorrência (UNIQUE INDEX no banco confirma).
   const arr = new Uint8Array(3);
   globalThis.crypto.getRandomValues(arr);
-  const rand = Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const rand = Array.from(arr)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return `${mesReferencia}-${String(seq).padStart(4, "0")}-${rand}`.slice(0, 30);
 }
 

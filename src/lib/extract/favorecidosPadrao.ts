@@ -21,12 +21,26 @@ export type CatalogoFavorecidos = {
 const FALLBACK: CatalogoFavorecidos = {
   porSubtipo: {
     7: { cnpj: "00394460000141", nome: "MINISTERIO DA FAZENDA - MATRIZ", motivo: "DARF" },
-    9: { cnpj: "16727230000197", nome: "FUNDO DO REGIME GERAL DE PREVIDENCIA SOCIAL", motivo: "GPS" },
+    9: {
+      cnpj: "16727230000197",
+      nome: "FUNDO DO REGIME GERAL DE PREVIDENCIA SOCIAL",
+      motivo: "GPS",
+    },
     10: { cnpj: "00360305000104", nome: "CAIXA ECONOMICA FEDERAL", motivo: "GFIP" },
   },
   porNome: [
-    { regex: /\bSANEPAR\b/i, cnpj: "76484013000145", nome: "COMPANHIA DE SANEAMENTO DO PARANA - SANEPAR", motivo: "Sanepar (override fixo)" },
-    { regex: /COPEL/i, cnpj: "76483817000120", nome: "COPEL DISTRIBUICAO S.A.", motivo: "Copel (override fixo)" },
+    {
+      regex: /\bSANEPAR\b/i,
+      cnpj: "76484013000145",
+      nome: "COMPANHIA DE SANEAMENTO DO PARANA - SANEPAR",
+      motivo: "Sanepar (override fixo)",
+    },
+    {
+      regex: /COPEL/i,
+      cnpj: "76483817000120",
+      nome: "COPEL DISTRIBUICAO S.A.",
+      motivo: "Copel (override fixo)",
+    },
   ],
 };
 

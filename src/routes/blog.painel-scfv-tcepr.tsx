@@ -6,7 +6,8 @@ import { capturarLeadBlog } from "@/lib/blog-leads.functions";
 
 const SLUG = "painel-scfv-tcepr";
 const TITLE = "Domingo à noite, planilha aberta, café frio: a rotina de quem presta contas de SCFV";
-const DESCRIPTION = "Por que a prestação de contas SCFV consome seus domingos — e uma planilha gratuita pronta no leiaute IN 201/2026 do TCE-PR para você usar hoje à noite.";
+const DESCRIPTION =
+  "Por que a prestação de contas SCFV consome seus domingos — e uma planilha gratuita pronta no leiaute IN 201/2026 do TCE-PR para você usar hoje à noite.";
 const URL = "https://sistemaapprova.lovable.app/blog/painel-scfv-tcepr";
 const PUBLISHED = "2026-05-27";
 
@@ -45,7 +46,8 @@ export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
             url: "https://sistemaapprova.lovable.app",
           },
           mainEntityOfPage: { "@type": "WebPage", "@id": URL },
-          keywords: "SCFV, TCE-PR, IN 201/2026, prestação de contas, OSC, terceiro setor, Medianeira",
+          keywords:
+            "SCFV, TCE-PR, IN 201/2026, prestação de contas, OSC, terceiro setor, Medianeira",
         }),
       },
     ],
@@ -68,8 +70,8 @@ function PostPage() {
             Domingo à noite, planilha aberta, café frio
           </h1>
           <p className="mt-4 text-lg text-brand-muted">
-            A rotina invisível de quem presta contas de SCFV no Paraná — e uma
-            planilha gratuita pronta no leiaute IN 201/2026 do TCE-PR.
+            A rotina invisível de quem presta contas de SCFV no Paraná — e uma planilha gratuita
+            pronta no leiaute IN 201/2026 do TCE-PR.
           </p>
           <p className="mt-6 text-xs text-brand-muted">
             Publicado em 27 de maio de 2026 · 6 min de leitura
@@ -79,8 +81,8 @@ function PostPage() {
         <div className="prose-content mt-10 space-y-6 text-brand-navy/90 leading-relaxed">
           <blockquote className="border-l-4 border-brand-accent bg-brand-cream-soft px-5 py-4 rounded-r-md">
             <p className="text-sm">
-              <strong>Material gratuito ao final do post:</strong> Painel de Controle SCFV —
-              IN 201/2026 TCE-PR (planilha Excel pronta, com fórmulas, conciliação automática,
+              <strong>Material gratuito ao final do post:</strong> Painel de Controle SCFV — IN
+              201/2026 TCE-PR (planilha Excel pronta, com fórmulas, conciliação automática,
               consolidado bimestral e checklist de transmissão).
             </p>
           </blockquote>
@@ -88,34 +90,43 @@ function PostPage() {
           <h2 className="text-2xl font-serif text-brand-navy mt-12">A cena</h2>
           <p>
             São 22h47 de um domingo. A gestora da OSC está na quarta xícara de café, com o extrato
-            do Banco do Brasil aberto numa aba, o plano de aplicação noutra, uma pasta cheia de
-            PDFs de NF na terceira, e a planilha{" "}
-            <em>"Prestação 2026 — FINAL_v8_REVISADO.xlsx"</em> no centro da tela.
+            do Banco do Brasil aberto numa aba, o plano de aplicação noutra, uma pasta cheia de PDFs
+            de NF na terceira, e a planilha <em>"Prestação 2026 — FINAL_v8_REVISADO.xlsx"</em> no
+            centro da tela.
           </p>
           <p>Amanhã o contador precisa do bimestre fechado. E ela já sabe o que vai acontecer:</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>Vão faltar 3 notas que o oficineiro mandou no WhatsApp e nunca foram pra pasta certa.</li>
+            <li>
+              Vão faltar 3 notas que o oficineiro mandou no WhatsApp e nunca foram pra pasta certa.
+            </li>
             <li>Vai aparecer um débito de R$ 312,40 no extrato que ninguém sabe o que é.</li>
-            <li>Vai dar diferença de R$ 0,17 entre a planilha e o banco — porque alguém digitou um valor com vírgula trocada três meses atrás.</li>
-            <li>E quando o arquivo .txt for gerado, o validador do TCE vai cuspir um erro de leiaute na linha 47.</li>
+            <li>
+              Vai dar diferença de R$ 0,17 entre a planilha e o banco — porque alguém digitou um
+              valor com vírgula trocada três meses atrás.
+            </li>
+            <li>
+              E quando o arquivo .txt for gerado, o validador do TCE vai cuspir um erro de leiaute
+              na linha 47.
+            </li>
           </ul>
           <p>
-            Isso não é desorganização. <strong>É o jeito como o sistema foi montado pra funcionar.</strong>
+            Isso não é desorganização.{" "}
+            <strong>É o jeito como o sistema foi montado pra funcionar.</strong>
           </p>
 
           <h2 className="text-2xl font-serif text-brand-navy mt-12">
             A dor real (que ninguém fala em voz alta)
           </h2>
           <p>
-            Quem trabalha com SCFV — Serviço de Convivência e Fortalecimento de Vínculos,
-            financiado via Termo de Colaboração com o município — convive com três coisas que
-            consomem mais energia do que o atendimento aos usuários:
+            Quem trabalha com SCFV — Serviço de Convivência e Fortalecimento de Vínculos, financiado
+            via Termo de Colaboração com o município — convive com três coisas que consomem mais
+            energia do que o atendimento aos usuários:
           </p>
           <p>
             <strong>1. A prestação de contas é um Frankenstein.</strong> Você precisa juntar plano
-            de trabalho, plano de aplicação, lançamentos por rubrica, conciliação bancária, folha
-            de pagamento com encargos, contratos de terceiros, cotações, listas de presença, atas
-            do conselho, e ainda gerar um arquivo <code>.txt</code> no leiaute específico da{" "}
+            de trabalho, plano de aplicação, lançamentos por rubrica, conciliação bancária, folha de
+            pagamento com encargos, contratos de terceiros, cotações, listas de presença, atas do
+            conselho, e ainda gerar um arquivo <code>.txt</code> no leiaute específico da{" "}
             <a
               href="https://www.tce.pr.gov.br/"
               target="_blank"
@@ -129,13 +140,13 @@ function PostPage() {
           <p>
             <strong>2. Um erro de R$ 0,01 trava tudo.</strong> O SIT (Sistema Integrado de
             Transferências) não perdoa. Diferença de centavo entre extrato e planilha? Rejeitado.
-            CNPJ com dígito verificador errado? Rejeitado. Rubrica que não existe no plano
-            aprovado? Rejeitado. E você descobre isso <em>depois</em> de transmitir.
+            CNPJ com dígito verificador errado? Rejeitado. Rubrica que não existe no plano aprovado?
+            Rejeitado. E você descobre isso <em>depois</em> de transmitir.
           </p>
           <p>
             <strong>3. A glosa é silenciosa e cara.</strong> O TCE não te liga. Ele lança no
-            relatório anual e, dois anos depois, a OSC recebe uma notificação pra devolver R$ 47
-            mil ao fundo — com correção. Porque três notas em 2024 estavam com a rubrica errada e
+            relatório anual e, dois anos depois, a OSC recebe uma notificação pra devolver R$ 47 mil
+            ao fundo — com correção. Porque três notas em 2024 estavam com a rubrica errada e
             ninguém percebeu.
           </p>
 
@@ -145,13 +156,13 @@ function PostPage() {
           <p>
             Olhando o portal de parcerias da Prefeitura de <strong>Medianeira-PR</strong> esta
             semana, tem dois editais novíssimos abertos pelo CMDCA e CMDPI (Chamamentos 001/2026 e
-            002/2026, publicados em 19/05/2026) para banco de projetos e captação via FIA/FMDPI.
-            Não é SCFV direto, mas é a porta de entrada das OSCs no orçamento municipal.
+            002/2026, publicados em 19/05/2026) para banco de projetos e captação via FIA/FMDPI. Não
+            é SCFV direto, mas é a porta de entrada das OSCs no orçamento municipal.
           </p>
           <p>
-            Em municípios vizinhos como <strong>São Mateus do Sul-PR</strong>, o chamamento
-            público específico de SCFV para 2026 já saiu em 30/09/2025. É questão de tempo até
-            Medianeira repetir o ciclo.
+            Em municípios vizinhos como <strong>São Mateus do Sul-PR</strong>, o chamamento público
+            específico de SCFV para 2026 já saiu em 30/09/2025. É questão de tempo até Medianeira
+            repetir o ciclo.
           </p>
           <p>
             E aí vem a pergunta desconfortável:{" "}
@@ -173,13 +184,32 @@ function PostPage() {
             Excel pronto, com 9 abas conectadas por fórmulas, que faz o trabalho braçal por você:
           </p>
           <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Parâmetros</strong> — você preenche CNPJ, termo, valor e conta uma vez.</li>
-            <li><strong>Plano de Aplicação</strong> — rubricas com saldo e % de execução calculados automaticamente.</li>
-            <li><strong>Lançamentos</strong> — registra despesa por despesa, com validação de rubrica em tempo real (verde se existe no plano, vermelho se não).</li>
-            <li><strong>Conciliação Bancária</strong> — você cola o extrato, a planilha cruza com os lançamentos pela data + valor e marca ✓ ou ⚠.</li>
-            <li><strong>Bimestre</strong> — escolhe "B3/2026" e ela consolida o que vai pro SIT.</li>
-            <li><strong>Checklist 15 itens</strong> — os mesmos pontos que o TCE checa nas auditorias de OSC.</li>
-            <li><strong>Alertas</strong> — fórmulas que apontam execução acima do repasse, rubrica inválida e saldo a executar.</li>
+            <li>
+              <strong>Parâmetros</strong> — você preenche CNPJ, termo, valor e conta uma vez.
+            </li>
+            <li>
+              <strong>Plano de Aplicação</strong> — rubricas com saldo e % de execução calculados
+              automaticamente.
+            </li>
+            <li>
+              <strong>Lançamentos</strong> — registra despesa por despesa, com validação de rubrica
+              em tempo real (verde se existe no plano, vermelho se não).
+            </li>
+            <li>
+              <strong>Conciliação Bancária</strong> — você cola o extrato, a planilha cruza com os
+              lançamentos pela data + valor e marca ✓ ou ⚠.
+            </li>
+            <li>
+              <strong>Bimestre</strong> — escolhe "B3/2026" e ela consolida o que vai pro SIT.
+            </li>
+            <li>
+              <strong>Checklist 15 itens</strong> — os mesmos pontos que o TCE checa nas auditorias
+              de OSC.
+            </li>
+            <li>
+              <strong>Alertas</strong> — fórmulas que apontam execução acima do repasse, rubrica
+              inválida e saldo a executar.
+            </li>
           </ul>
           <p>
             É a mesma lógica que está dentro do Approva, mas numa planilha simples que você abre no
@@ -201,7 +231,9 @@ function PostPage() {
           <ul className="list-disc pl-6 text-brand-navy/90 space-y-1">
             <li>Lê os PDFs de NF, boleto, holerite e extrai os dados pra você.</li>
             <li>Concilia o extrato bancário sozinho.</li>
-            <li>Monta o <code>.txt</code> no leiaute exato do SIT TCE-PR.</li>
+            <li>
+              Monta o <code>.txt</code> no leiaute exato do SIT TCE-PR.
+            </li>
             <li>Mantém histórico auditável de tudo, com 1 clique.</li>
           </ul>
           <Link

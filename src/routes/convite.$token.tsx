@@ -17,7 +17,9 @@ function ConvitePage() {
   const { token } = useParams({ from: "/convite/$token" });
   const nav = useNavigate();
   const aceitar = useServerFn(aceitarConviteMembro);
-  const [estado, setEstado] = useState<"verificando" | "logar" | "pronto" | "ok" | "erro">("verificando");
+  const [estado, setEstado] = useState<"verificando" | "logar" | "pronto" | "ok" | "erro">(
+    "verificando",
+  );
   const [msg, setMsg] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +35,11 @@ function ConvitePage() {
       const r = await aceitar({ data: { token } });
       setEstado("ok");
       toast.success("Convite aceito");
-      try { localStorage.setItem("approva.activeOrgId", (r as any).organization_id); } catch { /* ignorado: recurso opcional indisponível */ }
+      try {
+        localStorage.setItem("approva.activeOrgId", (r as any).organization_id);
+      } catch {
+        /* ignorado: recurso opcional indisponível */
+      }
       setTimeout(() => nav({ to: "/admin", replace: true }), 800);
     } catch (e: any) {
       setMsg(e?.message || "Erro ao aceitar convite");
@@ -49,7 +55,9 @@ function ConvitePage() {
         <CardContent className="p-6 space-y-4">
           <div>
             <div className="font-display text-2xl uppercase">Approva</div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Convite de equipe</div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
+              Convite de equipe
+            </div>
           </div>
 
           {estado === "verificando" && (
@@ -61,10 +69,13 @@ function ConvitePage() {
           {estado === "logar" && (
             <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">
-                Entre na sua conta para aceitar o convite. Se ainda não tem conta, crie uma com o mesmo e-mail do convite.
+                Entre na sua conta para aceitar o convite. Se ainda não tem conta, crie uma com o
+                mesmo e-mail do convite.
               </p>
               <Button asChild className="w-full">
-                <Link to="/login" search={{ redirect: `/convite/${token}` }}>Entrar / Criar conta</Link>
+                <Link to="/login" search={{ redirect: `/convite/${token}` }}>
+                  Entrar / Criar conta
+                </Link>
               </Button>
             </div>
           )}

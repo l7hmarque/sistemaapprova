@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Camera, Upload, Link2, Trash2, Loader2, RefreshCw } from "lucide-react";
@@ -59,7 +65,9 @@ type Evento = {
 async function sha256(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   const h = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(h))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function mesAtualISO() {
@@ -75,9 +83,12 @@ async function resizeImage(file: File, maxDim = 1600, quality = 0.8): Promise<Fi
     const w = Math.round(bitmap.width * scale);
     const h = Math.round(bitmap.height * scale);
     const canvas = document.createElement("canvas");
-    canvas.width = w; canvas.height = h;
+    canvas.width = w;
+    canvas.height = h;
     canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-    const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", quality));
+    const blob: Blob = await new Promise((res) =>
+      canvas.toBlob((b) => res(b!), "image/jpeg", quality),
+    );
     return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
   } catch {
     return file;
@@ -98,8 +109,12 @@ function dispararWorker(jobId: string) {
       headers: { "Content-Type": "application/json", apikey: anon },
       body: JSON.stringify({ jobId }),
       keepalive: true,
-    }).catch(() => { /* cron cobre */ });
-  } catch { /* noop */ }
+    }).catch(() => {
+      /* cron cobre */
+    });
+  } catch {
+    /* noop */
+  }
 }
 
 function CapturaPage() {
@@ -116,16 +131,23 @@ function CapturaPage() {
   const inputCam = useRef<HTMLInputElement>(null);
 
   const recarregar = useCallback(async () => {
-    if (!activeOrgId) { setJobs([]); return; }
+    if (!activeOrgId) {
+      setJobs([]);
+      return;
+    }
     try {
-      const r = await listar({ data: { organizationId: activeOrgId, mesReferencia: mes, limite: 100 } });
+      const r = await listar({
+        data: { organizationId: activeOrgId, mesReferencia: mes, limite: 100 },
+      });
       setJobs((r.jobs ?? []) as Job[]);
     } catch (e) {
       console.warn("[captura] listar jobs falhou", e);
     }
   }, [activeOrgId, mes, listar]);
 
-  useEffect(() => { void recarregar(); }, [recarregar]);
+  useEffect(() => {
+    void recarregar();
+  }, [recarregar]);
 
   // Subscribe realtime → atualiza a lista quando qualquer job da org muda
   useEffect(() => {
@@ -134,7 +156,12 @@ function CapturaPage() {
       .channel(`captura-jobs-${activeOrgId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "captura_jobs", filter: `organization_id=eq.${activeOrgId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "captura_jobs",
+          filter: `organization_id=eq.${activeOrgId}`,
+        },
         (payload) => {
           setJobs((prev) => {
             if (payload.eventType === "DELETE") {
@@ -154,11 +181,16 @@ function CapturaPage() {
         },
       )
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [activeOrgId, mes]);
 
   useEffect(() => {
-    if (!activeOrgId) { setEventos([]); return; }
+    if (!activeOrgId) {
+      setEventos([]);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("eventos_financeiros")
@@ -170,52 +202,67 @@ function CapturaPage() {
     })();
   }, [mes, activeOrgId]);
 
-  const enfileirarArquivo = useCallback(async (file: File) => {
-    if (!activeOrgId) throw new Error("Selecione uma organização ativa");
-    const arquivo = await resizeImage(file);
-    const hash = await sha256(arquivo);
-    const safeName = arquivo.name.replace(/[^\w.-]+/g, "_").slice(0, 120);
-    const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
+  const enfileirarArquivo = useCallback(
+    async (file: File) => {
+      if (!activeOrgId) throw new Error("Selecione uma organização ativa");
+      const arquivo = await resizeImage(file);
+      const hash = await sha256(arquivo);
+      const safeName = arquivo.name.replace(/[^\w.-]+/g, "_").slice(0, 120);
+      const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
 
-    const up = await supabase.storage.from("documentos").upload(path, arquivo, {
-      upsert: true,
-      contentType: arquivo.type || undefined,
-    });
-    if (up.error) throw up.error;
+      const up = await supabase.storage.from("documentos").upload(path, arquivo, {
+        upsert: true,
+        contentType: arquivo.type || undefined,
+      });
+      if (up.error) throw up.error;
 
-    const r = await enfileirar({
-      data: {
-        storagePath: path,
-        hash,
-        nomeArquivo: arquivo.name,
-        mimeType: arquivo.type || null,
-        tamanhoBytes: arquivo.size,
-        mesReferencia: mes,
-        organizationId: activeOrgId,
-      },
-    });
-    dispararWorker(r.jobId);
-    return r.jobId;
-  }, [activeOrgId, mes, enfileirar]);
+      const r = await enfileirar({
+        data: {
+          storagePath: path,
+          hash,
+          nomeArquivo: arquivo.name,
+          mimeType: arquivo.type || null,
+          tamanhoBytes: arquivo.size,
+          mesReferencia: mes,
+          organizationId: activeOrgId,
+        },
+      });
+      dispararWorker(r.jobId);
+      return r.jobId;
+    },
+    [activeOrgId, mes, enfileirar],
+  );
 
-  const adicionar = useCallback(async (files: FileList | null) => {
-    if (!files || !files.length) return;
-    if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
-    setEnviando(true);
-    const arr = Array.from(files);
-    let ok = 0, fail = 0;
-    for (const f of arr) {
-      try { await enfileirarArquivo(f); ok++; }
-      catch (e) {
-        console.error("[captura] enfileirar falhou", e);
-        toast.error(`Falha ao enviar ${f.name}: ${e instanceof Error ? e.message : "erro"}`);
-        fail++;
+  const adicionar = useCallback(
+    async (files: FileList | null) => {
+      if (!files || !files.length) return;
+      if (!activeOrgId) {
+        toast.error("Selecione uma organização ativa");
+        return;
       }
-    }
-    setEnviando(false);
-    if (ok) toast.success(`${ok} arquivo(s) enviados. Pode sair da página — o processamento continua em segundo plano.`);
-    if (fail && !ok) toast.error(`${fail} arquivo(s) falharam no envio`);
-  }, [activeOrgId, enfileirarArquivo]);
+      setEnviando(true);
+      const arr = Array.from(files);
+      let ok = 0,
+        fail = 0;
+      for (const f of arr) {
+        try {
+          await enfileirarArquivo(f);
+          ok++;
+        } catch (e) {
+          console.error("[captura] enfileirar falhou", e);
+          toast.error(`Falha ao enviar ${f.name}: ${e instanceof Error ? e.message : "erro"}`);
+          fail++;
+        }
+      }
+      setEnviando(false);
+      if (ok)
+        toast.success(
+          `${ok} arquivo(s) enviados. Pode sair da página — o processamento continua em segundo plano.`,
+        );
+      if (fail && !ok) toast.error(`${fail} arquivo(s) falharam no envio`);
+    },
+    [activeOrgId, enfileirarArquivo],
+  );
 
   async function reprocessarErros() {
     const erros = jobs.filter((j) => j.status === "erro");
@@ -258,9 +305,16 @@ function CapturaPage() {
       .eq("id", j.documento_id);
     if (error) return toast.error(error.message);
     if (eventoId !== "none") {
-      await supabase.from("eventos_financeiros").update({ status_documental: "completo" }).eq("id", eventoId);
+      await supabase
+        .from("eventos_financeiros")
+        .update({ status_documental: "completo" })
+        .eq("id", eventoId);
     }
-    setJobs((prev) => prev.map((x) => x.id === jobId ? { ...x, evento_id: eventoId === "none" ? null : eventoId } : x));
+    setJobs((prev) =>
+      prev.map((x) =>
+        x.id === jobId ? { ...x, evento_id: eventoId === "none" ? null : eventoId } : x,
+      ),
+    );
     toast.success("Vínculo atualizado");
   }
 
@@ -284,20 +338,27 @@ function CapturaPage() {
         <div>
           <h1 className="text-3xl uppercase">Captura de documentos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload, foto ou scanner. Os dados são reconhecidos automaticamente em segundo plano — pode sair da página, o processamento continua.
+            Upload, foto ou scanner. Os dados são reconhecidos automaticamente em segundo plano —
+            pode sair da página, o processamento continua.
           </p>
         </div>
         <div className="flex items-end gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Mês de busca</Label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-40" />
+            <Input
+              type="month"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              className="w-40"
+            />
           </div>
         </div>
       </header>
 
       {!orgLoading && !activeOrgId && (
         <div className="border border-destructive/50 bg-destructive/10 text-destructive rounded-md px-4 py-3 text-sm">
-          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de enviar arquivos.
+          Nenhuma organização ativa selecionada. Use o seletor no topo do painel antes de enviar
+          arquivos.
         </div>
       )}
       {activeOrg && (
@@ -320,7 +381,10 @@ function CapturaPage() {
             multiple
             accept="application/pdf,image/*"
             className="hidden"
-            onChange={(e) => { void adicionar(e.target.files); e.target.value = ""; }}
+            onChange={(e) => {
+              void adicionar(e.target.files);
+              e.target.value = "";
+            }}
           />
           <input
             ref={inputCam}
@@ -328,12 +392,23 @@ function CapturaPage() {
             accept="image/*"
             capture="environment"
             className="hidden"
-            onChange={(e) => { void adicionar(e.target.files); e.target.value = ""; }}
+            onChange={(e) => {
+              void adicionar(e.target.files);
+              e.target.value = "";
+            }}
           />
-          <Button onClick={() => inputFile.current?.click()} variant="outline" disabled={!activeOrgId || enviando}>
+          <Button
+            onClick={() => inputFile.current?.click()}
+            variant="outline"
+            disabled={!activeOrgId || enviando}
+          >
             <Upload className="mr-2 h-4 w-4" /> Selecionar arquivos
           </Button>
-          <Button onClick={() => inputCam.current?.click()} variant="outline" disabled={!activeOrgId || enviando}>
+          <Button
+            onClick={() => inputCam.current?.click()}
+            variant="outline"
+            disabled={!activeOrgId || enviando}
+          >
             <Camera className="mr-2 h-4 w-4" /> Tirar foto
           </Button>
           {enviando && (
@@ -354,9 +429,9 @@ function CapturaPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-sm uppercase tracking-wide">
-          Fila ({jobs.length})
-        </CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-sm uppercase tracking-wide">Fila ({jobs.length})</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3">
           {jobs.length === 0 && (
             <div className="text-center text-sm text-muted-foreground py-8">
@@ -372,7 +447,9 @@ function CapturaPage() {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{j.nome_arquivo}</div>
                     <div className="text-xs text-muted-foreground mt-1 flex gap-3 flex-wrap">
-                      {j.tamanho_bytes != null && <span>{(j.tamanho_bytes / 1024).toFixed(0)} KB</span>}
+                      {j.tamanho_bytes != null && (
+                        <span>{(j.tamanho_bytes / 1024).toFixed(0)} KB</span>
+                      )}
                       {d.tipo && <span>tipo: {d.tipo}</span>}
                       {d.cnpj && <span>CNPJ: {d.cnpj}</span>}
                       {d.valor != null && <span>R$ {Number(d.valor).toFixed(2)}</span>}
@@ -380,7 +457,9 @@ function CapturaPage() {
                         <span>{d.data_vencimento ?? d.data_emissao ?? d.data_pagamento}</span>
                       )}
                     </div>
-                    {j.mensagem && <div className="text-xs text-muted-foreground mt-1 italic">{j.mensagem}</div>}
+                    {j.mensagem && (
+                      <div className="text-xs text-muted-foreground mt-1 italic">{j.mensagem}</div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant={corStatus(j.status)}>
@@ -390,7 +469,12 @@ function CapturaPage() {
                       {j.status}
                     </Badge>
                     {(j.status === "erro" || j.status === "concluido") && (
-                      <Button size="icon" variant="ghost" onClick={() => reprocessarUm(j.id)} title="Reprocessar">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => reprocessarUm(j.id)}
+                        title="Reprocessar"
+                      >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
                     )}
@@ -403,7 +487,10 @@ function CapturaPage() {
                 {j.status === "concluido" && j.documento_id && (
                   <div className="flex items-center gap-2">
                     <Link2 className="h-4 w-4 text-muted-foreground" />
-                    <Select value={j.evento_id ?? "none"} onValueChange={(v) => vincularManual(j.id, v)}>
+                    <Select
+                      value={j.evento_id ?? "none"}
+                      onValueChange={(v) => vincularManual(j.id, v)}
+                    >
                       <SelectTrigger className="max-w-md">
                         <SelectValue placeholder="Vincular a evento..." />
                       </SelectTrigger>
@@ -411,12 +498,17 @@ function CapturaPage() {
                         <SelectItem value="none">— sem vínculo —</SelectItem>
                         {eventos.map((e) => (
                           <SelectItem key={e.id} value={e.id}>
-                            {e.categoria} · {e.descricao ?? "(sem descrição)"} · R$ {Number(e.valor_previsto ?? 0).toFixed(2)}
+                            {e.categoria} · {e.descricao ?? "(sem descrição)"} · R${" "}
+                            {Number(e.valor_previsto ?? 0).toFixed(2)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {evt && <span className="text-xs text-muted-foreground">→ {evt.descricao ?? evt.categoria}</span>}
+                    {evt && (
+                      <span className="text-xs text-muted-foreground">
+                        → {evt.descricao ?? evt.categoria}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

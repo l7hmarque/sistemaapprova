@@ -5,7 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,7 +31,9 @@ function OrgPage() {
   const [cnpjConcedente, setCnpjConcedente] = useState("");
   const [tpTransferencia, setTpTransferencia] = useState<string>("9");
   const [nrInterno, setNrInterno] = useState("");
-  const [anoTransferencia, setAnoTransferencia] = useState<string>(String(new Date().getFullYear()));
+  const [anoTransferencia, setAnoTransferencia] = useState<string>(
+    String(new Date().getFullYear()),
+  );
   const [salvandoTermo, setSalvandoTermo] = useState(false);
 
   useEffect(() => {
@@ -57,7 +65,8 @@ function OrgPage() {
   }, [activeOrg]);
 
   if (loading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
-  if (!activeOrg) return <div className="text-sm text-muted-foreground">Sem organização vinculada.</div>;
+  if (!activeOrg)
+    return <div className="text-sm text-muted-foreground">Sem organização vinculada.</div>;
 
   const podeEditar = activeRole === "owner" || activeRole === "admin";
 
@@ -110,11 +119,18 @@ function OrgPage() {
           </div>
           <div>
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">CNPJ</Label>
-            <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} disabled={!podeEditar} placeholder="00.000.000/0000-00" />
+            <Input
+              value={cnpj}
+              onChange={(e) => setCnpj(e.target.value)}
+              disabled={!podeEditar}
+              placeholder="00.000.000/0000-00"
+            />
           </div>
           {podeEditar && (
             <div className="flex justify-end pt-2">
-              <Button onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
+              <Button onClick={salvar} disabled={salvando}>
+                {salvando ? "Salvando…" : "Salvar"}
+              </Button>
             </div>
           )}
         </CardContent>
@@ -122,15 +138,20 @@ function OrgPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm uppercase tracking-wide">Dados do Termo (SIT/TCE-PR)</CardTitle>
+          <CardTitle className="text-sm uppercase tracking-wide">
+            Dados do Termo (SIT/TCE-PR)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Necessário para gerar o arquivo Despesa.txt do SIT. Esses dados são repetidos em todas as linhas.
+            Necessário para gerar o arquivo Despesa.txt do SIT. Esses dados são repetidos em todas
+            as linhas.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">CNPJ concedente</Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                CNPJ concedente
+              </Label>
               <Input
                 value={cnpjConcedente}
                 onChange={(e) => setCnpjConcedente(e.target.value)}
@@ -140,9 +161,17 @@ function OrgPage() {
               />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo de transferência</Label>
-              <Select value={tpTransferencia} onValueChange={setTpTransferencia} disabled={!podeEditar}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Tipo de transferência
+              </Label>
+              <Select
+                value={tpTransferencia}
+                onValueChange={setTpTransferencia}
+                disabled={!podeEditar}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {TIPOS_TRANSFERENCIA.map((t) => (
                     <SelectItem key={t.codigo} value={String(t.codigo)}>
@@ -153,7 +182,9 @@ function OrgPage() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nº interno concedente (≤20)</Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Nº interno concedente (≤20)
+              </Label>
               <Input
                 value={nrInterno}
                 onChange={(e) => setNrInterno(e.target.value.slice(0, 20))}
@@ -162,7 +193,9 @@ function OrgPage() {
               />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Ano transferência</Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Ano transferência
+              </Label>
               <Input
                 value={anoTransferencia}
                 onChange={(e) => setAnoTransferencia(e.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -189,11 +222,16 @@ function OrgPage() {
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Plano atual</span>
-            <Badge variant="secondary" className="uppercase">{activeOrg.plano}</Badge>
+            <Badge variant="secondary" className="uppercase">
+              {activeOrg.plano}
+            </Badge>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Status</span>
-            <Badge variant={activeOrg.status === "ativo" ? "default" : "secondary"} className="uppercase">
+            <Badge
+              variant={activeOrg.status === "ativo" ? "default" : "secondary"}
+              className="uppercase"
+            >
               {activeOrg.status}
             </Badge>
           </div>

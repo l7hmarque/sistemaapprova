@@ -133,7 +133,9 @@ function EquipePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="uppercase">{m.role}</Badge>
+                    <Badge variant="secondary" className="uppercase">
+                      {m.role}
+                    </Badge>
                     {podeGerenciar && m.role !== "owner" && (
                       <Button
                         variant="ghost"
@@ -172,7 +174,9 @@ function EquipePage() {
               <div className="sm:w-40">
                 <Label className="text-xs">Papel</Label>
                 <Select value={role} onValueChange={(v) => setRole(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="membro">Membro</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
@@ -209,9 +213,12 @@ function EquipePage() {
                     <div className="min-w-0">
                       <div className="text-sm truncate">{c.email}</div>
                       <div className="text-xs text-muted-foreground">
-                        {c.aceito_em ? `Aceito em ${new Date(c.aceito_em).toLocaleDateString("pt-BR")}` :
-                          expirado ? "Expirado" :
-                          `Expira em ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`} · {c.role}
+                        {c.aceito_em
+                          ? `Aceito em ${new Date(c.aceito_em).toLocaleDateString("pt-BR")}`
+                          : expirado
+                            ? "Expirado"
+                            : `Expira em ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}{" "}
+                        · {c.role}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
