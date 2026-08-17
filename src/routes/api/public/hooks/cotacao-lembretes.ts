@@ -1,18 +1,17 @@
 /**
  * Cron: envia lembretes para convites de cotação pendentes cuja expiração
  * é em ≤ 3 dias, e marca como "expirado" os que já passaram.
- * Autenticação: cabeçalho `apikey` = SUPABASE anon key.
+ * Autenticação: header `x-cron-secret` = CRON_SECRET (ou `apikey` = chave publicável).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmailViaResend } from "@/lib/email.server";
-
-const ANON = process.env.SUPABASE_PUBLISHABLE_KEY;
-const APP_ORIGIN = process.env.APP_ORIGIN || "https://sistemaapprova.lovable.app";
+import { hookAutorizado, respostaNaoAutorizado } from "@/lib/hooks-auth.server";
 
 function esc(s: string | null | undefined) {
-  return String(s ?? "").replace(/[&<>"]/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string),
+  return String(s ?? "").replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string,
   );
 }
 
