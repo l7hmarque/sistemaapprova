@@ -25,7 +25,10 @@ import {
 } from "@/lib/captura-jobs.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/_authenticated/admin/captura")({ component: CapturaPage });
+export const Route = createFileRoute("/_authenticated/admin/captura")({
+  head: () => ({ meta: [{ title: "Captura de documentos · Approva" }] }),
+  component: CapturaPage,
+});
 
 type Status = "pendente" | "processando" | "concluido" | "erro" | "cancelado";
 

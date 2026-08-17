@@ -24,7 +24,10 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/owner/clientes")({ component: ClientesPage });
+export const Route = createFileRoute("/_authenticated/owner/clientes")({
+  head: () => ({ meta: [{ title: "Clientes · Approva" }] }),
+  component: ClientesPage,
+});
 
 type Org = {
   id: string;

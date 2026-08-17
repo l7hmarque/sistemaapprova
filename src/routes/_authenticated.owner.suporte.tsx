@@ -8,7 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/owner/suporte")({ component: SuportePage });
+export const Route = createFileRoute("/_authenticated/owner/suporte")({
+  head: () => ({ meta: [{ title: "Suporte · Approva" }] }),
+  component: SuportePage,
+});
 
 function SuportePage() {
   const qc = useQueryClient();

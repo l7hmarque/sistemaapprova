@@ -42,7 +42,10 @@ import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 import { aplicarRegrasDespesa, type RegraDespesa } from "@/lib/sit/regrasDespesa";
 import { listarRegrasDespesa } from "@/lib/regras-despesa.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/painel")({ component: PainelPage });
+export const Route = createFileRoute("/_authenticated/admin/painel")({
+  head: () => ({ meta: [{ title: "Painel financeiro · Approva" }] }),
+  component: PainelPage,
+});
 
 type Evento = {
   id: string;

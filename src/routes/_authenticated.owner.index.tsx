@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDriveQueueStats } from "@/lib/owner.functions";
 import { AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/owner/")({ component: OwnerDashboard });
+export const Route = createFileRoute("/_authenticated/owner/")({
+  head: () => ({ meta: [{ title: "Visão geral · Approva" }] }),
+  component: OwnerDashboard,
+});
 
 function OwnerDashboard() {
   const { data: stats } = useQuery({

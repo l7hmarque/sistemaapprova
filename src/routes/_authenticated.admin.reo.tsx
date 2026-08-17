@@ -31,7 +31,10 @@ import {
 } from "@/lib/reo.functions";
 import { listarProjetos } from "@/lib/projetos.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/reo")({ component: ReoPage });
+export const Route = createFileRoute("/_authenticated/admin/reo")({
+  head: () => ({ meta: [{ title: "REO mensal · Approva" }] }),
+  component: ReoPage,
+});
 
 function mesAtual(): string {
   const d = new Date();
