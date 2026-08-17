@@ -174,7 +174,7 @@ function CapturaPage() {
     if (!activeOrgId) throw new Error("Selecione uma organização ativa");
     const arquivo = await resizeImage(file);
     const hash = await sha256(arquivo);
-    const safeName = arquivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+    const safeName = arquivo.name.replace(/[^\w.-]+/g, "_").slice(0, 120);
     const path = `${activeOrgId}/${hash.slice(0, 16)}-${safeName}`;
 
     const up = await supabase.storage.from("documentos").upload(path, arquivo, {

@@ -153,7 +153,7 @@ function PrestacaoPage() {
     if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
     setUploadingDoc(true);
     try {
-      const clean = file.name.replace(/[^\w.\-]+/g, "_");
+      const clean = file.name.replace(/[^\w.-]+/g, "_");
       const path = `${activeOrgId}/documentos-cadastrados/${Date.now()}-${clean}`;
       const up = await supabase.storage.from("prestacoes").upload(path, file, {
         contentType: file.type || "application/octet-stream",

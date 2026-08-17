@@ -97,7 +97,7 @@ export const listarArquivosDaOrg = createServerFn({ method: "POST" })
         (prd ?? []).map((r: any) => r.drive_file_id).filter(Boolean),
       );
       const eventoIds = Array.from(new Set(anxByFile.values()));
-      let idInternoByEvento = new Map<string, string>();
+      const idInternoByEvento = new Map<string, string>();
       if (eventoIds.length) {
         const { data: evs } = await (context.supabase as any)
           .from("eventos_financeiros")
