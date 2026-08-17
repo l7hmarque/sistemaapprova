@@ -12,7 +12,6 @@ import {
   type SubfolderName,
 } from "./drive-org.server";
 
-
 async function orgId(supabase: any): Promise<string> {
   const { data, error } = await supabase.rpc("current_user_org");
   if (error || !data) throw new Error("Organização ativa não encontrada");
@@ -34,13 +33,21 @@ export interface ArquivoListado {
 export const listarArquivosDaOrg = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      // "todas" (padrão) lista as 4 subpastas + subpastas de mês agregadas
-      section: z
-        .union([z.literal("todas"), z.enum(SUBFOLDERS as unknown as [SubfolderName, ...SubfolderName[]])])
-        .optional(),
-      mes: z.string().regex(/^\d{4}-\d{2}$/).optional(),
-    }).parse(d ?? {}),
+    z
+      .object({
+        // "todas" (padrão) lista as 4 subpastas + subpastas de mês agregadas
+        section: z
+          .union([
+            z.literal("todas"),
+            z.enum(SUBFOLDERS as unknown as [SubfolderName, ...SubfolderName[]]),
+          ])
+          .optional(),
+        mes: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
+      })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const id = await orgId(context.supabase);
@@ -93,11 +100,9 @@ export const listarArquivosDaOrg = createServerFn({ method: "POST" })
       for (const row of (anx ?? []) as any[]) {
         if (row.drive_file_id && row.evento_id) anxByFile.set(row.drive_file_id, row.evento_id);
       }
-      const prdSet = new Set<string>(
-        (prd ?? []).map((r: any) => r.drive_file_id).filter(Boolean),
-      );
+      const prdSet = new Set<string>((prd ?? []).map((r: any) => r.drive_file_id).filter(Boolean));
       const eventoIds = Array.from(new Set(anxByFile.values()));
-      let idInternoByEvento = new Map<string, string>();
+      const idInternoByEvento = new Map<string, string>();
       if (eventoIds.length) {
         const { data: evs } = await (context.supabase as any)
           .from("eventos_financeiros")
@@ -110,7 +115,7 @@ export const listarArquivosDaOrg = createServerFn({ method: "POST" })
       files = files.map((f) => ({
         ...f,
         linkedEventoInterno: anxByFile.get(f.id)
-          ? idInternoByEvento.get(anxByFile.get(f.id)!) ?? null
+          ? (idInternoByEvento.get(anxByFile.get(f.id)!) ?? null)
           : undefined,
         linkedPrestacao: prdSet.has(f.id) || undefined,
       }));
@@ -136,7 +141,13 @@ export const getDriveSyncStatus = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase } = context;
     const { data: orgId } = await supabase.rpc("current_user_org");
-    if (!orgId) return { pendente: 0, falhou_retry: 0, falhou_definitivo: 0, ultimoErro: null as string | null };
+    if (!orgId)
+      return {
+        pendente: 0,
+        falhou_retry: 0,
+        falhou_definitivo: 0,
+        ultimoErro: null as string | null,
+      };
     const { data, error } = await (supabase as any)
       .from("drive_sync_queue")
       .select("status, ultimo_erro")
@@ -146,11 +157,19 @@ export const getDriveSyncStatus = createServerFn({ method: "POST" })
       .limit(500);
     if (error) return { pendente: 0, falhou_retry: 0, falhou_definitivo: 0, ultimoErro: null };
     const rows = (data ?? []) as Array<{ status: string; ultimo_erro: string | null }>;
-    let pendente = 0, falhou_retry = 0, falhou_definitivo = 0, ultimoErro: string | null = null;
+    let pendente = 0,
+      falhou_retry = 0,
+      falhou_definitivo = 0,
+      ultimoErro: string | null = null;
     for (const r of rows) {
       if (r.status === "pendente" || r.status === "em_andamento") pendente++;
-      else if (r.status === "falhou_retry") { falhou_retry++; if (!ultimoErro) ultimoErro = r.ultimo_erro; }
-      else if (r.status === "falhou_definitivo") { falhou_definitivo++; if (!ultimoErro) ultimoErro = r.ultimo_erro; }
+      else if (r.status === "falhou_retry") {
+        falhou_retry++;
+        if (!ultimoErro) ultimoErro = r.ultimo_erro;
+      } else if (r.status === "falhou_definitivo") {
+        falhou_definitivo++;
+        if (!ultimoErro) ultimoErro = r.ultimo_erro;
+      }
     }
     return { pendente, falhou_retry, falhou_definitivo, ultimoErro };
   });
@@ -225,4 +244,3 @@ export const excluirArquivoDaOrg = createServerFn({ method: "POST" })
 
     return { ok: true, anexosRemovidos: (anx ?? []).length, documentos: (prd ?? []).length };
   });
-

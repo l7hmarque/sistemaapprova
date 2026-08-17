@@ -8,10 +8,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Pencil, ArrowUp, ArrowDown, FileDown, ExternalLink, AlertTriangle, RotateCcw, Upload, Download, Loader2,
+  Plus,
+  Trash2,
+  Pencil,
+  ArrowUp,
+  ArrowDown,
+  FileDown,
+  ExternalLink,
+  AlertTriangle,
+  RotateCcw,
+  Upload,
+  Download,
+  Loader2,
 } from "lucide-react";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,7 +36,10 @@ import { gerarPrestacaoContas } from "@/lib/prestacao.functions";
 import { Badge } from "@/components/ui/badge";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/_authenticated/admin/prestacao")({ component: PrestacaoPage });
+export const Route = createFileRoute("/_authenticated/admin/prestacao")({
+  head: () => ({ meta: [{ title: "Prestação de contas · Approva" }] }),
+  component: PrestacaoPage,
+});
 
 type Doc = {
   id: string;
@@ -79,13 +98,19 @@ function PrestacaoPage() {
   const { activeOrgId } = useActiveOrg();
 
   const carregar = async () => {
-    if (!activeOrgId) { setDocs([]); setSnapshots([]); return; }
+    if (!activeOrgId) {
+      setDocs([]);
+      setSnapshots([]);
+      return;
+    }
     setLoading(true);
     const primeiroDia = `${mes}-01`;
     const [docsRes, snapRes] = await Promise.all([
       supabase
         .from("prestacao_documentos")
-        .select("id, ordem, nome, descricao, arquivo_url, data_emissao, data_vencimento, mes_referencia, mes_referencia_fim, valido_de, valido_ate")
+        .select(
+          "id, ordem, nome, descricao, arquivo_url, data_emissao, data_vencimento, mes_referencia, mes_referencia_fim, valido_de, valido_ate",
+        )
         .eq("organization_id", activeOrgId)
         .lte("mes_referencia", mes)
         .or(`mes_referencia_fim.is.null,mes_referencia_fim.gte.${mes}`)
@@ -150,17 +175,20 @@ function PrestacaoPage() {
   };
 
   const uploadDoComputador = async (file: File) => {
-    if (!activeOrgId) { toast.error("Selecione uma organização ativa"); return; }
+    if (!activeOrgId) {
+      toast.error("Selecione uma organização ativa");
+      return;
+    }
     setUploadingDoc(true);
     try {
-      const clean = file.name.replace(/[^\w.\-]+/g, "_");
+      const clean = file.name.replace(/[^\w.-]+/g, "_");
       const path = `${activeOrgId}/documentos-cadastrados/${Date.now()}-${clean}`;
       const up = await supabase.storage.from("prestacoes").upload(path, file, {
         contentType: file.type || "application/octet-stream",
         upsert: false,
       });
       if (up.error) throw up.error;
-      setEdit((prev) => prev ? { ...prev, arquivo_url: `storage://prestacoes/${path}` } : prev);
+      setEdit((prev) => (prev ? { ...prev, arquivo_url: `storage://prestacoes/${path}` } : prev));
       toast.success("Arquivo enviado");
     } catch (e: any) {
       toast.error("Falha no upload: " + (e?.message || "erro"));
@@ -178,19 +206,22 @@ function PrestacaoPage() {
     }
   };
 
-  useEffect(() => { void carregar(); }, [mes, activeOrgId]);
+  useEffect(() => {
+    void carregar();
+  }, [mes, activeOrgId]);
 
-  const novo = (base?: Partial<Doc>) => setEdit({
-    nome: base?.nome ?? "",
-    descricao: base?.descricao ?? "",
-    arquivo_url: "",
-    data_emissao: null,
-    data_vencimento: null,
-    valido_de: new Date().toISOString().slice(0, 10),
-    valido_ate: null,
-    mes_referencia: mes,
-    ordem: (docs[docs.length - 1]?.ordem ?? 0) + 1,
-  });
+  const novo = (base?: Partial<Doc>) =>
+    setEdit({
+      nome: base?.nome ?? "",
+      descricao: base?.descricao ?? "",
+      arquivo_url: "",
+      data_emissao: null,
+      data_vencimento: null,
+      valido_de: new Date().toISOString().slice(0, 10),
+      valido_ate: null,
+      mes_referencia: mes,
+      ordem: (docs[docs.length - 1]?.ordem ?? 0) + 1,
+    });
 
   const salvar = async () => {
     if (!edit) return;
@@ -208,9 +239,9 @@ function PrestacaoPage() {
     };
     const q = edit.id
       ? supabase.from("prestacao_documentos").update(payload).eq("id", edit.id)
-      : (activeOrgId
-          ? supabase.from("prestacao_documentos").insert({ ...payload, organization_id: activeOrgId })
-          : null);
+      : activeOrgId
+        ? supabase.from("prestacao_documentos").insert({ ...payload, organization_id: activeOrgId })
+        : null;
     if (!q) return toast.error("Selecione uma organização ativa");
     const { error } = await q;
     if (error) return toast.error("Erro: " + error.message);
@@ -247,7 +278,8 @@ function PrestacaoPage() {
   };
 
   const mover = async (idx: number, dir: -1 | 1) => {
-    const a = docs[idx], b = docs[idx + dir];
+    const a = docs[idx],
+      b = docs[idx + dir];
     if (!a || !b) return;
     await Promise.all([
       supabase.from("prestacao_documentos").update({ ordem: b.ordem }).eq("id", a.id),
@@ -289,16 +321,24 @@ function PrestacaoPage() {
         <div>
           <h1 className="font-display text-3xl uppercase">Prestação de Contas</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Cadastre os documentos do mês na ordem desejada. Documentos com validade que
-            atravessa meses (ex.: certidões) reaparecem automaticamente enquanto vigentes.
+            Cadastre os documentos do mês na ordem desejada. Documentos com validade que atravessa
+            meses (ex.: certidões) reaparecem automaticamente enquanto vigentes.
           </p>
         </div>
         <div className="flex gap-2 items-end flex-wrap">
           <div>
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mês</Label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-44" />
+            <Input
+              type="month"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              className="w-44"
+            />
           </div>
-          <Button onClick={() => novo()} variant="outline"><Plus className="h-4 w-4 mr-1" />Documento</Button>
+          <Button onClick={() => novo()} variant="outline">
+            <Plus className="h-4 w-4 mr-1" />
+            Documento
+          </Button>
           <Button onClick={gerarOficial} disabled={gerando}>
             <FileDown className="h-4 w-4 mr-1" />
             {gerando ? "Gerando…" : "Gerar relatório"}
@@ -313,16 +353,27 @@ function PrestacaoPage() {
               Prestações fechadas em {mes}
             </div>
             {snapshots.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-3 border-b last:border-0 py-2">
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-3 border-b last:border-0 py-2"
+              >
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm truncate">{s.titulo ?? `Prestação ${mes}`}</div>
+                  <div className="font-medium text-sm truncate">
+                    {s.titulo ?? `Prestação ${mes}`}
+                  </div>
                   <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 mt-0.5">
                     <span>{new Date(s.gerado_em).toLocaleString("pt-BR")}</span>
-                    <span>{s.total_eventos} eventos · {s.total_documentos} docs</span>
-                    <span className="font-mono text-[10px]">SHA-256 {s.assinatura_hash.slice(0, 16)}…</span>
+                    <span>
+                      {s.total_eventos} eventos · {s.total_documentos} docs
+                    </span>
+                    <span className="font-mono text-[10px]">
+                      SHA-256 {s.assinatura_hash.slice(0, 16)}…
+                    </span>
                   </div>
                 </div>
-                <Badge variant="outline" className="shrink-0">imutável</Badge>
+                <Badge variant="outline" className="shrink-0">
+                  imutável
+                </Badge>
                 <Button size="sm" variant="outline" onClick={() => abrirSnapshot(s)}>
                   <FileDown className="h-4 w-4 mr-1" /> Abrir PDF
                 </Button>
@@ -332,13 +383,14 @@ function PrestacaoPage() {
         </Card>
       )}
 
-
       {loading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
       ) : docs.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
-          Nenhum documento vigente para {mes}.
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            Nenhum documento vigente para {mes}.
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-2">
           {docs.map((d, i) => {
@@ -347,7 +399,10 @@ function PrestacaoPage() {
             const proximo = !!validade && validade >= hoje && validade <= em30;
             const outroMes = d.mes_referencia && d.mes_referencia !== mes;
             return (
-              <Card key={d.id} className={vencido ? "border-destructive" : proximo ? "border-yellow-500" : ""}>
+              <Card
+                key={d.id}
+                className={vencido ? "border-destructive" : proximo ? "border-yellow-500" : ""}
+              >
                 <CardContent className="p-4 flex items-start gap-3">
                   <div className="font-display text-2xl w-10 text-muted-foreground tabular-nums">
                     {String(i + 1).padStart(2, "0")}
@@ -356,45 +411,98 @@ function PrestacaoPage() {
                     <div className="font-medium truncate flex items-center gap-2 flex-wrap">
                       {d.nome}
                       {vencido ? (
-                        <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />vencido</Badge>
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          vencido
+                        </Badge>
                       ) : proximo ? (
-                        <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-500 text-white"><AlertTriangle className="h-3 w-3" />vence em breve</Badge>
+                        <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-500 text-white">
+                          <AlertTriangle className="h-3 w-3" />
+                          vence em breve
+                        </Badge>
                       ) : validade ? (
                         <Badge variant="outline">vigente</Badge>
                       ) : null}
                       {outroMes && (
-                        <Badge variant="secondary" className="text-[10px]">cadastrado em {d.mes_referencia}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          cadastrado em {d.mes_referencia}
+                        </Badge>
                       )}
                     </div>
-                    {d.descricao && <div className="text-xs text-muted-foreground mt-0.5">{d.descricao}</div>}
+                    {d.descricao && (
+                      <div className="text-xs text-muted-foreground mt-0.5">{d.descricao}</div>
+                    )}
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4">
-                      {d.data_emissao && <span>Emissão: <strong className="text-foreground">{fmt(d.data_emissao)}</strong></span>}
-                      {validade && <span>Válido até: <strong className="text-foreground">{fmt(validade)}</strong></span>}
+                      {d.data_emissao && (
+                        <span>
+                          Emissão:{" "}
+                          <strong className="text-foreground">{fmt(d.data_emissao)}</strong>
+                        </span>
+                      )}
+                      {validade && (
+                        <span>
+                          Válido até: <strong className="text-foreground">{fmt(validade)}</strong>
+                        </span>
+                      )}
                     </div>
                     {vencido && (
-                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs"
-                        onClick={() => novo({ nome: d.nome, descricao: d.descricao })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 h-7 text-xs"
+                        onClick={() => novo({ nome: d.nome, descricao: d.descricao })}
+                      >
                         <RotateCcw className="h-3 w-3 mr-1" /> Cadastrar novo em substituição
                       </Button>
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" onClick={() => mover(i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => mover(i, 1)} disabled={i === docs.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                    {d.arquivo_url && (
-                      isStorageUrl(d.arquivo_url) ? (
-                        <Button size="icon" variant="ghost" title="Baixar"
-                          onClick={() => baixarDocStorage(d.arquivo_url!, d.nome || "documento")}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => mover(i, -1)}
+                      disabled={i === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => mover(i, 1)}
+                      disabled={i === docs.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    {d.arquivo_url &&
+                      (isStorageUrl(d.arquivo_url) ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Baixar"
+                          onClick={() => baixarDocStorage(d.arquivo_url!, d.nome || "documento")}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       ) : (
                         <Button size="icon" variant="ghost" asChild title="Abrir">
-                          <a href={d.arquivo_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                          <a href={d.arquivo_url} target="_blank" rel="noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
                         </Button>
-                      )
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => setEdit(d)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => { setExcluindo(d); setOpcaoExclusao("so-mes"); }}><Trash2 className="h-4 w-4" /></Button>
+                      ))}
+                    <Button size="icon" variant="ghost" onClick={() => setEdit(d)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setExcluindo(d);
+                        setOpcaoExclusao("so-mes");
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -403,20 +511,26 @@ function PrestacaoPage() {
         </div>
       )}
 
-
-
-
       {/* Modal de edição */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{edit?.id ? "Editar documento" : "Novo documento"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{edit?.id ? "Editar documento" : "Novo documento"}</DialogTitle>
+          </DialogHeader>
           {edit && (
             <div className="space-y-3">
               <Field label="Nome">
-                <Input value={edit.nome ?? ""} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} />
+                <Input
+                  value={edit.nome ?? ""}
+                  onChange={(e) => setEdit({ ...edit, nome: e.target.value })}
+                />
               </Field>
               <Field label="Descrição (opcional)">
-                <Textarea rows={2} value={edit.descricao ?? ""} onChange={(e) => setEdit({ ...edit, descricao: e.target.value })} />
+                <Textarea
+                  rows={2}
+                  value={edit.descricao ?? ""}
+                  onChange={(e) => setEdit({ ...edit, descricao: e.target.value })}
+                />
               </Field>
               <Field label="Arquivo (Drive/URL ou upload do computador)">
                 <div className="space-y-2">
@@ -444,12 +558,17 @@ function PrestacaoPage() {
                       disabled={uploadingDoc}
                       onClick={() => document.getElementById("upload-doc-prestacao")?.click()}
                     >
-                      {uploadingDoc ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                      {uploadingDoc ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
                       {uploadingDoc ? "Enviando…" : "Enviar do computador"}
                     </Button>
                     {isStorageUrl(edit.arquivo_url) && (
                       <span className="text-xs text-muted-foreground truncate">
-                        Arquivo enviado: {(storagePathFromUrl(edit.arquivo_url!)?.path ?? "").split("/").pop()}
+                        Arquivo enviado:{" "}
+                        {(storagePathFromUrl(edit.arquivo_url!)?.path ?? "").split("/").pop()}
                       </span>
                     )}
                   </div>
@@ -457,22 +576,37 @@ function PrestacaoPage() {
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Data de emissão">
-                  <Input type="date" value={edit.data_emissao ?? ""} onChange={(e) => setEdit({ ...edit, data_emissao: e.target.value || null })} />
+                  <Input
+                    type="date"
+                    value={edit.data_emissao ?? ""}
+                    onChange={(e) => setEdit({ ...edit, data_emissao: e.target.value || null })}
+                  />
                 </Field>
                 <Field label="Válido até (opcional)">
-                  <Input type="date" value={edit.valido_ate ?? ""} onChange={(e) => setEdit({ ...edit, valido_ate: e.target.value || null })} />
+                  <Input
+                    type="date"
+                    value={edit.valido_ate ?? ""}
+                    onChange={(e) => setEdit({ ...edit, valido_ate: e.target.value || null })}
+                  />
                 </Field>
               </div>
               <p className="text-xs text-muted-foreground">
-                Se preencher "Válido até", o documento aparece automaticamente em todos os meses até essa data.
+                Se preencher "Válido até", o documento aparece automaticamente em todos os meses até
+                essa data.
               </p>
               <Field label="Mês de referência (cadastro inicial)">
-                <Input type="month" value={edit.mes_referencia ?? mes} onChange={(e) => setEdit({ ...edit, mes_referencia: e.target.value })} />
+                <Input
+                  type="month"
+                  value={edit.mes_referencia ?? mes}
+                  onChange={(e) => setEdit({ ...edit, mes_referencia: e.target.value })}
+                />
               </Field>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setEdit(null)}>
+              Cancelar
+            </Button>
             <Button onClick={salvar}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
@@ -485,32 +619,46 @@ function PrestacaoPage() {
             <DialogTitle>Excluir "{excluindo?.nome}"</DialogTitle>
             <DialogDescription>Escolha o alcance da exclusão:</DialogDescription>
           </DialogHeader>
-          <RadioGroup value={opcaoExclusao} onValueChange={(v) => setOpcaoExclusao(v as any)} className="space-y-3">
+          <RadioGroup
+            value={opcaoExclusao}
+            onValueChange={(v) => setOpcaoExclusao(v as any)}
+            className="space-y-3"
+          >
             <label className="flex gap-3 items-start cursor-pointer">
               <RadioGroupItem value="so-mes" className="mt-1" />
               <div>
                 <div className="font-medium text-sm">Excluir apenas de {mes}</div>
-                <div className="text-xs text-muted-foreground">O documento continua aparecendo em outros meses onde é vigente.</div>
+                <div className="text-xs text-muted-foreground">
+                  O documento continua aparecendo em outros meses onde é vigente.
+                </div>
               </div>
             </label>
             <label className="flex gap-3 items-start cursor-pointer">
               <RadioGroupItem value="seguintes" className="mt-1" />
               <div>
                 <div className="font-medium text-sm">Excluir de {mes} em diante</div>
-                <div className="text-xs text-muted-foreground">Mantém histórico nos meses anteriores; não aparece mais a partir daqui.</div>
+                <div className="text-xs text-muted-foreground">
+                  Mantém histórico nos meses anteriores; não aparece mais a partir daqui.
+                </div>
               </div>
             </label>
             <label className="flex gap-3 items-start cursor-pointer">
               <RadioGroupItem value="tudo" className="mt-1" />
               <div>
                 <div className="font-medium text-sm">Excluir de todos os meses</div>
-                <div className="text-xs text-muted-foreground">Remove o documento permanentemente do sistema.</div>
+                <div className="text-xs text-muted-foreground">
+                  Remove o documento permanentemente do sistema.
+                </div>
               </div>
             </label>
           </RadioGroup>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setExcluindo(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmarExclusao}>Excluir</Button>
+            <Button variant="outline" onClick={() => setExcluindo(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmarExclusao}>
+              Excluir
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

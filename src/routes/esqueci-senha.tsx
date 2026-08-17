@@ -44,8 +44,8 @@ function EsqueciSenhaPage() {
           {enviado ? (
             <div className="text-sm text-muted-foreground space-y-3">
               <p>
-                Se houver uma conta com <strong>{email}</strong>, você receberá
-                um email com o link para redefinir a senha.
+                Se houver uma conta com <strong>{email}</strong>, você receberá um email com o link
+                para redefinir a senha.
               </p>
               <p>Confira também a caixa de spam.</p>
             </div>
@@ -68,7 +68,10 @@ function EsqueciSenhaPage() {
             </form>
           )}
 
-          <Link to="/login" className="block text-center text-xs text-muted-foreground hover:text-foreground">
+          <Link
+            to="/login"
+            className="block text-center text-xs text-muted-foreground hover:text-foreground"
+          >
             ← voltar ao login
           </Link>
         </CardContent>

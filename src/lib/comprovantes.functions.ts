@@ -45,7 +45,9 @@ export const listarComprovantes = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: rows, error } = await supabase
       .from("prestacao_documentos")
-      .select("id, despesa_uid, nome, arquivo_url, status_aprovacao, aprovado_por, aprovado_em, observacao_aprovacao, criado_em, tamanho_bytes, mime_type, descricao")
+      .select(
+        "id, despesa_uid, nome, arquivo_url, status_aprovacao, aprovado_por, aprovado_em, observacao_aprovacao, criado_em, tamanho_bytes, mime_type, descricao",
+      )
       .eq("extracao_id", data.extracaoId)
       .order("criado_em", { ascending: false });
     if (error) throw new Error(error.message);
@@ -60,7 +62,8 @@ export const listarComprovantes = createServerFn({ method: "POST" })
         despesa_uid: uid,
         nome: r.nome,
         arquivo_url: r.arquivo_url,
-        status_aprovacao: (r.status_aprovacao ?? "pendente") as ComprovanteResumo["status_aprovacao"],
+        status_aprovacao: (r.status_aprovacao ??
+          "pendente") as ComprovanteResumo["status_aprovacao"],
         aprovado_por: r.aprovado_por,
         aprovado_em: r.aprovado_em,
         observacao_aprovacao: r.observacao_aprovacao,
@@ -221,14 +224,14 @@ export const aprovarComprovante = createServerFn({ method: "POST" })
 
 export const listarPendentes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ organization_id: z.string().uuid() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ organization_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: rows, error } = await supabase
       .from("prestacao_documentos")
-      .select("id, nome, despesa_uid, extracao_id, criado_em, mime_type, tamanho_bytes, descricao, arquivo_url")
+      .select(
+        "id, nome, despesa_uid, extracao_id, criado_em, mime_type, tamanho_bytes, descricao, arquivo_url",
+      )
       .eq("organization_id", data.organization_id)
       .eq("status_aprovacao", "pendente")
       .not("extracao_id", "is", null)

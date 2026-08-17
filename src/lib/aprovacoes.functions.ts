@@ -13,10 +13,13 @@ const MesInput = OrgInput.extend({
   mes_referencia: z.string().regex(/^\d{4}-\d{2}$/),
 });
 
-async function assertAdmin(ctx: {
-  supabase: any;
-  userId: string;
-}, orgId: string) {
+async function assertAdmin(
+  ctx: {
+    supabase: any;
+    userId: string;
+  },
+  orgId: string,
+) {
   const { data, error } = await ctx.supabase
     .from("organization_members")
     .select("role")
@@ -38,7 +41,7 @@ export const listarEventosPendentes = createServerFn({ method: "POST" })
     const { data: eventos, error } = await context.supabase
       .from("eventos_financeiros")
       .select(
-        "id, id_interno, mes_referencia, categoria, descricao, nm_favorecido, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, natureza_despesa_codigo, status_documental, status_workflow, origem"
+        "id, id_interno, mes_referencia, categoria, descricao, nm_favorecido, fornecedor_id, valor_previsto, valor_efetivo, data_vencimento, data_pagamento, natureza_despesa_codigo, status_documental, status_workflow, origem",
       )
       .eq("organization_id", data.organization_id)
       .eq("mes_referencia", data.mes_referencia)
@@ -62,8 +65,8 @@ export const listarEventosPendentes = createServerFn({ method: "POST" })
         e.valor_previsto != null &&
         e.valor_efetivo != null &&
         Number(e.valor_previsto) > 0 &&
-        Math.abs(Number(e.valor_efetivo) - Number(e.valor_previsto)) /
-          Number(e.valor_previsto) > 0.1;
+        Math.abs(Number(e.valor_efetivo) - Number(e.valor_previsto)) / Number(e.valor_previsto) >
+          0.1;
       return {
         ...e,
         pendencias: {
@@ -79,18 +82,21 @@ export const listarEventosPendentes = createServerFn({ method: "POST" })
 export const aprovarEventosLote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    OrgInput.extend({ ids: z.array(z.string().uuid()).min(1).max(500) }).parse(d)
+    OrgInput.extend({ ids: z.array(z.string().uuid()).min(1).max(500) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context, data.organization_id);
     const { error, count } = await context.supabase
       .from("eventos_financeiros")
-      .update({
-        status_workflow: "aprovado",
-        aprovado_por: context.userId,
-        aprovado_em: new Date().toISOString(),
-        devolvido_motivo: null,
-      }, { count: "exact" })
+      .update(
+        {
+          status_workflow: "aprovado",
+          aprovado_por: context.userId,
+          aprovado_em: new Date().toISOString(),
+          devolvido_motivo: null,
+        },
+        { count: "exact" },
+      )
       .eq("organization_id", data.organization_id)
       .in("id", data.ids)
       .in("status_workflow", ["rascunho", "pendente_revisao"])
@@ -106,7 +112,7 @@ export const devolverEvento = createServerFn({ method: "POST" })
     OrgInput.extend({
       id: z.string().uuid(),
       motivo: z.string().min(3).max(500),
-    }).parse(d)
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context, data.organization_id);
@@ -218,8 +224,7 @@ export const resumoDashboard = createServerFn({ method: "POST" })
       pagosSemComprovante: semAnexo,
       docsVencendo,
       snapshots: snaps.data ?? [],
-      podeFecharMesAnterior:
-        (pendAnt.count ?? 0) === 0 && (snapAnt.count ?? 0) === 0,
+      podeFecharMesAnterior: (pendAnt.count ?? 0) === 0 && (snapAnt.count ?? 0) === 0,
       pendenciasMesAnterior: pendAnt.count ?? 0,
       snapshotMesAnterior: (snapAnt.count ?? 0) > 0,
     };

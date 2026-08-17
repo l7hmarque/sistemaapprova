@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Pencil, Trash2, CheckCircle2, ExternalLink, Plus, HelpCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -20,15 +26,44 @@ import {
 import { type Modelo, type TipoModelo, TIPO_LABEL, extrairSheetId } from "@/lib/modelos";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-export const Route = createFileRoute("/_authenticated/admin/modelos")({ component: ModelosPage });
-
+export const Route = createFileRoute("/_authenticated/admin/modelos")({
+  head: () => ({ meta: [{ title: "Modelos de planilha · Approva" }] }),
+  component: ModelosPage,
+});
 
 const TIPOS: TipoModelo[] = ["orcamento", "mapa", "controle_bancario"];
 
-const DEFAULTS_PARAMS: Record<TipoModelo, { aba: string; linhaPrimeiroItem1: number; qtdLinhasExistentes: number; linhaTotais1: number; colCount: number }> = {
-  orcamento: { aba: "Orcamento", linhaPrimeiroItem1: 14, qtdLinhasExistentes: 4, linhaTotais1: 18, colCount: 11 },
-  mapa: { aba: "MapaComparativo", linhaPrimeiroItem1: 19, qtdLinhasExistentes: 2, linhaTotais1: 22, colCount: 12 },
-  controle_bancario: { aba: "Controle", linhaPrimeiroItem1: 2, qtdLinhasExistentes: 10, linhaTotais1: 13, colCount: 8 },
+const DEFAULTS_PARAMS: Record<
+  TipoModelo,
+  {
+    aba: string;
+    linhaPrimeiroItem1: number;
+    qtdLinhasExistentes: number;
+    linhaTotais1: number;
+    colCount: number;
+  }
+> = {
+  orcamento: {
+    aba: "Orcamento",
+    linhaPrimeiroItem1: 14,
+    qtdLinhasExistentes: 4,
+    linhaTotais1: 18,
+    colCount: 11,
+  },
+  mapa: {
+    aba: "MapaComparativo",
+    linhaPrimeiroItem1: 19,
+    qtdLinhasExistentes: 2,
+    linhaTotais1: 22,
+    colCount: 12,
+  },
+  controle_bancario: {
+    aba: "Controle",
+    linhaPrimeiroItem1: 2,
+    qtdLinhasExistentes: 10,
+    linhaTotais1: 13,
+    colCount: 8,
+  },
 };
 
 function ModelosPage() {
@@ -38,7 +73,11 @@ function ModelosPage() {
   const [editando, setEditando] = useState<Partial<Modelo> | null>(null);
 
   const carregar = async () => {
-    if (!activeOrgId) { setModelos([]); setLoading(false); return; }
+    if (!activeOrgId) {
+      setModelos([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase
       .from("modelos_planilha")
@@ -51,8 +90,9 @@ function ModelosPage() {
     setLoading(false);
   };
 
-  useEffect(() => { void carregar(); }, [activeOrgId]);
-
+  useEffect(() => {
+    void carregar();
+  }, [activeOrgId]);
 
   const novo = (tipo: TipoModelo) => {
     const d = DEFAULTS_PARAMS[tipo];
@@ -95,7 +135,6 @@ function ModelosPage() {
     void carregar();
   };
 
-
   const excluir = async (m: Modelo) => {
     if (!confirm(`Excluir "${m.nome}"?`)) return;
     const { error } = await supabase.from("modelos_planilha").delete().eq("id", m.id);
@@ -121,7 +160,6 @@ function ModelosPage() {
     toast.success("Modelo ativado");
     void carregar();
   };
-
 
   return (
     <div className="p-8 space-y-8">
@@ -171,7 +209,11 @@ function ModelosPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center justify-between gap-2">
                         <span className="truncate">{m.nome}</span>
-                        {m.ativo && <Badge variant="default" className="shrink-0">Ativo</Badge>}
+                        {m.ativo && (
+                          <Badge variant="default" className="shrink-0">
+                            Ativo
+                          </Badge>
+                        )}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -179,11 +221,31 @@ function ModelosPage() {
                         {m.template_id}
                       </div>
                       <div className="text-xs flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                        <span>aba: <strong className="text-foreground">{m.aba || "—"}</strong></span>
-                        <span>1º item: <strong className="text-foreground">L{m.params?.linhaPrimeiroItem1 ?? "?"}</strong></span>
-                        <span>linhas: <strong className="text-foreground">{m.params?.qtdLinhasExistentes ?? "?"}</strong></span>
-                        <span>totais: <strong className="text-foreground">L{m.params?.linhaTotais1 ?? "?"}</strong></span>
-                        <span>cols: <strong className="text-foreground">{m.params?.colCount ?? "?"}</strong></span>
+                        <span>
+                          aba: <strong className="text-foreground">{m.aba || "—"}</strong>
+                        </span>
+                        <span>
+                          1º item:{" "}
+                          <strong className="text-foreground">
+                            L{m.params?.linhaPrimeiroItem1 ?? "?"}
+                          </strong>
+                        </span>
+                        <span>
+                          linhas:{" "}
+                          <strong className="text-foreground">
+                            {m.params?.qtdLinhasExistentes ?? "?"}
+                          </strong>
+                        </span>
+                        <span>
+                          totais:{" "}
+                          <strong className="text-foreground">
+                            L{m.params?.linhaTotais1 ?? "?"}
+                          </strong>
+                        </span>
+                        <span>
+                          cols:{" "}
+                          <strong className="text-foreground">{m.params?.colCount ?? "?"}</strong>
+                        </span>
                       </div>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {!m.ativo && (
@@ -194,11 +256,7 @@ function ModelosPage() {
                         <Button size="sm" variant="outline" onClick={() => setEditando(m)}>
                           <Pencil className="h-4 w-4 mr-1" /> Editar
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          asChild
-                        >
+                        <Button size="sm" variant="outline" asChild>
                           <a
                             href={`https://docs.google.com/spreadsheets/d/${m.template_id}/edit`}
                             target="_blank"
@@ -223,9 +281,7 @@ function ModelosPage() {
       <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editando?.id ? "Editar modelo" : "Novo modelo"}
-            </DialogTitle>
+            <DialogTitle>{editando?.id ? "Editar modelo" : "Novo modelo"}</DialogTitle>
           </DialogHeader>
           {editando && (
             <div className="space-y-3">
@@ -234,10 +290,14 @@ function ModelosPage() {
                   value={editando.tipo}
                   onValueChange={(v) => setEditando({ ...editando, tipo: v as TipoModelo })}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {TIPOS.map((t) => (
-                      <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {TIPO_LABEL[t]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -269,47 +329,57 @@ function ModelosPage() {
                   <Input
                     type="number"
                     value={editando.params?.linhaPrimeiroItem1 ?? ""}
-                    onChange={(e) => setEditando({
-                      ...editando,
-                      params: { ...editando.params, linhaPrimeiroItem1: Number(e.target.value) },
-                    })}
+                    onChange={(e) =>
+                      setEditando({
+                        ...editando,
+                        params: { ...editando.params, linhaPrimeiroItem1: Number(e.target.value) },
+                      })
+                    }
                   />
                 </Field>
                 <Field label="Qtd linhas existentes">
                   <Input
                     type="number"
                     value={editando.params?.qtdLinhasExistentes ?? ""}
-                    onChange={(e) => setEditando({
-                      ...editando,
-                      params: { ...editando.params, qtdLinhasExistentes: Number(e.target.value) },
-                    })}
+                    onChange={(e) =>
+                      setEditando({
+                        ...editando,
+                        params: { ...editando.params, qtdLinhasExistentes: Number(e.target.value) },
+                      })
+                    }
                   />
                 </Field>
                 <Field label="Linha de totais">
                   <Input
                     type="number"
                     value={editando.params?.linhaTotais1 ?? ""}
-                    onChange={(e) => setEditando({
-                      ...editando,
-                      params: { ...editando.params, linhaTotais1: Number(e.target.value) },
-                    })}
+                    onChange={(e) =>
+                      setEditando({
+                        ...editando,
+                        params: { ...editando.params, linhaTotais1: Number(e.target.value) },
+                      })
+                    }
                   />
                 </Field>
                 <Field label="Nº de colunas">
                   <Input
                     type="number"
                     value={editando.params?.colCount ?? ""}
-                    onChange={(e) => setEditando({
-                      ...editando,
-                      params: { ...editando.params, colCount: Number(e.target.value) },
-                    })}
+                    onChange={(e) =>
+                      setEditando({
+                        ...editando,
+                        params: { ...editando.params, colCount: Number(e.target.value) },
+                      })
+                    }
                   />
                 </Field>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setEditando(null)}>
+              Cancelar
+            </Button>
             <Button onClick={salvar}>Salvar</Button>
           </DialogFooter>
         </DialogContent>

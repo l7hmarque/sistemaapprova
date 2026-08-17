@@ -6,8 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -19,14 +32,20 @@ import { useActiveOrg } from "@/hooks/use-active-org";
 import { formatLinhaSIT, type DadosTermo } from "@/lib/sit/formatLinha";
 import { encodeWin1252 } from "@/lib/sit/ansiEncode";
 import {
-  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA,
-  CATEGORIAS as CATEGORIAS_REO, CATEGORIA_TO_TPDESPESA,
+  TIPOS_DOC_DESPESA,
+  TIPOS_DOC_PAGAMENTO,
+  MODALIDADES_COMPRA,
+  CATEGORIAS as CATEGORIAS_REO,
+  CATEGORIA_TO_TPDESPESA,
 } from "@/lib/sit/catalogos";
 import { pendenciasSIT } from "@/lib/sit/inferCaptura";
 import { aplicarRegrasDespesa, type RegraDespesa } from "@/lib/sit/regrasDespesa";
 import { listarRegrasDespesa } from "@/lib/regras-despesa.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/painel")({ component: PainelPage });
+export const Route = createFileRoute("/_authenticated/admin/painel")({
+  head: () => ({ meta: [{ title: "Painel financeiro · Approva" }] }),
+  component: PainelPage,
+});
 
 type Evento = {
   id: string;
@@ -58,8 +77,16 @@ type Evento = {
 type Fornecedor = { id: string; razao_social: string; cnpj: string };
 
 const CATEGORIAS = [
-  "energia", "agua", "internet", "aluguel", "salario",
-  "servico", "compra_eventual", "tributos", "manutencao", "outros",
+  "energia",
+  "agua",
+  "internet",
+  "aluguel",
+  "salario",
+  "servico",
+  "compra_eventual",
+  "tributos",
+  "manutencao",
+  "outros",
 ];
 
 const ORIGENS = ["manual", "orcamento", "gmail", "foto"];
@@ -103,13 +130,13 @@ function PainelPage() {
     return Number.isFinite(n) ? n : null;
   }
 
-
   async function handleFecharMes() {
     if (eventos.length === 0) return toast.error("Sem eventos no mês.");
     const incompletos = eventos.filter((e) => e.status_documental !== "completo").length;
-    const msg = incompletos > 0
-      ? `Atenção: ${incompletos} de ${eventos.length} eventos não estão marcados como "completo". Gerar mesmo assim?`
-      : `Fechar ${mes} e gerar prestação imutável com ${eventos.length} eventos?`;
+    const msg =
+      incompletos > 0
+        ? `Atenção: ${incompletos} de ${eventos.length} eventos não estão marcados como "completo". Gerar mesmo assim?`
+        : `Fechar ${mes} e gerar prestação imutável com ${eventos.length} eventos?`;
     if (!confirm(msg)) return;
     setFechando(true);
     try {
@@ -127,7 +154,10 @@ function PainelPage() {
   const { activeOrgId } = useActiveOrg();
 
   async function recarregar() {
-    if (!activeOrgId) { setEventos([]); return; }
+    if (!activeOrgId) {
+      setEventos([]);
+      return;
+    }
     const { data, error } = await supabase
       .from("eventos_financeiros")
       .select("*")
@@ -139,9 +169,14 @@ function PainelPage() {
     else setEventos((data ?? []) as Evento[]);
   }
 
-  useEffect(() => { void recarregar(); }, [mes, activeOrgId]);
   useEffect(() => {
-    if (!activeOrgId) { setFornecedores([]); return; }
+    void recarregar();
+  }, [mes, activeOrgId]);
+  useEffect(() => {
+    if (!activeOrgId) {
+      setFornecedores([]);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("fornecedores")
@@ -152,7 +187,10 @@ function PainelPage() {
     })();
   }, [activeOrgId]);
   useEffect(() => {
-    if (!activeOrgId) { setProjetos([]); return; }
+    if (!activeOrgId) {
+      setProjetos([]);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("projetos")
@@ -163,22 +201,28 @@ function PainelPage() {
     })();
   }, [activeOrgId]);
   useEffect(() => {
-    if (!activeOrgId) { setRegras([]); return; }
+    if (!activeOrgId) {
+      setRegras([]);
+      return;
+    }
     (async () => {
       try {
         const r = await carregarRegras({ data: { organizationId: activeOrgId } });
         setRegras(r);
-      } catch { /* silencioso — regras são opcionais */ }
+      } catch {
+        /* silencioso — regras são opcionais */
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId]);
 
   const filtrados = useMemo(
-    () => eventos.filter((e) => {
-      const okCat = filtroCategoria === "todas" || e.categoria === filtroCategoria;
-      const okProj = filtroProjeto === "todos" || e.projeto_id === filtroProjeto;
-      return okCat && okProj;
-    }),
+    () =>
+      eventos.filter((e) => {
+        const okCat = filtroCategoria === "todas" || e.categoria === filtroCategoria;
+        const okProj = filtroProjeto === "todos" || e.projeto_id === filtroProjeto;
+        return okCat && okProj;
+      }),
     [eventos, filtroCategoria, filtroProjeto],
   );
 
@@ -284,11 +328,16 @@ function PainelPage() {
       metadata: (editing.metadata ?? {}) as any,
     };
     if (editing.id) {
-      const { error } = await supabase.from("eventos_financeiros").update(payload as any).eq("id", editing.id);
+      const { error } = await supabase
+        .from("eventos_financeiros")
+        .update(payload as any)
+        .eq("id", editing.id);
       if (error) return toast.error(error.message);
     } else {
       if (!activeOrgId) return toast.error("Selecione uma organização ativa");
-      const { error } = await supabase.from("eventos_financeiros").insert({ ...payload, organization_id: activeOrgId } as any);
+      const { error } = await supabase
+        .from("eventos_financeiros")
+        .insert({ ...payload, organization_id: activeOrgId } as any);
       if (error) return toast.error(error.message);
     }
     toast.success("Evento salvo");
@@ -296,7 +345,6 @@ function PainelPage() {
     setEditing(null);
     recarregar();
   }
-
 
   async function exportarSIT() {
     if (!activeOrgId) return toast.error("Selecione uma organização");
@@ -318,7 +366,10 @@ function PainelPage() {
       else pendencias.push({ desc: e.descricao || e.id_interno || "(sem descrição)", falta });
     }
     if (pendencias.length > 0) {
-      const resumo = pendencias.slice(0, 5).map(p => `• ${p.desc}: ${p.falta.join(", ")}`).join("\n");
+      const resumo = pendencias
+        .slice(0, 5)
+        .map((p) => `• ${p.desc}: ${p.falta.join(", ")}`)
+        .join("\n");
       const ok = confirm(
         `${pendencias.length} evento(s) sem todos os campos SIT (serão pulados):\n\n${resumo}${pendencias.length > 5 ? "\n…" : ""}\n\nGerar TXT com ${elegiveis.length} evento(s)?`,
       );
@@ -345,7 +396,9 @@ function PainelPage() {
     );
     const conteudo = linhas.join("\r\n") + "\r\n";
     const bytes = encodeWin1252(conteudo);
-    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "text/plain;charset=windows-1252" });
+    const blob = new Blob([bytes.buffer as ArrayBuffer], {
+      type: "text/plain;charset=windows-1252",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -354,8 +407,6 @@ function PainelPage() {
     URL.revokeObjectURL(url);
     toast.success(`${elegiveis.length} linha(s) exportada(s)`);
   }
-
-
 
   return (
     <div className="p-8 space-y-6">
@@ -370,29 +421,48 @@ function PainelPage() {
         <div className="flex items-end gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Mês de referência</Label>
-            <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="w-40" />
+            <Input
+              type="month"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              className="w-40"
+            />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Categoria</Label>
             <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
-                {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {CATEGORIAS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Projeto</Label>
             <Select value={filtroProjeto} onValueChange={setFiltroProjeto}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os projetos</SelectItem>
-                {projetos.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                {projetos.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={abrirNovo}><Plus className="mr-1 h-4 w-4" /> Novo evento</Button>
+          <Button onClick={abrirNovo}>
+            <Plus className="mr-1 h-4 w-4" /> Novo evento
+          </Button>
           <Button onClick={() => setValidarSITAberto(true)} variant="outline">
             <AlertCircle className="mr-1 h-4 w-4" /> Validar antes de exportar
           </Button>
@@ -407,27 +477,42 @@ function PainelPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardContent className="p-5">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Previsto</div>
-          <div className="font-display text-3xl mt-2">R$ {totais.prev.toFixed(2)}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-5">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Efetivo</div>
-          <div className="font-display text-3xl mt-2">R$ {totais.efet.toFixed(2)}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-5">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Diferença</div>
-          <div className={`font-display text-3xl mt-2 ${totais.dif > 0 ? "text-destructive" : ""}`}>
-            R$ {totais.dif.toFixed(2)}
-          </div>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Previsto
+            </div>
+            <div className="font-display text-3xl mt-2">R$ {totais.prev.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Efetivo
+            </div>
+            <div className="font-display text-3xl mt-2">R$ {totais.efet.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Diferença
+            </div>
+            <div
+              className={`font-display text-3xl mt-2 ${totais.dif > 0 ? "text-destructive" : ""}`}
+            >
+              R$ {totais.dif.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span>Eventos ({filtrados.length})</span>
           <span className="normal-case tracking-normal text-xs">
-            {filtrados.filter((e) => pendenciasSIT(e).length === 0).length} de {filtrados.length} prontos para SIT
+            {filtrados.filter((e) => pendenciasSIT(e).length === 0).length} de {filtrados.length}{" "}
+            prontos para SIT
           </span>
         </div>
 
@@ -445,8 +530,10 @@ function PainelPage() {
             const forn = fornecedores.find((f) => f.id === e.fornecedor_id);
             const meta = (e.metadata ?? {}) as Record<string, unknown>;
             const cnpjMeta = typeof meta.cnpj_extraido === "string" ? meta.cnpj_extraido : null;
-            const razaoMeta = typeof meta.razao_social_extraida === "string" ? meta.razao_social_extraida : null;
-            const numeroMeta = typeof meta.numero_extraido === "string" ? meta.numero_extraido : null;
+            const razaoMeta =
+              typeof meta.razao_social_extraida === "string" ? meta.razao_social_extraida : null;
+            const numeroMeta =
+              typeof meta.numero_extraido === "string" ? meta.numero_extraido : null;
             const emissaoMeta = typeof meta.data_emissao === "string" ? meta.data_emissao : null;
             const motivoMeta = typeof meta.motivo_revisao === "string" ? meta.motivo_revisao : null;
             const dif = (Number(e.valor_efetivo) || 0) - (Number(e.valor_previsto) || 0);
@@ -459,11 +546,15 @@ function PainelPage() {
                         {e.descricao || "(sem descrição)"}
                       </CardTitle>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">{e.categoria}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {e.categoria}
+                        </Badge>
                         <Badge variant={statusVariant(e.status_documental)} className="text-[10px]">
                           {e.status_documental}
                         </Badge>
-                        <Badge variant="outline" className="text-[10px]">{e.origem}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {e.origem}
+                        </Badge>
                         {(() => {
                           const pend = pendenciasSIT(e);
                           if (pend.length === 0) return null;
@@ -482,7 +573,9 @@ function PainelPage() {
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">
-                                  <div className="text-[11px] font-semibold mb-1">Pendências SIT:</div>
+                                  <div className="text-[11px] font-semibold mb-1">
+                                    Pendências SIT:
+                                  </div>
                                   <ul className="text-[11px] space-y-0.5">
                                     {pend.map((p) => (
                                       <li key={p}>• {p}</li>
@@ -496,10 +589,20 @@ function PainelPage() {
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => abrirEdit(e)} title="Editar">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => abrirEdit(e)}
+                        title="Editar"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => remover(e.id)} title="Remover">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => remover(e.id)}
+                        title="Remover"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -507,10 +610,10 @@ function PainelPage() {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm flex-1">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fornecedor</div>
-                    <div className="break-words">
-                      {forn?.razao_social ?? razaoMeta ?? "—"}
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Fornecedor
                     </div>
+                    <div className="break-words">{forn?.razao_social ?? razaoMeta ?? "—"}</div>
                     {(forn?.cnpj || cnpjMeta) && (
                       <div className="text-xs text-muted-foreground">
                         CNPJ {forn?.cnpj ?? cnpjMeta}
@@ -520,7 +623,9 @@ function PainelPage() {
                   </div>
                   {e.projeto_id && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Projeto</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Projeto
+                      </div>
                       <div className="text-sm font-medium">
                         {projetos.find((p) => p.id === e.projeto_id)?.nome ?? "—"}
                       </div>
@@ -529,28 +634,42 @@ function PainelPage() {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Emissão</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Emissão
+                      </div>
                       <div>{emissaoMeta ?? "—"}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Vencimento</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Vencimento
+                      </div>
                       <div>{e.data_vencimento ?? "—"}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Pagamento
+                      </div>
                       <div>{e.data_pagamento ?? "—"}</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Previsto</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Previsto
+                      </div>
                       <div className="font-display text-base">
-                        {e.valor_previsto != null ? `R$ ${Number(e.valor_previsto).toFixed(2)}` : "—"}
+                        {e.valor_previsto != null
+                          ? `R$ ${Number(e.valor_previsto).toFixed(2)}`
+                          : "—"}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Efetivo</div>
-                      <div className={`font-display text-base ${dif !== 0 && e.valor_efetivo != null ? "text-destructive" : ""}`}>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Efetivo
+                      </div>
+                      <div
+                        className={`font-display text-base ${dif !== 0 && e.valor_efetivo != null ? "text-destructive" : ""}`}
+                      >
                         {e.valor_efetivo != null ? `R$ ${Number(e.valor_efetivo).toFixed(2)}` : "—"}
                       </div>
                     </div>
@@ -561,9 +680,7 @@ function PainelPage() {
                       Nº doc: <span className="font-mono">{numeroMeta}</span>
                     </div>
                   )}
-                  {motivoMeta && (
-                    <div className="text-xs text-destructive">⚠ {motivoMeta}</div>
-                  )}
+                  {motivoMeta && <div className="text-xs text-destructive">⚠ {motivoMeta}</div>}
                 </CardContent>
               </Card>
             );
@@ -571,24 +688,36 @@ function PainelPage() {
         </div>
       </div>
 
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editing?.id ? "Editar evento" : "Novo evento"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? "Editar evento" : "Novo evento"}</DialogTitle>
+          </DialogHeader>
           {editing && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Mês</Label>
-                <Input type="month" value={editing.mes_referencia}
-                  onChange={(e) => setEditing({ ...editing, mes_referencia: e.target.value })} />
+                <Input
+                  type="month"
+                  value={editing.mes_referencia}
+                  onChange={(e) => setEditing({ ...editing, mes_referencia: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Select value={editing.categoria}
-                  onValueChange={(v) => setEditing({ ...editing, categoria: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={editing.categoria}
+                  onValueChange={(v) => setEditing({ ...editing, categoria: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {CATEGORIAS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -599,80 +728,139 @@ function PainelPage() {
                     {(editing.descricao ?? "").length}/200
                   </span>
                 </Label>
-                <Input value={editing.descricao ?? ""} maxLength={200}
-                  onChange={(e) => setEditing({ ...editing, descricao: e.target.value.slice(0, 200) })} />
+                <Input
+                  value={editing.descricao ?? ""}
+                  maxLength={200}
+                  onChange={(e) =>
+                    setEditing({ ...editing, descricao: e.target.value.slice(0, 200) })
+                  }
+                />
               </div>
               <div>
                 <Label>Nº do documento</Label>
-                <Input value={numeroDocStr} placeholder="—"
-                  onChange={(e) => setNumeroDocStr(e.target.value)} />
+                <Input
+                  value={numeroDocStr}
+                  placeholder="—"
+                  onChange={(e) => setNumeroDocStr(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Data de emissão</Label>
-                <Input type="date" value={dataEmissaoStr}
-                  onChange={(e) => setDataEmissaoStr(e.target.value)} />
+                <Input
+                  type="date"
+                  value={dataEmissaoStr}
+                  onChange={(e) => setDataEmissaoStr(e.target.value)}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Fornecedor</Label>
-                <Select value={editing.fornecedor_id ?? "none"}
-                  onValueChange={(v) => setEditing({ ...editing, fornecedor_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <Select
+                  value={editing.fornecedor_id ?? "none"}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, fornecedor_id: v === "none" ? null : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— sem fornecedor —</SelectItem>
                     {fornecedores.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>{f.razao_social}</SelectItem>
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.razao_social}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="col-span-2">
                 <Label>Projeto / Termo</Label>
-                <Select value={editing.projeto_id ?? "none"}
-                  onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <Select
+                  value={editing.projeto_id ?? "none"}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, projeto_id: v === "none" ? null : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— sem projeto —</SelectItem>
                     {projetos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Valor previsto</Label>
-                <Input type="text" inputMode="decimal" placeholder="0,00"
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   value={valorPrevStr}
-                  onChange={(e) => setValorPrevStr(e.target.value)} />
+                  onChange={(e) => setValorPrevStr(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Valor efetivo</Label>
-                <Input type="text" inputMode="decimal" placeholder="0,00"
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   value={valorEfetStr}
-                  onChange={(e) => setValorEfetStr(e.target.value)} />
+                  onChange={(e) => setValorEfetStr(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Vencimento</Label>
-                <Input type="date" value={editing.data_vencimento ?? ""}
-                  onChange={(e) => setEditing({ ...editing, data_vencimento: e.target.value || null })} />
+                <Input
+                  type="date"
+                  value={editing.data_vencimento ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, data_vencimento: e.target.value || null })
+                  }
+                />
               </div>
               <div>
                 <Label>Pagamento</Label>
-                <Input type="date" value={editing.data_pagamento ?? ""}
-                  onChange={(e) => setEditing({ ...editing, data_pagamento: e.target.value || null })} />
+                <Input
+                  type="date"
+                  value={editing.data_pagamento ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, data_pagamento: e.target.value || null })
+                  }
+                />
               </div>
               <div>
                 <Label>Origem</Label>
-                <Select value={editing.origem} onValueChange={(v) => setEditing({ ...editing, origem: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={editing.origem}
+                  onValueChange={(v) => setEditing({ ...editing, origem: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {ORIGENS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {ORIGENS.map((o) => (
+                      <SelectItem key={o} value={o}>
+                        {o}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Status documental</Label>
-                <Select value={editing.status_documental} onValueChange={(v) => setEditing({ ...editing, status_documental: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={editing.status_documental}
+                  onValueChange={(v) => setEditing({ ...editing, status_documental: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pendente">pendente</SelectItem>
                     <SelectItem value="faltando">faltando</SelectItem>
@@ -699,9 +887,13 @@ function PainelPage() {
                 <Label>Tipo despesa (REO)</Label>
                 <Select
                   value={editing.tp_despesa != null ? String(editing.tp_despesa) : "none"}
-                  onValueChange={(v) => setEditing({ ...editing, tp_despesa: v === "none" ? null : Number(v) })}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, tp_despesa: v === "none" ? null : Number(v) })
+                  }
                 >
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— sem código —</SelectItem>
                     {CATEGORIAS_REO.map((c) => {
@@ -718,10 +910,21 @@ function PainelPage() {
               <div>
                 <Label>Tipo doc despesa</Label>
                 <Select
-                  value={editing.tp_documento_despesa != null ? String(editing.tp_documento_despesa) : "none"}
-                  onValueChange={(v) => setEditing({ ...editing, tp_documento_despesa: v === "none" ? null : Number(v) })}
+                  value={
+                    editing.tp_documento_despesa != null
+                      ? String(editing.tp_documento_despesa)
+                      : "none"
+                  }
+                  onValueChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      tp_documento_despesa: v === "none" ? null : Number(v),
+                    })
+                  }
                 >
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     {TIPOS_DOC_DESPESA.map((t) => (
@@ -735,10 +938,21 @@ function PainelPage() {
               <div>
                 <Label>Modalidade compra</Label>
                 <Select
-                  value={editing.cd_modalidade_compra != null ? String(editing.cd_modalidade_compra) : "none"}
-                  onValueChange={(v) => setEditing({ ...editing, cd_modalidade_compra: v === "none" ? null : Number(v) })}
+                  value={
+                    editing.cd_modalidade_compra != null
+                      ? String(editing.cd_modalidade_compra)
+                      : "none"
+                  }
+                  onValueChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      cd_modalidade_compra: v === "none" ? null : Number(v),
+                    })
+                  }
                 >
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     {MODALIDADES_COMPRA.map((m) => (
@@ -753,9 +967,13 @@ function PainelPage() {
                 <Label>Tipo doc favorecido</Label>
                 <Select
                   value={editing.tp_doc_fav ?? "none"}
-                  onValueChange={(v) => setEditing({ ...editing, tp_doc_fav: v === "none" ? null : v })}
+                  onValueChange={(v) =>
+                    setEditing({ ...editing, tp_doc_fav: v === "none" ? null : v })
+                  }
                 >
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     <SelectItem value="CNPJ">CNPJ</SelectItem>
@@ -766,21 +984,39 @@ function PainelPage() {
               </div>
               <div>
                 <Label>Nº doc favorecido</Label>
-                <Input value={editing.nr_doc_fav ?? ""}
-                  onChange={(e) => setEditing({ ...editing, nr_doc_fav: e.target.value || null })} />
+                <Input
+                  value={editing.nr_doc_fav ?? ""}
+                  onChange={(e) => setEditing({ ...editing, nr_doc_fav: e.target.value || null })}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Nome favorecido (sobrepõe fornecedor no TXT)</Label>
-                <Input value={editing.nm_favorecido ?? ""} maxLength={250}
-                  onChange={(e) => setEditing({ ...editing, nm_favorecido: e.target.value.slice(0, 250) || null })} />
+                <Input
+                  value={editing.nm_favorecido ?? ""}
+                  maxLength={250}
+                  onChange={(e) =>
+                    setEditing({ ...editing, nm_favorecido: e.target.value.slice(0, 250) || null })
+                  }
+                />
               </div>
               <div>
                 <Label>Tipo doc pagamento</Label>
                 <Select
-                  value={editing.tp_documento_pagamento != null ? String(editing.tp_documento_pagamento) : "none"}
-                  onValueChange={(v) => setEditing({ ...editing, tp_documento_pagamento: v === "none" ? null : Number(v) })}
+                  value={
+                    editing.tp_documento_pagamento != null
+                      ? String(editing.tp_documento_pagamento)
+                      : "none"
+                  }
+                  onValueChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      tp_documento_pagamento: v === "none" ? null : Number(v),
+                    })
+                  }
                 >
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">—</SelectItem>
                     {TIPOS_DOC_PAGAMENTO.map((t) => (
@@ -793,13 +1029,23 @@ function PainelPage() {
               </div>
               <div>
                 <Label>Nº doc pagamento</Label>
-                <Input value={editing.nr_documento_pagamento ?? ""} maxLength={15}
-                  onChange={(e) => setEditing({ ...editing, nr_documento_pagamento: e.target.value.slice(0, 15) || null })} />
+                <Input
+                  value={editing.nr_documento_pagamento ?? ""}
+                  maxLength={15}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      nr_documento_pagamento: e.target.value.slice(0, 15) || null,
+                    })
+                  }
+                />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={salvar}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
@@ -817,7 +1063,8 @@ function PainelPage() {
             return (
               <div className="space-y-3">
                 <div className="text-sm">
-                  <strong>{prontos}</strong> de <strong>{linhas.length}</strong> eventos prontos para exportar.{" "}
+                  <strong>{prontos}</strong> de <strong>{linhas.length}</strong> eventos prontos
+                  para exportar.{" "}
                   {comPendencia.length > 0 && (
                     <span className="text-amber-700 dark:text-amber-400">
                       {comPendencia.length} com pendências (serão pulados no export).
@@ -843,7 +1090,9 @@ function PainelPage() {
                             </span>
                           </div>
                           <ul className="mt-1 ml-4 list-disc text-xs text-amber-700 dark:text-amber-400">
-                            {pend.map((p, i) => <li key={i}>{p}</li>)}
+                            {pend.map((p, i) => (
+                              <li key={i}>{p}</li>
+                            ))}
                           </ul>
                         </div>
                       );
@@ -854,8 +1103,15 @@ function PainelPage() {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setValidarSITAberto(false)}>Fechar</Button>
-            <Button onClick={() => { setValidarSITAberto(false); void exportarSIT(); }}>
+            <Button variant="outline" onClick={() => setValidarSITAberto(false)}>
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                setValidarSITAberto(false);
+                void exportarSIT();
+              }}
+            >
               <FileDown className="mr-1 h-4 w-4" /> Exportar mesmo assim
             </Button>
           </DialogFooter>

@@ -59,9 +59,13 @@ Retorne SOMENTE JSON válido, sem markdown, no formato:
 }
 Regras: cnpj só dígitos; valor como número (nunca soma de vários documentos); se não tiver certeza use null; NÃO invente; se houver apenas um documento no arquivo, retorne uma lista com um único item.`;
 
-
 function sanitize(text: string): string {
-  let s = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+  let s = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const a = s.indexOf("{");
   const b = s.lastIndexOf("}");
   if (a !== -1 && b > a) s = s.slice(a, b + 1);
@@ -74,8 +78,11 @@ function parseData(v: unknown): string | null {
 }
 function parseUmDado(p: Record<string, unknown>): Dados {
   const valor =
-    typeof p.valor === "number" ? p.valor
-    : typeof p.valor === "string" ? Number(String(p.valor).replace(/\./g, "").replace(",", ".")) : null;
+    typeof p.valor === "number"
+      ? p.valor
+      : typeof p.valor === "string"
+        ? Number(String(p.valor).replace(/\./g, "").replace(",", "."))
+        : null;
   const cnpj = typeof p.cnpj === "string" ? p.cnpj.replace(/\D/g, "") : null;
   const razao = typeof p.razao_social === "string" ? p.razao_social.trim() : null;
   const descricao = typeof p.descricao === "string" ? p.descricao.trim().slice(0, 200) : null;
@@ -95,11 +102,16 @@ function parseUmDado(p: Record<string, unknown>): Dados {
 }
 function parseListaDados(raw: string): Dados[] {
   let p: Record<string, unknown> = {};
-  try { p = JSON.parse(sanitize(raw)); } catch { /* noop */ }
+  try {
+    p = JSON.parse(sanitize(raw));
+  } catch {
+    /* noop */
+  }
   const lista = Array.isArray((p as { documentos?: unknown }).documentos)
-    ? ((p as { documentos: unknown[] }).documentos)
-    : Array.isArray(p) ? (p as unknown[])
-    : [p];
+    ? (p as { documentos: unknown[] }).documentos
+    : Array.isArray(p)
+      ? (p as unknown[])
+      : [p];
   return lista
     .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
     .map((x) => parseUmDado(x));
@@ -127,8 +139,10 @@ function msgErro(e: unknown): string {
   if (!t) return "Falha desconhecida. Reprocesse em alguns instantes.";
   if (t.includes("timeout") || t.includes("timed out")) return "Tempo esgotado. Reprocesse.";
   if (t.includes("network") || t.includes("fetch")) return "Sem resposta da rede. Reprocesse.";
-  if (t.includes("permission") || t.includes("rls")) return "Sem permissão para concluir a operação.";
-  if (t.includes("storage") || t.includes("not found")) return "Arquivo não encontrado no armazenamento.";
+  if (t.includes("permission") || t.includes("rls"))
+    return "Sem permissão para concluir a operação.";
+  if (t.includes("storage") || t.includes("not found"))
+    return "Arquivo não encontrado no armazenamento.";
   if (t.includes("too large") || t.includes("413")) return "Arquivo muito grande.";
   if (raw.length > 160) return "Falha ao processar o documento.";
   return raw;
@@ -148,7 +162,12 @@ async function chamarIA(args: {
     | { type: "text"; text: string }
     | { type: "file"; data: Uint8Array; mediaType: string }
     | { type: "image"; image: string }
-  > = [{ type: "text", text: `Arquivo: ${args.nomeArquivo}\nExtraia os campos e responda SOMENTE com o JSON.` }];
+  > = [
+    {
+      type: "text",
+      text: `Arquivo: ${args.nomeArquivo}\nExtraia os campos e responda SOMENTE com o JSON.`,
+    },
+  ];
   if (args.bytes) {
     if (args.mimeType.startsWith("image/")) {
       // Convert to base64 data URL for image input
@@ -160,12 +179,18 @@ async function chamarIA(args: {
       parts.push({ type: "file", data: args.bytes, mediaType: args.mimeType || "application/pdf" });
     }
   } else if (args.texto) {
-    parts.push({ type: "text", text: `Texto extraído do documento:\n${args.texto.slice(0, 60_000)}` });
+    parts.push({
+      type: "text",
+      text: `Texto extraído do documento:\n${args.texto.slice(0, 60_000)}`,
+    });
   }
-  const { text } = await generateText({ model, system: SYSTEM, messages: [{ role: "user", content: parts }] });
+  const { text } = await generateText({
+    model,
+    system: SYSTEM,
+    messages: [{ role: "user", content: parts }],
+  });
   return parseListaDados(text);
 }
-
 
 async function marcarErro(jobId: string, mensagem: string) {
   await supabaseAdmin
@@ -232,8 +257,9 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const bytes = new Uint8Array(await dl.data.arrayBuffer());
 
     // Cria signed URL (7 dias) para o anexo
-    const { data: signed } = await supabaseAdmin
-      .storage.from("documentos").createSignedUrl(path, 60 * 60 * 24 * 7);
+    const { data: signed } = await supabaseAdmin.storage
+      .from("documentos")
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
 
     // 3. Dedup
     const { data: existentes } = await supabaseAdmin
@@ -252,7 +278,9 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
       try {
         const paginas = await Promise.race([
           extrairTextoPorPagina(bytes),
-          new Promise<never>((_, rej) => setTimeout(() => rej(new Error("pdf-text timeout")), 15_000)),
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("pdf-text timeout")), 15_000),
+          ),
         ]);
         texto = paginas.map((p) => p.texto).join("\n\n");
       } catch (e) {
@@ -264,12 +292,23 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     const temTextoUtil = texto.trim().length > 80 && letras > 40 && digitos > 4;
 
     // 5. IA — extrai LISTA de documentos
-    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lendo documento" }).eq("id", jobId);
+    await supabaseAdmin
+      .from("captura_jobs")
+      .update({ mensagem: "lendo documento" })
+      .eq("id", jobId);
 
     const dadosVazio: Dados = {
-      tipo: null, cnpj: null, razao_social: null, valor: null, numero: null,
-      data_emissao: null, data_vencimento: null, data_pagamento: null,
-      descricao: nomeArquivo, forma_pagamento: null, numero_pagamento: null,
+      tipo: null,
+      cnpj: null,
+      razao_social: null,
+      valor: null,
+      numero: null,
+      data_emissao: null,
+      data_vencimento: null,
+      data_pagamento: null,
+      descricao: nomeArquivo,
+      forma_pagamento: null,
+      numero_pagamento: null,
     };
     let listaDados: Dados[] = [];
     try {
@@ -306,11 +345,28 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     if (listaDados.length === 0) listaDados = [dadosVazio];
 
     // 6. Vínculo / fornecedor / evento — carrega config e caches uma vez
-    await supabaseAdmin.from("captura_jobs").update({ mensagem: "lançando eventos" }).eq("id", jobId);
+    await supabaseAdmin
+      .from("captura_jobs")
+      .update({ mensagem: "lançando eventos" })
+      .eq("id", jobId);
 
-    const [{ data: cfg }, { data: fornsRaw }, { data: eventos }, { data: regrasRaw }, { data: natRaw }] = await Promise.all([
-      supabaseAdmin.from("configuracoes").select("valor").eq("organization_id", orgId).eq("chave", "auto_vinculo").maybeSingle(),
-      supabaseAdmin.from("fornecedores").select("id, razao_social, cnpj, regras_sit").eq("organization_id", orgId),
+    const [
+      { data: cfg },
+      { data: fornsRaw },
+      { data: eventos },
+      { data: regrasRaw },
+      { data: natRaw },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("configuracoes")
+        .select("valor")
+        .eq("organization_id", orgId)
+        .eq("chave", "auto_vinculo")
+        .maybeSingle(),
+      supabaseAdmin
+        .from("fornecedores")
+        .select("id, razao_social, cnpj, regras_sit")
+        .eq("organization_id", orgId),
       supabaseAdmin
         .from("eventos_financeiros")
         .select("id, valor_previsto, data_vencimento, fornecedor_id")
@@ -320,11 +376,13 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
       supabaseAdmin.from("regras_despesa").select("*").eq("organization_id", orgId),
       supabaseAdmin.from("naturezas_despesa").select("codigo").eq("ativo", true),
     ]);
-    const regrasOrg = (regrasRaw ?? []) as Array<RegraDespesa & { set_natureza_codigo?: string | null }>;
+    const regrasOrg = (regrasRaw ?? []) as Array<
+      RegraDespesa & { set_natureza_codigo?: string | null }
+    >;
     const naturezasAtivas = new Set<string>((natRaw ?? []).map((n) => n.codigo as string));
     const v = cfg?.valor as { valor_centavos?: number; janela_dias?: number } | undefined;
-    const tolValor = ((typeof v?.valor_centavos === "number" ? v.valor_centavos : 50)) / 100;
-    const tolMs = ((typeof v?.janela_dias === "number" ? v.janela_dias : 3)) * 86_400_000;
+    const tolValor = (typeof v?.valor_centavos === "number" ? v.valor_centavos : 50) / 100;
+    const tolMs = (typeof v?.janela_dias === "number" ? v.janela_dias : 3) * 86_400_000;
 
     type Forn = { id: string; razao_social: string; cnpj: string; regras_sit?: unknown };
     const fornCache = new Map<string, Forn>();
@@ -371,8 +429,10 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
 
       // Tenta vincular a evento existente
       let eventoId: string | null = null;
-      const valorNum = dados.valor != null && Number.isFinite(Number(dados.valor)) && Number(dados.valor) > 0
-        ? Number(dados.valor) : null;
+      const valorNum =
+        dados.valor != null && Number.isFinite(Number(dados.valor)) && Number(dados.valor) > 0
+          ? Number(dados.valor)
+          : null;
       if (fornEncontrado && valorNum != null && eventos) {
         const dataDoc = dados.data_vencimento ?? dados.data_emissao ?? dados.data_pagamento ?? null;
         const cand = eventos.filter((e) => {
@@ -399,15 +459,19 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
       let eventoCriado = false;
       if (!eventoId) {
         const categoria = inferirCategoria(dados);
-        const descricaoRaw = (dados.descricao && dados.descricao.trim()) || (dados.tipo ?? nomeArquivo);
+        const descricaoRaw =
+          (dados.descricao && dados.descricao.trim()) || (dados.tipo ?? nomeArquivo);
         const descricaoBase = descricaoRaw.slice(0, 200);
-        const descricao = marcarDuplicata ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220) : descricaoBase;
+        const descricao = marcarDuplicata
+          ? `[DUPLICATA] ${descricaoBase}`.slice(0, 220)
+          : descricaoBase;
         const dataVenc = dados.data_vencimento ?? dados.data_emissao ?? null;
         const dataPag = dados.data_pagamento ?? null;
         const temPagamento = !!dataPag;
         const cnpjForFav = fornEncontrado?.cnpj?.replace(/\D/g, "") ?? cnpjDigits;
         const camposSIT = resolverCamposSIT({
-          regras_sit: (fornEncontrado?.regras_sit as Record<string, unknown> | null | undefined) ?? null,
+          regras_sit:
+            (fornEncontrado?.regras_sit as Record<string, unknown> | null | undefined) ?? null,
           tipo: dados.tipo ?? null,
           descricao: dados.descricao ?? null,
           forma_pagamento: dados.forma_pagamento ?? null,
@@ -455,16 +519,33 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             nm_favorecido: camposFinal.nm_favorecido,
           };
           const regraNat = regrasOrg
-            .filter((r) => r.ativo && r.set_natureza_codigo && naturezasAtivas.has(r.set_natureza_codigo))
+            .filter(
+              (r) => r.ativo && r.set_natureza_codigo && naturezasAtivas.has(r.set_natureza_codigo),
+            )
             .sort((a, b) => a.prioridade - b.prioridade)
             .find((r) => {
-              if (r.match_tp_despesa == null && r.match_tp_documento == null && !r.match_favorecido_regex) return false;
-              if (r.match_tp_despesa != null && camposMatch.tp_despesa !== r.match_tp_despesa) return false;
-              if (r.match_tp_documento != null && camposMatch.tp_documento_despesa !== r.match_tp_documento) return false;
+              if (
+                r.match_tp_despesa == null &&
+                r.match_tp_documento == null &&
+                !r.match_favorecido_regex
+              )
+                return false;
+              if (r.match_tp_despesa != null && camposMatch.tp_despesa !== r.match_tp_despesa)
+                return false;
+              if (
+                r.match_tp_documento != null &&
+                camposMatch.tp_documento_despesa !== r.match_tp_documento
+              )
+                return false;
               if (r.match_favorecido_regex) {
                 try {
-                  if (!new RegExp(r.match_favorecido_regex, "i").test(camposMatch.nm_favorecido ?? "")) return false;
-                } catch { return false; }
+                  if (
+                    !new RegExp(r.match_favorecido_regex, "i").test(camposMatch.nm_favorecido ?? "")
+                  )
+                    return false;
+                } catch {
+                  return false;
+                }
               }
               return true;
             });
@@ -498,7 +579,11 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
             tp_despesa: camposFinal.tp_despesa,
             cd_modalidade_compra: camposFinal.cd_modalidade_compra,
             natureza_despesa_codigo: naturezaResolvida,
-            status_documental: marcarDuplicata ? "revisar" : (valorNum && (temPagamento || dataVenc) ? "completo" : "revisar"),
+            status_documental: marcarDuplicata
+              ? "revisar"
+              : valorNum && (temPagamento || dataVenc)
+                ? "completo"
+                : "revisar",
             metadata: {
               tipo: dados.tipo,
               cnpj_extraido: dados.cnpj,
@@ -513,8 +598,11 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
               multi_doc_index: listaDados.length > 1 ? idx + 1 : null,
               multi_doc_total: listaDados.length > 1 ? listaDados.length : null,
               precisa_revisao: marcarDuplicata || !valorNum,
-              motivo_revisao: marcarDuplicata ? "Arquivo duplicado — revisar manualmente"
-                : (!valorNum ? "Valor não extraído" : null),
+              motivo_revisao: marcarDuplicata
+                ? "Arquivo duplicado — revisar manualmente"
+                : !valorNum
+                  ? "Valor não extraído"
+                  : null,
               origem_natureza: origemNatureza,
             },
           })
@@ -539,7 +627,8 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
           cnpj_extraido: dados.cnpj,
           valor_extraido: dados.valor,
           numero_extraido: dados.numero,
-          data_extraida: dados.data_emissao ?? dados.data_vencimento ?? dados.data_pagamento ?? null,
+          data_extraida:
+            dados.data_emissao ?? dados.data_vencimento ?? dados.data_pagamento ?? null,
           origem: "manual",
           evento_id: eventoId,
           metadata: {
@@ -589,7 +678,6 @@ export async function processarCapturaJob(jobId: string): Promise<void> {
     await marcarErro(jobId, msgErro(e));
   }
 }
-
 
 /** Reivindica todos os `pendente` mais antigos e processa em paralelo (limite N). */
 export async function processarPendentes(limite = 5): Promise<{ processados: number }> {

@@ -27,16 +27,26 @@ export function ViewAsProvider({ children }: { children: ReactNode }) {
       const t = localStorage.getItem(KEY_TIPO) as ViewAsTipo | null;
       if (r) setRoleState(r);
       if (t) setTipoState(t);
-    } catch {}
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
   }, []);
 
   const setRole = (r: ViewAsRole) => {
     setRoleState(r);
-    try { localStorage.setItem(KEY_ROLE, r); } catch {}
+    try {
+      localStorage.setItem(KEY_ROLE, r);
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
   };
   const setTipo = (t: ViewAsTipo) => {
     setTipoState(t);
-    try { localStorage.setItem(KEY_TIPO, t); } catch {}
+    try {
+      localStorage.setItem(KEY_TIPO, t);
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
   };
   const reset = () => {
     setRole("real");
@@ -44,7 +54,16 @@ export function ViewAsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ role, tipo, setRole, setTipo, reset, isOverriding: role !== "real" || tipo !== "real" }}>
+    <Ctx.Provider
+      value={{
+        role,
+        tipo,
+        setRole,
+        setTipo,
+        reset,
+        isOverriding: role !== "real" || tipo !== "real",
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
@@ -52,6 +71,14 @@ export function ViewAsProvider({ children }: { children: ReactNode }) {
 
 export function useViewAs(): ViewAsValue {
   const v = useContext(Ctx);
-  if (!v) return { role: "real", tipo: "real", setRole: () => {}, setTipo: () => {}, reset: () => {}, isOverriding: false };
+  if (!v)
+    return {
+      role: "real",
+      tipo: "real",
+      setRole: () => {},
+      setTipo: () => {},
+      reset: () => {},
+      isOverriding: false,
+    };
   return v;
 }

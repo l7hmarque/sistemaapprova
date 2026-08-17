@@ -1,22 +1,16 @@
 /**
  * Endpoint chamado pelo pg_cron (1x/minuto) para processar a fila drive_sync_queue.
- * Autenticação: header `apikey` = SUPABASE_PUBLISHABLE_KEY (anon).
+ * Autenticação: header `x-cron-secret` = CRON_SECRET (ou `apikey` = chave publicável).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { processDriveQueueTick } from "@/lib/drive-queue.server";
+import { hookAutorizado, respostaNaoAutorizado } from "@/lib/hooks-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/drive-sync-tick")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const anon = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
-        const provided = request.headers.get("apikey") ?? request.headers.get("x-api-key");
-        if (!anon || !provided || provided !== anon) {
-          return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+        if (!hookAutorizado(request)) return respostaNaoAutorizado();
         try {
           const url = new URL(request.url);
           const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 5), 1), 20);

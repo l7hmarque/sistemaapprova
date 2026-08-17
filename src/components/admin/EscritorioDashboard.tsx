@@ -7,7 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { listarProjetosEscritorioComResumo } from "@/lib/projetos.functions";
-import { Building2, FileText, AlertCircle, CalendarClock, ArrowRight, ShoppingCart, FolderKanban } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  AlertCircle,
+  CalendarClock,
+  ArrowRight,
+  ShoppingCart,
+  FolderKanban,
+} from "lucide-react";
 
 type OscRow = {
   id: string;
@@ -17,7 +25,12 @@ type OscRow = {
   trial_ate: string | null;
 };
 
-type EventoFin = { organization_id: string; status_documental: string; data_vencimento: string | null; mes_referencia: string };
+type EventoFin = {
+  organization_id: string;
+  status_documental: string;
+  data_vencimento: string | null;
+  mes_referencia: string;
+};
 
 type CotacaoParada = {
   id: string;
@@ -129,15 +142,25 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
   return (
     <div className="p-6 md:p-8 space-y-6 md:space-y-8" data-module="dashboard">
       <header className="border-l-4 pl-4" style={{ borderColor: "var(--module-accent)" }}>
-        <h1 className="text-2xl md:text-3xl font-display uppercase tracking-tight">Painel do escritório</h1>
+        <h1 className="text-2xl md:text-3xl font-display uppercase tracking-tight">
+          Painel do escritório
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Acompanhe suas OSCs em um só lugar. Clique em uma para entrar no contexto dela.
         </p>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPI icon={<Building2 className="h-5 w-5" />} label="OSCs ativas" value={oscsQ.data?.length ?? 0} />
-        <KPI icon={<FileText className="h-5 w-5" />} label="Lançamentos do mês" value={totals.total} />
+        <KPI
+          icon={<Building2 className="h-5 w-5" />}
+          label="OSCs ativas"
+          value={oscsQ.data?.length ?? 0}
+        />
+        <KPI
+          icon={<FileText className="h-5 w-5" />}
+          label="Lançamentos do mês"
+          value={totals.total}
+        />
         <KPI
           icon={<AlertCircle className="h-5 w-5" />}
           label="Documentos pendentes"
@@ -160,10 +183,14 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{p.nome}</div>
                       <div className="text-xs text-muted-foreground">
-                        {p.numero_termo ?? "Sem termo"} · saldo {formatCurrency(p.saldo)} de {formatCurrency(p.valor_total)}
+                        {p.numero_termo ?? "Sem termo"} · saldo {formatCurrency(p.saldo)} de{" "}
+                        {formatCurrency(p.valor_total)}
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[var(--destructive)] border-[var(--destructive)]/40 bg-[var(--destructive)]/10 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="text-[var(--destructive)] border-[var(--destructive)]/40 bg-[var(--destructive)]/10 shrink-0"
+                    >
                       {Math.round((p.saldo / p.valor_total) * 100)}% restante
                     </Badge>
                   </li>
@@ -188,10 +215,20 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{c.objeto}</div>
                       <div className="text-xs text-muted-foreground">
-                        {c.mes_referencia ?? ""} · criada há {Math.max(1, Math.floor((Date.now() - new Date(c.criado_em).getTime()) / (24 * 3600 * 1000)))} dias
+                        {c.mes_referencia ?? ""} · criada há{" "}
+                        {Math.max(
+                          1,
+                          Math.floor(
+                            (Date.now() - new Date(c.criado_em).getTime()) / (24 * 3600 * 1000),
+                          ),
+                        )}{" "}
+                        dias
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[var(--warning)] border-[var(--warning)]/40 bg-[var(--warning)]/10 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="text-[var(--warning)] border-[var(--warning)]/40 bg-[var(--warning)]/10 shrink-0"
+                    >
                       &lt; 3 orçamentos
                     </Badge>
                     <Link
@@ -211,7 +248,9 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
       )}
 
       <section>
-        <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">Suas OSCs</h2>
+        <h2 className="text-sm font-display uppercase tracking-widest text-muted-foreground mb-3">
+          Suas OSCs
+        </h2>
         {oscsQ.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {!oscsQ.isLoading && (oscsQ.data?.length ?? 0) === 0 && (
           <Card>
@@ -231,7 +270,15 @@ export function EscritorioDashboard({ escritorioOrgId }: { escritorioOrgId: stri
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center justify-between gap-2">
                     <span className="truncate">{osc.nome}</span>
-                    <StatusBadge kind={osc.status === "ativo" ? "success" : osc.status === "trial" ? "info" : "warning"}>
+                    <StatusBadge
+                      kind={
+                        osc.status === "ativo"
+                          ? "success"
+                          : osc.status === "trial"
+                            ? "info"
+                            : "warning"
+                      }
+                    >
                       {osc.status}
                     </StatusBadge>
                   </CardTitle>
@@ -290,7 +337,11 @@ function KPI({
   kind?: "neutral" | "success" | "warning";
 }) {
   const color =
-    kind === "success" ? "var(--success)" : kind === "warning" ? "var(--warning)" : "var(--module-accent)";
+    kind === "success"
+      ? "var(--success)"
+      : kind === "warning"
+        ? "var(--warning)"
+        : "var(--module-accent)";
   return (
     <Card>
       <CardContent className="p-5">

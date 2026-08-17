@@ -8,11 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, FolderOpen, FileText, ArrowRight, Calendar } from "lucide-react";
-import { listarCotacoes, criarCotacao, removerCotacao, listarPresets, criarCotacaoDePreset } from "@/lib/cotacoes.functions";
+import {
+  listarCotacoes,
+  criarCotacao,
+  removerCotacao,
+  listarPresets,
+  criarCotacaoDePreset,
+} from "@/lib/cotacoes.functions";
 import { listarProjetos } from "@/lib/projetos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
@@ -85,7 +98,14 @@ function CotacoesPage() {
     queryFn: () => fetchProjetos({ data: { organization_id: activeOrgId! } }),
   });
 
-  const [novo, setNovo] = useState<{ open: boolean; objeto: string; termo: string; projeto_id: string | ""; mes: string; itens: Item[] } | null>(null);
+  const [novo, setNovo] = useState<{
+    open: boolean;
+    objeto: string;
+    termo: string;
+    projeto_id: string | "";
+    mes: string;
+    itens: Item[];
+  } | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
 
   const mutCreate = useMutation({
@@ -126,7 +146,9 @@ function CotacoesPage() {
   const mutDePreset = useMutation({
     mutationFn: (preset_id: string) => {
       if (!activeOrgId) throw new Error("Selecione uma organização");
-      return criarDePreset({ data: { organization_id: activeOrgId, preset_id, mes_referencia: mesAtual() } });
+      return criarDePreset({
+        data: { organization_id: activeOrgId, preset_id, mes_referencia: mesAtual() },
+      });
     },
     onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["cotacoes"] });
@@ -140,7 +162,10 @@ function CotacoesPage() {
   const lista = (data ?? []) as any[];
 
   return (
-    <AdminShell title="Cotações" subtitle="Coleta de orçamentos por fornecedor e geração de mapa comparativo">
+    <AdminShell
+      title="Cotações"
+      subtitle="Coleta de orçamentos por fornecedor e geração de mapa comparativo"
+    >
       <div className="flex gap-2 mb-4">
         <Select value={filtroMes} onValueChange={setFiltroMes}>
           <SelectTrigger className="w-[190px] gap-2">
@@ -169,7 +194,9 @@ function CotacoesPage() {
             </DialogHeader>
             <ul className="divide-y max-h-80 overflow-auto">
               {(presets ?? []).length === 0 && (
-                <li className="py-6 text-sm text-muted-foreground text-center">Nenhum modelo salvo ainda.</li>
+                <li className="py-6 text-sm text-muted-foreground text-center">
+                  Nenhum modelo salvo ainda.
+                </li>
               )}
               {(presets ?? []).map((p: any) => (
                 <li key={p.id} className="py-2 flex items-center gap-2">
@@ -177,7 +204,11 @@ function CotacoesPage() {
                     <div className="text-sm font-medium truncate">{p.nome}</div>
                     <div className="text-xs text-muted-foreground">{p.itens.length} itens</div>
                   </div>
-                  <Button size="sm" onClick={() => mutDePreset.mutate(p.id)} disabled={mutDePreset.isPending}>
+                  <Button
+                    size="sm"
+                    onClick={() => mutDePreset.mutate(p.id)}
+                    disabled={mutDePreset.isPending}
+                  >
                     Usar
                   </Button>
                 </li>
@@ -190,7 +221,16 @@ function CotacoesPage() {
           <DialogTrigger asChild>
             <Button
               className="gap-2 ml-auto"
-              onClick={() => setNovo({ open: true, objeto: "", termo: "", projeto_id: "", mes: mesAtual(), itens: [{ descricao: "", qtd: 1, unidade: "UN" }] })}
+              onClick={() =>
+                setNovo({
+                  open: true,
+                  objeto: "",
+                  termo: "",
+                  projeto_id: "",
+                  mes: mesAtual(),
+                  itens: [{ descricao: "", qtd: 1, unidade: "UN" }],
+                })
+              }
             >
               <Plus className="h-4 w-4" /> Nova cotação
             </Button>
@@ -204,27 +244,41 @@ function CotacoesPage() {
                 <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
                   <div>
                     <Label>Objeto *</Label>
-                    <Input value={novo.objeto} onChange={(e) => setNovo({ ...novo, objeto: e.target.value })} />
+                    <Input
+                      value={novo.objeto}
+                      onChange={(e) => setNovo({ ...novo, objeto: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label>Termo</Label>
-                    <Input value={novo.termo} onChange={(e) => setNovo({ ...novo, termo: e.target.value })} />
+                    <Input
+                      value={novo.termo}
+                      onChange={(e) => setNovo({ ...novo, termo: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label>Mês (AAAA-MM)</Label>
-                    <Input value={novo.mes} onChange={(e) => setNovo({ ...novo, mes: e.target.value })} />
+                    <Input
+                      value={novo.mes}
+                      onChange={(e) => setNovo({ ...novo, mes: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div>
                   <Label>Projeto/Termo</Label>
-                  <Select value={novo.projeto_id} onValueChange={(v) => setNovo({ ...novo, projeto_id: v })}>
+                  <Select
+                    value={novo.projeto_id}
+                    onValueChange={(v) => setNovo({ ...novo, projeto_id: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Nenhum</SelectItem>
                       {(projetos ?? []).map((p: any) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -234,29 +288,73 @@ function CotacoesPage() {
                   <div className="space-y-2 mt-1">
                     {novo.itens.map((it, i) => (
                       <div key={i} className="grid grid-cols-[3fr_1fr_1fr_auto] gap-2">
-                        <Input placeholder="Descrição" value={it.descricao} onChange={(e) => {
-                          const arr = [...novo.itens]; arr[i] = { ...it, descricao: e.target.value }; setNovo({ ...novo, itens: arr });
-                        }} />
-                        <Input type="number" min={0} placeholder="Qtd" value={it.qtd} onChange={(e) => {
-                          const arr = [...novo.itens]; arr[i] = { ...it, qtd: Number(e.target.value) || 0 }; setNovo({ ...novo, itens: arr });
-                        }} />
-                        <Input placeholder="UN" value={it.unidade} onChange={(e) => {
-                          const arr = [...novo.itens]; arr[i] = { ...it, unidade: e.target.value }; setNovo({ ...novo, itens: arr });
-                        }} />
-                        <Button variant="ghost" size="sm" onClick={() => setNovo({ ...novo, itens: novo.itens.filter((_, x) => x !== i) })}>
+                        <Input
+                          placeholder="Descrição"
+                          value={it.descricao}
+                          onChange={(e) => {
+                            const arr = [...novo.itens];
+                            arr[i] = { ...it, descricao: e.target.value };
+                            setNovo({ ...novo, itens: arr });
+                          }}
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Qtd"
+                          value={it.qtd}
+                          onChange={(e) => {
+                            const arr = [...novo.itens];
+                            arr[i] = { ...it, qtd: Number(e.target.value) || 0 };
+                            setNovo({ ...novo, itens: arr });
+                          }}
+                        />
+                        <Input
+                          placeholder="UN"
+                          value={it.unidade}
+                          onChange={(e) => {
+                            const arr = [...novo.itens];
+                            arr[i] = { ...it, unidade: e.target.value };
+                            setNovo({ ...novo, itens: arr });
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setNovo({ ...novo, itens: novo.itens.filter((_, x) => x !== i) })
+                          }
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     ))}
-                    <Button variant="outline" size="sm" onClick={() => setNovo({ ...novo, itens: [...novo.itens, { descricao: "", qtd: 1, unidade: "UN" }] })}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setNovo({
+                          ...novo,
+                          itens: [...novo.itens, { descricao: "", qtd: 1, unidade: "UN" }],
+                        })
+                      }
+                    >
                       <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar item
                     </Button>
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setNovo(null)}>Cancelar</Button>
-                <Button onClick={() => mutCreate.mutate()} disabled={!novo.objeto.trim() || novo.itens.filter((i) => i.descricao.trim()).length === 0 || mutCreate.isPending}>
+                <Button variant="outline" onClick={() => setNovo(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => mutCreate.mutate()}
+                  disabled={
+                    !novo.objeto.trim() ||
+                    novo.itens.filter((i) => i.descricao.trim()).length === 0 ||
+                    mutCreate.isPending
+                  }
+                >
                   Criar
                 </Button>
               </DialogFooter>
@@ -288,7 +386,10 @@ function CotacoesPage() {
                       {c.orcamentos_preenchidos_count}/3 orçamentos
                     </Badge>
                     {c.tem_vencedor && (
-                      <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                      <Badge
+                        variant="outline"
+                        className="text-emerald-600 border-emerald-200 bg-emerald-50"
+                      >
                         Vencedor
                       </Badge>
                     )}
@@ -304,7 +405,14 @@ function CotacoesPage() {
                       Abrir <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   </Link>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Remover cotação?")) mutDel.mutate(c.id); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("Remover cotação?")) mutDel.mutate(c.id);
+                    }}
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>

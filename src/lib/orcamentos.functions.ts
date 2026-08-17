@@ -79,10 +79,17 @@ const DadosMapaSchema = z.object({
 /* ============================ HELPERS ============================ */
 
 function sanitizarNome(s: string): string {
-  return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+  return s
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
-async function pastaOrcamentoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+async function pastaOrcamentoMes(
+  orgId: string,
+  mesRef: string | undefined,
+): Promise<string[] | undefined> {
   try {
     const id = await ensureMesFolder(orgId, "Orçamentos", mesRef ?? null);
     return id ? [id] : undefined;
@@ -92,7 +99,10 @@ async function pastaOrcamentoMes(orgId: string, mesRef: string | undefined): Pro
   }
 }
 
-async function pastaCotacaoMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+async function pastaCotacaoMes(
+  orgId: string,
+  mesRef: string | undefined,
+): Promise<string[] | undefined> {
   try {
     const id = await ensureMesFolder(orgId, "Cotações", mesRef ?? null);
     return id ? [id] : undefined;
@@ -135,7 +145,11 @@ export const gerarOrcamentoNoDrive = createServerFn({ method: "POST" })
 
     const copy = await driveCopyFile({ templateId, name: nome, parents });
     const { sheetId } = await getFirstSheetId(copy.id);
-    try { await renameSheet(copy.id, sheetId, aba); } catch { /* nome pode falhar se já existir */ }
+    try {
+      await renameSheet(copy.id, sheetId, aba);
+    } catch {
+      /* nome pode falhar se já existir */
+    }
 
     await expandirLinhasItens({
       spreadsheetId: copy.id,
@@ -213,7 +227,11 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
 
     const copy = await driveCopyFile({ templateId, name: nome, parents });
     const { sheetId } = await getFirstSheetId(copy.id);
-    try { await renameSheet(copy.id, sheetId, aba); } catch { /* */ }
+    try {
+      await renameSheet(copy.id, sheetId, aba);
+    } catch {
+      /* */
+    }
 
     await expandirLinhasItens({
       spreadsheetId: copy.id,
@@ -278,7 +296,6 @@ export const gerarMapaComparativoNoDrive = createServerFn({ method: "POST" })
     return { fileId: copy.id, url: copy.webViewLink, nome: copy.name };
   });
 
-
 async function resolverOrgId(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase.rpc("current_user_org");
   if (error || !data) throw new Error("Organização ativa não encontrada para o usuário");
@@ -299,4 +316,3 @@ async function registrarObjeto(
     console.warn("registrarObjeto:", error.message);
   }
 }
-

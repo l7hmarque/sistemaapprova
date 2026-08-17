@@ -8,7 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/owner/suporte")({ component: SuportePage });
+export const Route = createFileRoute("/_authenticated/owner/suporte")({
+  head: () => ({ meta: [{ title: "Suporte · Approva" }] }),
+  component: SuportePage,
+});
 
 function SuportePage() {
   const qc = useQueryClient();
@@ -19,7 +22,9 @@ function SuportePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("support_tickets")
-        .select("id, organization_id, assunto, mensagem, status, resposta, criado_em, respondido_em")
+        .select(
+          "id, organization_id, assunto, mensagem, status, resposta, criado_em, respondido_em",
+        )
         .order("criado_em", { ascending: false });
       if (error) throw error;
       return data;
@@ -48,7 +53,11 @@ function SuportePage() {
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
       ) : !data?.length ? (
-        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhum ticket aberto.</CardContent></Card>
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            Nenhum ticket aberto.
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {data.map((t) => (
@@ -57,10 +66,14 @@ function SuportePage() {
                 <div>
                   <CardTitle className="text-sm">{t.assunto}</CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Org {t.organization_id.slice(0, 8)}… · {new Date(t.criado_em).toLocaleString("pt-BR")}
+                    Org {t.organization_id.slice(0, 8)}… ·{" "}
+                    {new Date(t.criado_em).toLocaleString("pt-BR")}
                   </p>
                 </div>
-                <Badge variant={t.status === "aberto" ? "default" : "secondary"} className="uppercase text-[10px]">
+                <Badge
+                  variant={t.status === "aberto" ? "default" : "secondary"}
+                  className="uppercase text-[10px]"
+                >
                   {t.status}
                 </Badge>
               </CardHeader>
@@ -80,7 +93,9 @@ function SuportePage() {
                       onChange={(e) => setRespostas({ ...respostas, [t.id]: e.target.value })}
                     />
                     <div className="flex justify-end">
-                      <Button size="sm" onClick={() => responder(t.id)}>Enviar resposta</Button>
+                      <Button size="sm" onClick={() => responder(t.id)}>
+                        Enviar resposta
+                      </Button>
                     </div>
                   </div>
                 )}

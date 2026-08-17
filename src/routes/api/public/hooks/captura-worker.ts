@@ -2,23 +2,17 @@
  * Processa jobs de captura em segundo plano.
  * - POST { jobId } → processa o job específico (usado no fire-and-forget do cliente com keepalive).
  * - POST {}       → processa até 5 jobs pendentes mais antigos (usado pelo pg_cron a cada minuto).
- * Auth: header `apikey` = SUPABASE_PUBLISHABLE_KEY.
+ * Auth: header `x-cron-secret` = CRON_SECRET (ou `apikey` = chave publicável).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { processarCapturaJob, processarPendentes } from "@/lib/captura-processor.server";
+import { hookAutorizado, respostaNaoAutorizado } from "@/lib/hooks-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/captura-worker")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const anon = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
-        const provided = request.headers.get("apikey") ?? request.headers.get("x-api-key");
-        if (!anon || !provided || provided !== anon) {
-          return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+        if (!hookAutorizado(request)) return respostaNaoAutorizado();
         try {
           let jobId: string | undefined;
           try {

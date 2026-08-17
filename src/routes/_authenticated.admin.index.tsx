@@ -5,13 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  ShieldCheck, Tag, Paperclip, CalendarClock, FileCheck2, ArrowRight, Landmark,
+  ShieldCheck,
+  Tag,
+  Paperclip,
+  CalendarClock,
+  FileCheck2,
+  ArrowRight,
+  Landmark,
 } from "lucide-react";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 import { resumoDashboard } from "@/lib/aprovacoes.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
+  head: () => ({ meta: [{ title: "Painel inicial · Approva" }] }),
   component: DashboardRoute,
 });
 
@@ -37,7 +44,8 @@ function Dashboard() {
       <header>
         <h1 className="font-display text-3xl uppercase">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {activeOrg?.nome ? `${activeOrg.nome} — ` : ""}pendências e próximos passos do mês {data?.mesAtual ?? ""}.
+          {activeOrg?.nome ? `${activeOrg.nome} — ` : ""}pendências e próximos passos do mês{" "}
+          {data?.mesAtual ?? ""}.
         </p>
       </header>
 
@@ -98,15 +106,23 @@ function Dashboard() {
                   </p>
                 ) : data.podeFecharMesAnterior ? (
                   <>
-                    <p className="text-sm">Todos os eventos do mês anterior estão aprovados — pronto para homologar.</p>
+                    <p className="text-sm">
+                      Todos os eventos do mês anterior estão aprovados — pronto para homologar.
+                    </p>
                     <Button asChild size="sm">
-                      <Link to="/admin/prestacao">Gerar snapshot <ArrowRight className="h-4 w-4 ml-1" /></Link>
+                      <Link to="/admin/prestacao">
+                        Gerar snapshot <ArrowRight className="h-4 w-4 ml-1" />
+                      </Link>
                     </Button>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    {data.pendenciasMesAnterior} evento(s) do mês anterior ainda pendente(s) de aprovação.{" "}
-                    <Link to="/admin/aprovacoes" className="underline">Ver aprovações</Link>.
+                    {data.pendenciasMesAnterior} evento(s) do mês anterior ainda pendente(s) de
+                    aprovação.{" "}
+                    <Link to="/admin/aprovacoes" className="underline">
+                      Ver aprovações
+                    </Link>
+                    .
                   </p>
                 )}
               </CardContent>
@@ -145,14 +161,18 @@ function Dashboard() {
           {data.docsVencendo.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-wide">Documentos vencendo em 30 dias</CardTitle>
+                <CardTitle className="text-sm uppercase tracking-wide">
+                  Documentos vencendo em 30 dias
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="divide-y">
                   {data.docsVencendo.map((d: any) => (
                     <li key={d.id} className="py-2 flex items-center justify-between text-sm">
                       <span>{d.nome}</span>
-                      <Badge variant="secondary">Válido até {d.valido_ate ?? d.data_vencimento}</Badge>
+                      <Badge variant="secondary">
+                        Válido até {d.valido_ate ?? d.data_vencimento}
+                      </Badge>
                     </li>
                   ))}
                 </ul>
@@ -166,10 +186,21 @@ function Dashboard() {
 }
 
 function ActionCard({
-  icon, label, value, hint, to, cta, tone,
+  icon,
+  label,
+  value,
+  hint,
+  to,
+  cta,
+  tone,
 }: {
-  icon: React.ReactNode; label: string; value: number; hint: string;
-  to: string; cta: string; tone: "ok" | "warn";
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  hint: string;
+  to: string;
+  cta: string;
+  tone: "ok" | "warn";
 }) {
   return (
     <Card className={tone === "warn" && value > 0 ? "border-orange-300" : ""}>
@@ -181,7 +212,9 @@ function ActionCard({
         <div className="font-display text-4xl mt-3">{value}</div>
         <div className="text-xs text-muted-foreground mt-1">{hint}</div>
         <Button asChild size="sm" variant="ghost" className="mt-3 -ml-2 h-8 gap-1">
-          <Link to={to as any}>{cta} <ArrowRight className="h-3 w-3" /></Link>
+          <Link to={to as any}>
+            {cta} <ArrowRight className="h-3 w-3" />
+          </Link>
         </Button>
       </CardContent>
     </Card>

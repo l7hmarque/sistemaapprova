@@ -23,7 +23,9 @@ function LoginPage() {
   const nav = useNavigate();
   const { redirect } = useSearch({ from: "/login" });
   const dest = redirect || "/admin";
-  const goDest = () => { window.location.assign(dest); };
+  const goDest = () => {
+    window.location.assign(dest);
+  };
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [modo, setModo] = useState<"login" | "signup">("login");
@@ -95,7 +97,13 @@ function LoginPage() {
             </div>
           </div>
 
-          <Button type="button" variant="outline" className="w-full" onClick={google} disabled={loading}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={google}
+            disabled={loading}
+          >
             Entrar com Google
           </Button>
 
@@ -107,7 +115,13 @@ function LoginPage() {
           <form onSubmit={submit} className="space-y-3">
             <div>
               <Label className="text-xs">Email</Label>
-              <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              <Input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
             </div>
             <div>
               <Label className="text-xs">Senha</Label>

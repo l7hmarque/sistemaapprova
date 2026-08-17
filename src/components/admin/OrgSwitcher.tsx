@@ -21,7 +21,9 @@ export function OrgSwitcher() {
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card hover:bg-muted text-sm transition-colors max-w-[260px]">
           <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="truncate font-medium">{activeOrg?.nome ?? "Selecionar organização"}</span>
+          <span className="truncate font-medium">
+            {activeOrg?.nome ?? "Selecionar organização"}
+          </span>
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground shrink-0">
             {activeOrg?.tipo === "escritorio" ? "ESC" : "OSC"}
           </span>
@@ -31,10 +33,14 @@ export function OrgSwitcher() {
       <DropdownMenuContent align="start" className="w-72">
         {escritorios.length > 0 && (
           <>
-            <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">Escritórios</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
+              Escritórios
+            </DropdownMenuLabel>
             {escritorios.map((o) => (
               <DropdownMenuItem key={o.id} onSelect={() => setActiveOrgId(o.id)}>
-                <Check className={`h-4 w-4 mr-2 ${activeOrg?.id === o.id ? "opacity-100" : "opacity-0"}`} />
+                <Check
+                  className={`h-4 w-4 mr-2 ${activeOrg?.id === o.id ? "opacity-100" : "opacity-0"}`}
+                />
                 <span className="truncate">{o.nome}</span>
               </DropdownMenuItem>
             ))}
@@ -43,10 +49,14 @@ export function OrgSwitcher() {
         )}
         {oscs.length > 0 && (
           <>
-            <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">OSCs</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
+              OSCs
+            </DropdownMenuLabel>
             {oscs.map((o) => (
               <DropdownMenuItem key={o.id} onSelect={() => setActiveOrgId(o.id)}>
-                <Check className={`h-4 w-4 mr-2 ${activeOrg?.id === o.id ? "opacity-100" : "opacity-0"}`} />
+                <Check
+                  className={`h-4 w-4 mr-2 ${activeOrg?.id === o.id ? "opacity-100" : "opacity-0"}`}
+                />
                 <span className="truncate">{o.nome}</span>
               </DropdownMenuItem>
             ))}

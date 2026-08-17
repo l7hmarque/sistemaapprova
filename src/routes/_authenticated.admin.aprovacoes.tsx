@@ -9,11 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AdminShell } from "@/components/admin/AdminShell";
-import {
-  listarPendentes,
-  aprovarComprovante,
-  linkComprovante,
-} from "@/lib/comprovantes.functions";
+import { listarPendentes, aprovarComprovante, linkComprovante } from "@/lib/comprovantes.functions";
 import {
   listarEventosPendentes,
   aprovarEventosLote,
@@ -21,8 +17,14 @@ import {
 } from "@/lib/aprovacoes.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import {
-  CheckCircle2, XCircle, FileText, ExternalLink, ShieldCheck,
-  AlertTriangle, Undo2, ListChecks,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  ExternalLink,
+  ShieldCheck,
+  AlertTriangle,
+  Undo2,
+  ListChecks,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/aprovacoes")({
@@ -47,7 +49,10 @@ function mesAtual() {
 
 function AprovacoesPage() {
   return (
-    <AdminShell title="Aprovações" subtitle="Revisão de eventos e comprovantes antes de homologar o mês">
+    <AdminShell
+      title="Aprovações"
+      subtitle="Revisão de eventos e comprovantes antes de homologar o mês"
+    >
       <Tabs defaultValue="eventos" className="space-y-4">
         <TabsList>
           <TabsTrigger value="eventos" className="gap-1">
@@ -57,8 +62,12 @@ function AprovacoesPage() {
             <ShieldCheck className="h-4 w-4" /> Comprovantes (2 mãos)
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="eventos"><EventosTab /></TabsContent>
-        <TabsContent value="comprovantes"><ComprovantesTab /></TabsContent>
+        <TabsContent value="eventos">
+          <EventosTab />
+        </TabsContent>
+        <TabsContent value="comprovantes">
+          <ComprovantesTab />
+        </TabsContent>
       </Tabs>
     </AdminShell>
   );
@@ -115,14 +124,21 @@ function EventosTab() {
 
   if (!podeAprovar) {
     return (
-      <Card><CardContent className="p-6 text-sm text-muted-foreground">
-        Somente administradores da organização podem aprovar eventos.
-      </CardContent></Card>
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          Somente administradores da organização podem aprovar eventos.
+        </CardContent>
+      </Card>
     );
   }
 
   const toggle = (id: string) => {
-    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSel((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   };
   const toggleAll = () => {
     if (sel.size === eventos.length) setSel(new Set());
@@ -134,14 +150,27 @@ function EventosTab() {
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-xs text-muted-foreground">Mês:</label>
         <input
-          type="text" value={mes} onChange={(e) => setMes(e.target.value)}
-          placeholder="AAAA-MM" className="rounded border px-2 py-1 text-sm w-28"
+          type="text"
+          value={mes}
+          onChange={(e) => setMes(e.target.value)}
+          placeholder="AAAA-MM"
+          className="rounded border px-2 py-1 text-sm w-28"
         />
         <div className="flex gap-1 ml-auto">
-          {(["todos","semNat","semComp","diverg"] as const).map((f) => (
-            <Button key={f} size="sm" variant={filtro === f ? "default" : "outline"}
-              onClick={() => setFiltro(f)}>
-              {f === "todos" ? "Todos" : f === "semNat" ? "Sem natureza" : f === "semComp" ? "Sem comprovante" : "Divergentes"}
+          {(["todos", "semNat", "semComp", "diverg"] as const).map((f) => (
+            <Button
+              key={f}
+              size="sm"
+              variant={filtro === f ? "default" : "outline"}
+              onClick={() => setFiltro(f)}
+            >
+              {f === "todos"
+                ? "Todos"
+                : f === "semNat"
+                  ? "Sem natureza"
+                  : f === "semComp"
+                    ? "Sem comprovante"
+                    : "Divergentes"}
             </Button>
           ))}
         </div>
@@ -152,8 +181,11 @@ function EventosTab() {
           <CardTitle className="text-base">
             {eventos.length} evento(s) pendente(s){sel.size > 0 && ` · ${sel.size} selecionado(s)`}
           </CardTitle>
-          <Button size="sm" disabled={sel.size === 0 || aprovarSel.isPending}
-            onClick={() => aprovarSel.mutate()}>
+          <Button
+            size="sm"
+            disabled={sel.size === 0 || aprovarSel.isPending}
+            onClick={() => aprovarSel.mutate()}
+          >
             <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar seleção
           </Button>
         </CardHeader>
@@ -169,39 +201,77 @@ function EventosTab() {
                 <span>Selecionar todos</span>
               </li>
               {eventos.map((e: any) => (
-                <li key={e.id} className="py-3 grid gap-2 md:grid-cols-[auto_1fr_auto] md:items-start">
-                  <Checkbox checked={sel.has(e.id)} onCheckedChange={() => toggle(e.id)} className="mt-1" />
+                <li
+                  key={e.id}
+                  className="py-3 grid gap-2 md:grid-cols-[auto_1fr_auto] md:items-start"
+                >
+                  <Checkbox
+                    checked={sel.has(e.id)}
+                    onCheckedChange={() => toggle(e.id)}
+                    className="mt-1"
+                  />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span className="text-xs text-muted-foreground font-mono">{e.id_interno ?? "—"}</span>
-                      {e.nm_favorecido || e.descricao || <span className="text-muted-foreground">Sem descrição</span>}
-                      <span className="text-xs text-muted-foreground">· {fmtBRL(e.valor_efetivo ?? e.valor_previsto)}</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {e.id_interno ?? "—"}
+                      </span>
+                      {e.nm_favorecido || e.descricao || (
+                        <span className="text-muted-foreground">Sem descrição</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        · {fmtBRL(e.valor_efetivo ?? e.valor_previsto)}
+                      </span>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {e.natureza_despesa_codigo
-                        ? <Badge variant="outline" className="text-[10px]">{e.natureza_despesa_codigo}</Badge>
-                        : <Badge variant="destructive" className="text-[10px]">sem natureza</Badge>}
-                      {e.pendencias.semComprovante && <Badge variant="secondary" className="text-[10px]">sem comprovante</Badge>}
+                      {e.natureza_despesa_codigo ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {e.natureza_despesa_codigo}
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px]">
+                          sem natureza
+                        </Badge>
+                      )}
+                      {e.pendencias.semComprovante && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          sem comprovante
+                        </Badge>
+                      )}
                       {e.pendencias.divergente && (
                         <Badge variant="secondary" className="text-[10px] gap-1">
                           <AlertTriangle className="h-3 w-3" /> divergente
                         </Badge>
                       )}
-                      <Badge variant="outline" className="text-[10px]">{e.origem}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {e.origem}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex gap-2 md:justify-end">
-                    <Button size="sm" variant="outline" className="gap-1"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
                       onClick={() => {
                         const m = prompt("Motivo da devolução:") ?? "";
-                        if (m.trim().length >= 3) devolverMut.mutate({ id: e.id, motivo: m.trim() });
-                      }}>
+                        if (m.trim().length >= 3)
+                          devolverMut.mutate({ id: e.id, motivo: m.trim() });
+                      }}
+                    >
                       <Undo2 className="h-3 w-3" /> Devolver
                     </Button>
-                    <Button size="sm" className="gap-1"
-                      onClick={() => aprovarFn({ data: { organization_id: activeOrgId!, ids: [e.id] } })
-                        .then(() => { toast.success("Aprovado."); qc.invalidateQueries({ queryKey: ["aprov-eventos"] }); })
-                        .catch((err) => toast.error((err as Error).message))}>
+                    <Button
+                      size="sm"
+                      className="gap-1"
+                      onClick={() =>
+                        aprovarFn({ data: { organization_id: activeOrgId!, ids: [e.id] } })
+                          .then(() => {
+                            toast.success("Aprovado.");
+                            qc.invalidateQueries({ queryKey: ["aprov-eventos"] });
+                          })
+                          .catch((err) => toast.error((err as Error).message))
+                      }
+                    >
                       <CheckCircle2 className="h-3 w-3" /> Aprovar
                     </Button>
                   </div>
@@ -212,7 +282,8 @@ function EventosTab() {
         </CardContent>
       </Card>
       <p className="text-xs text-muted-foreground">
-        Eventos aprovados podem ser homologados via snapshot em Prestação. Rascunhos e pendentes bloqueiam a homologação.
+        Eventos aprovados podem ser homologados via snapshot em Prestação. Rascunhos e pendentes
+        bloqueiam a homologação.
       </p>
     </div>
   );
@@ -247,7 +318,9 @@ function ComprovantesTab() {
     try {
       const { url } = await link({ data: { path } });
       window.open(url, "_blank");
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   const pendentes = data?.pendentes ?? [];
@@ -286,17 +359,31 @@ function ComprovantesTab() {
                 />
               </div>
               <div className="flex flex-wrap gap-2 md:justify-end">
-                <Button size="sm" variant="outline" onClick={() => abrir(p.arquivo_url)} className="gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => abrir(p.arquivo_url)}
+                  className="gap-1"
+                >
                   <ExternalLink className="h-3 w-3" /> Ver
                 </Button>
-                <Button size="sm" variant="outline"
-                  onClick={() => mut.mutate({ id: p.id, status: "rejeitado", observacao: obs[p.id] })}
-                  className="gap-1 text-destructive">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    mut.mutate({ id: p.id, status: "rejeitado", observacao: obs[p.id] })
+                  }
+                  className="gap-1 text-destructive"
+                >
                   <XCircle className="h-3 w-3" /> Rejeitar
                 </Button>
-                <Button size="sm"
-                  onClick={() => mut.mutate({ id: p.id, status: "aprovado", observacao: obs[p.id] })}
-                  className="gap-1">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    mut.mutate({ id: p.id, status: "aprovado", observacao: obs[p.id] })
+                  }
+                  className="gap-1"
+                >
                   <CheckCircle2 className="h-3 w-3" /> Aprovar
                 </Button>
               </div>

@@ -6,19 +6,46 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, FileText, FolderTree, HardDrive, RefreshCw, Download, CloudUpload, AlertTriangle, Trash2 } from "lucide-react";
-import { listarArquivosDaOrg, getDriveQuota, getDriveSyncStatus, excluirArquivoDaOrg } from "@/lib/arquivos.functions";
+import {
+  Loader2,
+  FileText,
+  FolderTree,
+  HardDrive,
+  RefreshCw,
+  Download,
+  CloudUpload,
+  AlertTriangle,
+  Trash2,
+} from "lucide-react";
+import {
+  listarArquivosDaOrg,
+  getDriveQuota,
+  getDriveSyncStatus,
+  excluirArquivoDaOrg,
+} from "@/lib/arquivos.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
-
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
+  head: () => ({ meta: [{ title: "Arquivos · Approva" }] }),
   component: ArquivosPage,
 });
 
@@ -31,7 +58,10 @@ function formatBytes(n: number): string {
   const units = ["B", "KB", "MB", "GB", "TB"];
   let i = 0;
   let v = n;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
   return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
@@ -45,7 +75,9 @@ function ArquivosPage() {
   const [mes, setMes] = useState<string>("");
   const [search, setSearch] = useState("");
   const [baixando, setBaixando] = useState<string | null>(null);
-  const [confirmarExcluir, setConfirmarExcluir] = useState<{ id: string; name: string } | null>(null);
+  const [confirmarExcluir, setConfirmarExcluir] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const [excluindo, setExcluindo] = useState(false);
   const qc = useQueryClient();
 
@@ -54,11 +86,9 @@ function ArquivosPage() {
   const fnSync = useServerFn(getDriveSyncStatus);
   const fnDelete = useServerFn(excluirArquivoDaOrg);
 
-
   const filesQ = useQuery({
     queryKey: ["arquivos", activeOrgId, section, mes],
-    queryFn: async () =>
-      fnList({ data: { section, ...(mes ? { mes } : {}) } }),
+    queryFn: async () => fnList({ data: { section, ...(mes ? { mes } : {}) } }),
     enabled: !!activeOrgId,
   });
 
@@ -132,7 +162,6 @@ function ArquivosPage() {
   const quota = quotaQ.data;
   const pct = quota && quota.limit > 0 ? Math.round((quota.usage / quota.limit) * 100) : 0;
 
-
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -151,7 +180,9 @@ function ArquivosPage() {
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <HardDrive className="h-3.5 w-3.5" /> Armazenamento
                 </span>
-                <span className={pct >= 80 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
+                <span
+                  className={pct >= 80 ? "text-amber-600 font-medium" : "text-muted-foreground"}
+                >
                   {formatBytes(quota.usage)} / {formatBytes(quota.limit)}
                 </span>
               </div>
@@ -164,22 +195,26 @@ function ArquivosPage() {
               {pct >= 80 && (
                 <p className="text-[11px] text-amber-700">Atenção: aproximando do limite.</p>
               )}
-              {syncQ.data && (syncQ.data.pendente > 0 || syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
-                <div className="pt-2 border-t space-y-1">
-                  {syncQ.data.pendente > 0 && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <CloudUpload className="h-3 w-3 animate-pulse" />
-                      Sincronizando {syncQ.data.pendente} arquivo(s) com Drive…
-                    </div>
-                  )}
-                  {(syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-amber-700">
-                      <AlertTriangle className="h-3 w-3" />
-                      {syncQ.data.falhou_retry + syncQ.data.falhou_definitivo} falha(s) — retry automático
-                    </div>
-                  )}
-                </div>
-              )}
+              {syncQ.data &&
+                (syncQ.data.pendente > 0 ||
+                  syncQ.data.falhou_retry > 0 ||
+                  syncQ.data.falhou_definitivo > 0) && (
+                  <div className="pt-2 border-t space-y-1">
+                    {syncQ.data.pendente > 0 && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <CloudUpload className="h-3 w-3 animate-pulse" />
+                        Sincronizando {syncQ.data.pendente} arquivo(s) com Drive…
+                      </div>
+                    )}
+                    {(syncQ.data.falhou_retry > 0 || syncQ.data.falhou_definitivo > 0) && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-amber-700">
+                        <AlertTriangle className="h-3 w-3" />
+                        {syncQ.data.falhou_retry + syncQ.data.falhou_definitivo} falha(s) — retry
+                        automático
+                      </div>
+                    )}
+                  </div>
+                )}
             </CardContent>
           </Card>
         )}
@@ -199,10 +234,16 @@ function ArquivosPage() {
             <div className="flex-1 min-w-[180px]">
               <label className="text-xs text-muted-foreground">Seção</label>
               <Select value={section} onValueChange={(v) => setSection(v as SectionFilter)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas as seções</SelectItem>
-                  {SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {SECTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -240,7 +281,11 @@ function ArquivosPage() {
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
               {filtered.map((f) => {
-                const ext = (f.name.split(".").pop() || f.mimeType.split("/").pop() || "arquivo").toLowerCase();
+                const ext = (
+                  f.name.split(".").pop() ||
+                  f.mimeType.split("/").pop() ||
+                  "arquivo"
+                ).toLowerCase();
                 return (
                   <li key={f.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40">
                     {iconForMime(f.mimeType)}
@@ -248,12 +293,18 @@ function ArquivosPage() {
                       <div className="text-sm font-medium truncate">{f.name}</div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
                         {f.section && (
-                          <Badge variant="secondary" className="text-[10px]">{f.section}</Badge>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {f.section}
+                          </Badge>
                         )}
                         {f.mes && (
-                          <Badge variant="outline" className="text-[10px]">{f.mes}</Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {f.mes}
+                          </Badge>
                         )}
-                        <Badge variant="outline" className="text-[10px] uppercase">{ext}</Badge>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {ext}
+                        </Badge>
                         {f.linkedEventoInterno && (
                           <Badge className="text-[10px] bg-primary/10 text-primary hover:bg-primary/10">
                             despesa #{f.linkedEventoInterno}
@@ -304,16 +355,19 @@ function ArquivosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir arquivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              O arquivo <strong>{confirmarExcluir?.name}</strong> será movido para a lixeira do Drive
-              e removido dos vínculos (anexos e documentos de prestação). Esta ação não pode ser desfeita
-              pela interface. Arquivos ligados a prestações homologadas são bloqueados.
+              O arquivo <strong>{confirmarExcluir?.name}</strong> será movido para a lixeira do
+              Drive e removido dos vínculos (anexos e documentos de prestação). Esta ação não pode
+              ser desfeita pela interface. Arquivos ligados a prestações homologadas são bloqueados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               disabled={excluindo}
-              onClick={(e) => { e.preventDefault(); excluirConfirmado(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                excluirConfirmado();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {excluindo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
@@ -324,4 +378,3 @@ function ArquivosPage() {
     </div>
   );
 }
-

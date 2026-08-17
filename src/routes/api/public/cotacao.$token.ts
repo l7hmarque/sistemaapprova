@@ -33,7 +33,11 @@ const SubmissaoSchema = z.object({
     .max(200),
 });
 
-async function carregarModeloAtivo(): Promise<{ template_id: string; aba: string; params: any } | null> {
+async function carregarModeloAtivo(): Promise<{
+  template_id: string;
+  aba: string;
+  params: any;
+} | null> {
   const { data } = await supabaseAdmin
     .from("modelos_planilha")
     .select("template_id, aba, params")
@@ -116,7 +120,8 @@ export const Route = createFileRoute("/api/public/cotacao/$token")({
           .single();
         if (errCot || !cot) return new Response("Cotação não encontrada", { status: 404 });
 
-        const itens = (cot.itens as Array<{ descricao: string; qtd: number; unidade: string }>) ?? [];
+        const itens =
+          (cot.itens as Array<{ descricao: string; qtd: number; unidade: string }>) ?? [];
         if (itens.length !== input.respostas.length) {
           return new Response("Quantidade de itens não bate", { status: 400 });
         }
@@ -149,7 +154,10 @@ export const Route = createFileRoute("/api/public/cotacao/$token")({
           });
         } catch (e) {
           console.error("criarSheetOrcamentoCotacao falhou:", e);
-          return new Response("Falha ao processar solicitação. Tente novamente ou contate o suporte.", { status: 502 });
+          return new Response(
+            "Falha ao processar solicitação. Tente novamente ou contate o suporte.",
+            { status: 502 },
+          );
         }
 
         // Anexa respostas (com flag indisponivel)

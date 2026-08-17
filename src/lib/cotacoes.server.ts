@@ -47,10 +47,17 @@ export interface ModeloAtivo {
 }
 
 function sanitizarNome(s: string): string {
-  return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+  return s
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
-async function safeOrgFolder(orgId: string | undefined, mesRef: string | null | undefined): Promise<string[] | undefined> {
+async function safeOrgFolder(
+  orgId: string | undefined,
+  mesRef: string | null | undefined,
+): Promise<string[] | undefined> {
   if (!orgId) return undefined;
   try {
     const id = await ensureMesFolder(orgId, "Orçamentos", mesRef ?? null);
@@ -146,7 +153,9 @@ export async function criarSheetOrcamentoCotacao(args: {
 }
 
 /** Exporta um Google Sheet como PDF (binário) via Drive. */
-export async function exportarSheetComoPdf(fileId: string): Promise<{ bytes: Uint8Array; filename: string }> {
+export async function exportarSheetComoPdf(
+  fileId: string,
+): Promise<{ bytes: Uint8Array; filename: string }> {
   const lov = process.env.LOVABLE_API_KEY;
   const drv = process.env.GOOGLE_DRIVE_API_KEY;
   if (!lov || !drv) throw new Error("Conector Google Drive ausente");

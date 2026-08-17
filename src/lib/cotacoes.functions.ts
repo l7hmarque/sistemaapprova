@@ -50,12 +50,18 @@ const OrgOnly = z.object({ organization_id: z.string().uuid() });
 
 // ENTIDADE_DEFAULT importado de ./cotacoes.server
 
-
 function sanitizarNome(s: string): string {
-  return s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+  return s
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
-async function pastaCotacoesMes(orgId: string, mesRef: string | undefined): Promise<string[] | undefined> {
+async function pastaCotacoesMes(
+  orgId: string,
+  mesRef: string | undefined,
+): Promise<string[] | undefined> {
   try {
     const id = await ensureMesFolder(orgId, "Cotações", mesRef ?? null);
     return id ? [id] : undefined;
@@ -310,7 +316,8 @@ export const gerarMapaDaCotacao = createServerFn({ method: "POST" })
       throw new Error("Selecione exatamente 3 orçamentos preenchidos.");
     }
 
-    const itensCot = (cot.itens as Array<{ descricao: string; qtd: number; unidade: string }>) ?? [];
+    const itensCot =
+      (cot.itens as Array<{ descricao: string; qtd: number; unidade: string }>) ?? [];
 
     // Ordena na ordem do input
     const orcsOrdenados = data.orcamento_ids.map((id) => orcs.find((o) => o.id === id)!);
@@ -545,14 +552,17 @@ export const criarCotacaoDePreset = createServerFn({ method: "POST" })
       .single();
     if (errCot) throw new Error(errCot.message);
 
-
     return { cotacao: cot, fornecedores_sugeridos: preset.fornecedores_sugeridos };
   });
 
 /* ============================ RANKING / VENCEDOR / EVENTO ============================ */
 
 function totalOrcamento(o: any): number {
-  const items = ((o.dados as any)?.itens ?? []) as Array<{ precoUnitario?: number; qtd?: number; indisponivel?: boolean }>;
+  const items = ((o.dados as any)?.itens ?? []) as Array<{
+    precoUnitario?: number;
+    qtd?: number;
+    indisponivel?: boolean;
+  }>;
   return items.reduce((a, it) => {
     if (it.indisponivel) return a;
     return a + Number(it.precoUnitario || 0) * Number(it.qtd || 0);
@@ -605,7 +615,8 @@ export const gerarMapaAutomatico = createServerFn({ method: "POST" })
       .map((o) => ({ id: o.id, total: totalOrcamento(o) }))
       .filter((o) => o.total > 0)
       .sort((a, b) => a.total - b.total);
-    if (validos.length < 3) throw new Error(`Necessário 3 orçamentos preenchidos (há ${validos.length}).`);
+    if (validos.length < 3)
+      throw new Error(`Necessário 3 orçamentos preenchidos (há ${validos.length}).`);
     return { orcamento_ids: validos.slice(0, 3).map((o) => o.id) as [string, string, string] };
   });
 
@@ -644,7 +655,8 @@ export const gerarEventoDaCotacao = createServerFn({ method: "POST" })
     if (cot.evento_financeiro_id) {
       return { evento_id: cot.evento_financeiro_id as string, ja_existia: true };
     }
-    if (!cot.orcamento_vencedor_id) throw new Error("Defina o orçamento vencedor antes de lançar no financeiro.");
+    if (!cot.orcamento_vencedor_id)
+      throw new Error("Defina o orçamento vencedor antes de lançar no financeiro.");
 
     const { data: vencedor, error: errV } = await supabase
       .from("orcamentos_salvos")

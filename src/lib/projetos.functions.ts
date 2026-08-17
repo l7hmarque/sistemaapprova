@@ -36,7 +36,9 @@ export const listarProjetos = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("projetos")
-      .select("id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status, criado_em, atualizado_em")
+      .select(
+        "id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status, criado_em, atualizado_em",
+      )
       .eq("organization_id", data.organization_id)
       .order("status", { ascending: false })
       .order("nome");
@@ -51,7 +53,9 @@ export const buscarProjeto = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("projetos")
-      .select("id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status, criado_em, atualizado_em, organization_id")
+      .select(
+        "id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status, criado_em, atualizado_em, organization_id",
+      )
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
@@ -99,10 +103,7 @@ export const atualizarProjeto = createServerFn({ method: "POST" })
     if (rest.vigencia_fim !== undefined) row.vigencia_fim = rest.vigencia_fim ?? null;
     if (rest.status !== undefined) row.status = rest.status;
 
-    const { error } = await context.supabase
-      .from("projetos")
-      .update(row)
-      .eq("id", id);
+    const { error } = await context.supabase.from("projetos").update(row).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -112,7 +113,15 @@ export const excluirProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => IdInput.parse(d))
   .handler(async ({ data, context }) => {
-    const tabelas: { nome: "eventos_financeiros" | "cotacoes" | "orcamentos_salvos" | "repasses_recebidos" | "plano_aplicacao"; campo: "projeto_id" }[] = [
+    const tabelas: {
+      nome:
+        | "eventos_financeiros"
+        | "cotacoes"
+        | "orcamentos_salvos"
+        | "repasses_recebidos"
+        | "plano_aplicacao";
+      campo: "projeto_id";
+    }[] = [
       { nome: "eventos_financeiros", campo: "projeto_id" },
       { nome: "cotacoes", campo: "projeto_id" },
       { nome: "orcamentos_salvos", campo: "projeto_id" },
@@ -138,12 +147,19 @@ export const excluirProjeto = createServerFn({ method: "POST" })
 export const resumoExecucaoProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    IdInput.extend({ mes_referencia: z.string().regex(/^\d{4}-\d{2}$/).optional() }).parse(d)
+    IdInput.extend({
+      mes_referencia: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: projeto, error: errProj } = await context.supabase
       .from("projetos")
-      .select("id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status")
+      .select(
+        "id, nome, numero_termo, orgao_concedente, objeto, valor_total, vigencia_inicio, vigencia_fim, status",
+      )
       .eq("id", data.id)
       .single();
     if (errProj) throw new Error(errProj.message);
@@ -167,8 +183,14 @@ export const resumoExecucaoProjeto = createServerFn({ method: "POST" })
     const { data: eventos, error: errEventos } = await qEventos;
     if (errEventos) throw new Error(errEventos.message);
 
-    const totalRepassado = (repasses ?? []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-    const totalExecutado = (eventos ?? []).reduce((s: number, e: any) => s + Number(e.valor_efetivo || 0), 0);
+    const totalRepassado = (repasses ?? []).reduce(
+      (s: number, r: any) => s + Number(r.valor || 0),
+      0,
+    );
+    const totalExecutado = (eventos ?? []).reduce(
+      (s: number, e: any) => s + Number(e.valor_efetivo || 0),
+      0,
+    );
     const saldo = Number(projeto.valor_total || 0) - totalExecutado;
 
     const porNatureza: Record<string, { codigo: string; total: number }> = {};
@@ -190,7 +212,14 @@ export const resumoExecucaoProjeto = createServerFn({ method: "POST" })
 /** Lista projetos com resumo financeiro simplificado para dashboards. */
 export const listarProjetosComResumo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => OrgInput.extend({ mes_referencia: z.string().regex(/^\d{4}-\d{2}$/).optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    OrgInput.extend({
+      mes_referencia: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+    }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { data: projetos, error } = await context.supabase
       .from("projetos")
@@ -229,7 +258,10 @@ export const listarProjetosComResumo = createServerFn({ method: "POST" })
     const execPorProj = new Map<string, number>();
     for (const e of eventos ?? []) {
       if (!e.projeto_id) continue;
-      execPorProj.set(e.projeto_id, (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0));
+      execPorProj.set(
+        e.projeto_id,
+        (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0),
+      );
     }
 
     return (projetos ?? []).map((p: any) => ({
@@ -244,7 +276,15 @@ export const listarProjetosComResumo = createServerFn({ method: "POST" })
 export const listarProjetosEscritorioComResumo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ organization_ids: z.array(z.string().uuid()), mes_referencia: z.string().regex(/^\d{4}-\d{2}$/).optional() }).parse(d)
+    z
+      .object({
+        organization_ids: z.array(z.string().uuid()),
+        mes_referencia: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: projetos, error } = await context.supabase
@@ -285,7 +325,10 @@ export const listarProjetosEscritorioComResumo = createServerFn({ method: "POST"
     const execPorProj = new Map<string, number>();
     for (const e of eventos ?? []) {
       if (!e.projeto_id) continue;
-      execPorProj.set(e.projeto_id, (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0));
+      execPorProj.set(
+        e.projeto_id,
+        (execPorProj.get(e.projeto_id) || 0) + Number(e.valor_efetivo || 0),
+      );
     }
 
     return (projetos ?? []).map((p: any) => ({

@@ -7,18 +7,38 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Users, ChevronDown, Sparkles } from "lucide-react";
-import { listarFornecedores, salvarFornecedor, removerFornecedor } from "@/lib/fornecedores.functions";
+import {
+  listarFornecedores,
+  salvarFornecedor,
+  removerFornecedor,
+} from "@/lib/fornecedores.functions";
 import { useActiveOrg } from "@/hooks/use-active-org";
 import { REGRAS_TEMPLATES, type RegrasSit } from "@/lib/sit/regrasSitSchema";
 import {
-  TIPOS_DOC_DESPESA, TIPOS_DOC_PAGAMENTO, MODALIDADES_COMPRA, CATEGORIAS,
+  TIPOS_DOC_DESPESA,
+  TIPOS_DOC_PAGAMENTO,
+  MODALIDADES_COMPRA,
+  CATEGORIAS,
 } from "@/lib/sit/catalogos";
 
 export const Route = createFileRoute("/_authenticated/admin/fornecedores")({
@@ -94,10 +114,18 @@ function FornecedoresPage() {
   return (
     <AdminShell title="Fornecedores" subtitle="Cadastro de fornecedores para cotações">
       <div className="flex gap-3 items-center mb-4">
-        <Input placeholder="Buscar por nome ou CNPJ..." value={busca} onChange={(e) => setBusca(e.target.value)} className="max-w-sm" />
+        <Input
+          placeholder="Buscar por nome ou CNPJ..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="max-w-sm"
+        />
         <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditing({ razao_social: "", cnpj: "" })} className="gap-2 ml-auto">
+            <Button
+              onClick={() => setEditing({ razao_social: "", cnpj: "" })}
+              className="gap-2 ml-auto"
+            >
               <Plus className="h-4 w-4" /> Novo fornecedor
             </Button>
           </DialogTrigger>
@@ -109,35 +137,61 @@ function FornecedoresPage() {
               <div className="space-y-3">
                 <div>
                   <Label>Razão social *</Label>
-                  <Input value={editing.razao_social ?? ""} onChange={(e) => setEditing({ ...editing, razao_social: e.target.value })} />
+                  <Input
+                    value={editing.razao_social ?? ""}
+                    onChange={(e) => setEditing({ ...editing, razao_social: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>CNPJ *</Label>
-                    <Input value={editing.cnpj ?? ""} onChange={(e) => setEditing({ ...editing, cnpj: e.target.value })} />
+                    <Input
+                      value={editing.cnpj ?? ""}
+                      onChange={(e) => setEditing({ ...editing, cnpj: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label>Telefone</Label>
-                    <Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} />
+                    <Input
+                      value={editing.telefone ?? ""}
+                      onChange={(e) => setEditing({ ...editing, telefone: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Representante</Label>
-                    <Input value={editing.representante_legal ?? ""} onChange={(e) => setEditing({ ...editing, representante_legal: e.target.value })} />
+                    <Input
+                      value={editing.representante_legal ?? ""}
+                      onChange={(e) =>
+                        setEditing({ ...editing, representante_legal: e.target.value })
+                      }
+                    />
                   </div>
                   <div>
                     <Label>CPF do representante</Label>
-                    <Input value={editing.cpf_representante ?? ""} onChange={(e) => setEditing({ ...editing, cpf_representante: e.target.value })} />
+                    <Input
+                      value={editing.cpf_representante ?? ""}
+                      onChange={(e) =>
+                        setEditing({ ...editing, cpf_representante: e.target.value })
+                      }
+                    />
                   </div>
                 </div>
                 <div>
                   <Label>E-mail</Label>
-                  <Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
+                  <Input
+                    type="email"
+                    value={editing.email ?? ""}
+                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Endereço</Label>
-                  <Input value={editing.endereco ?? ""} onChange={(e) => setEditing({ ...editing, endereco: e.target.value })} />
+                  <Input
+                    value={editing.endereco ?? ""}
+                    onChange={(e) => setEditing({ ...editing, endereco: e.target.value })}
+                  />
                 </div>
 
                 <RegrasSitPanel
@@ -146,10 +200,14 @@ function FornecedoresPage() {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+                <Button variant="outline" onClick={() => setEditing(null)}>
+                  Cancelar
+                </Button>
                 <Button
                   onClick={() => mutSave.mutate(editing)}
-                  disabled={!editing.razao_social?.trim() || !editing.cnpj?.trim() || mutSave.isPending}
+                  disabled={
+                    !editing.razao_social?.trim() || !editing.cnpj?.trim() || mutSave.isPending
+                  }
                 >
                   Salvar
                 </Button>
@@ -181,7 +239,14 @@ function FornecedoresPage() {
                   <Button size="sm" variant="ghost" onClick={() => setEditing(f)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Remover?")) mutDel.mutate(f.id); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("Remover?")) mutDel.mutate(f.id);
+                    }}
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>
@@ -222,7 +287,11 @@ function RegrasSitPanel({
         >
           <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
           Regras SIT
-          {preencheu && <Badge variant="secondary" className="ml-2">Configurado</Badge>}
+          {preencheu && (
+            <Badge variant="secondary" className="ml-2">
+              Configurado
+            </Badge>
+          )}
           <span className="ml-auto text-xs font-normal text-muted-foreground">
             Preenche automaticamente os campos SIT na captura
           </span>
@@ -267,11 +336,15 @@ function RegrasSitPanel({
               value={regras.tp_documento_despesa?.toString() ?? "none"}
               onValueChange={(v) => set({ tp_documento_despesa: v === "none" ? null : Number(v) })}
             >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {TIPOS_DOC_DESPESA.map((t) => (
-                  <SelectItem key={t.codigo} value={String(t.codigo)}>{t.codigo} – {t.nome}</SelectItem>
+                  <SelectItem key={t.codigo} value={String(t.codigo)}>
+                    {t.codigo} – {t.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -281,13 +354,19 @@ function RegrasSitPanel({
             <Label className="text-xs">Tipo de documento (pagamento)</Label>
             <Select
               value={regras.tp_documento_pagamento?.toString() ?? "none"}
-              onValueChange={(v) => set({ tp_documento_pagamento: v === "none" ? null : Number(v) })}
+              onValueChange={(v) =>
+                set({ tp_documento_pagamento: v === "none" ? null : Number(v) })
+              }
             >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {TIPOS_DOC_PAGAMENTO.map((t) => (
-                  <SelectItem key={t.codigo} value={String(t.codigo)}>{t.codigo} – {t.nome}</SelectItem>
+                  <SelectItem key={t.codigo} value={String(t.codigo)}>
+                    {t.codigo} – {t.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -299,11 +378,15 @@ function RegrasSitPanel({
               value={regras.categoria_padrao ?? "none"}
               onValueChange={(v) => set({ categoria_padrao: v === "none" ? null : v })}
             >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {CATEGORIAS.map((c) => (
-                  <SelectItem key={c.codigo} value={c.codigo}>{c.codigo} – {c.nome}</SelectItem>
+                  <SelectItem key={c.codigo} value={c.codigo}>
+                    {c.codigo} – {c.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -320,11 +403,15 @@ function RegrasSitPanel({
               value={regras.cd_modalidade_compra?.toString() ?? "none"}
               onValueChange={(v) => set({ cd_modalidade_compra: v === "none" ? null : Number(v) })}
             >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {MODALIDADES_COMPRA.map((m) => (
-                  <SelectItem key={m.codigo} value={String(m.codigo)}>{m.codigo} – {m.nome}</SelectItem>
+                  <SelectItem key={m.codigo} value={String(m.codigo)}>
+                    {m.codigo} – {m.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -338,7 +425,9 @@ function RegrasSitPanel({
                 set({ tp_doc_fav: v === "none" ? null : (v as "CPF" | "CNPJ" | "EXT") })
               }
             >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 <SelectItem value="CNPJ">CNPJ</SelectItem>

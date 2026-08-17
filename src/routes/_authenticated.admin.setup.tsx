@@ -23,7 +23,10 @@ import {
 import { validarDocs, validarSheets } from "@/lib/setup-wizard.functions";
 import { garantirEstruturaDrive } from "@/lib/arquivos.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/setup")({ component: WizardPage });
+export const Route = createFileRoute("/_authenticated/admin/setup")({
+  head: () => ({ meta: [{ title: "Configuração inicial · Approva" }] }),
+  component: WizardPage,
+});
 
 const SUBPASTAS = ["Orçamentos", "Cotações", "Prestações", "Documentos"] as const;
 
@@ -55,7 +58,10 @@ function WizardPage() {
     (async () => {
       const { data: userRes } = await supabase.auth.getUser();
       const uid = userRes.user?.id;
-      if (!uid) { setLoading(false); return; }
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
       const { data: mem } = await supabase
         .from("organization_members")
         .select("organization_id")
@@ -65,7 +71,10 @@ function WizardPage() {
         .maybeSingle();
       const oid = mem?.organization_id ?? null;
       setOrgId(oid);
-      if (!oid) { setLoading(false); return; }
+      if (!oid) {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from("configuracoes")
         .select("chave, valor")
@@ -77,21 +86,27 @@ function WizardPage() {
       const painel = data?.find((d) => d.chave === "painel_template")?.valor as
         | { template_id?: string; nome?: string }
         | undefined;
-      if (presta?.template_id) setDocs({ id: presta.template_id, name: presta.nome ?? "Prestação de Contas" });
-      if (painel?.template_id) setSheets({ id: painel.template_id, name: painel.nome ?? "Painel Financeiro" });
+      if (presta?.template_id)
+        setDocs({ id: presta.template_id, name: presta.nome ?? "Prestação de Contas" });
+      if (painel?.template_id)
+        setSheets({ id: painel.template_id, name: painel.nome ?? "Painel Financeiro" });
       setLoading(false);
     })();
   }, []);
 
   const salvar = async (chave: string, valor: Record<string, unknown>) => {
-    if (!orgId) { toast.error("Organização não encontrada"); return false; }
+    if (!orgId) {
+      toast.error("Organização não encontrada");
+      return false;
+    }
     const { error } = await supabase
       .from("configuracoes")
-      .upsert({ organization_id: orgId, chave, valor } as any, { onConflict: "organization_id,chave" });
+      .upsert({ organization_id: orgId, chave, valor } as any, {
+        onConflict: "organization_id,chave",
+      });
     if (error) toast.error("Erro ao salvar: " + error.message);
     return !error;
   };
-
 
   const criarEstrutura = async () => {
     setCreatingStructure(true);
@@ -175,7 +190,7 @@ function WizardPage() {
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
         {STEPS.map((s) => {
           const done =
-            (s.n === 1) ||
+            s.n === 1 ||
             (s.n === 2 && estruturaCompleta) ||
             (s.n === 3 && !!docs) ||
             (s.n === 4 && !!sheets) ||
@@ -190,11 +205,15 @@ function WizardPage() {
                 current
                   ? "bg-primary text-primary-foreground border-primary"
                   : done
-                  ? "bg-accent/40 border-border text-foreground"
-                  : "bg-background border-border text-muted-foreground",
+                    ? "bg-accent/40 border-border text-foreground"
+                    : "bg-background border-border text-muted-foreground",
               ].join(" ")}
             >
-              {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <CircleDot className="h-3.5 w-3.5" />}
+              {done ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <CircleDot className="h-3.5 w-3.5" />
+              )}
               <span className="font-medium">{s.n}.</span>
               {s.label}
             </button>
@@ -209,15 +228,16 @@ function WizardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-relaxed">
             <p>
-              O Approva já tem uma conta de armazenamento dedicada — você não precisa conectar nada. Vamos
-              só criar a pasta isolada da sua OSC e cadastrar dois modelos.
+              O Approva já tem uma conta de armazenamento dedicada — você não precisa conectar nada.
+              Vamos só criar a pasta isolada da sua OSC e cadastrar dois modelos.
             </p>
             <Alert>
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle>Como funciona o armazenamento</AlertTitle>
               <AlertDescription>
-                Seus documentos ficam em uma pasta exclusiva no Drive da Approva. Cada OSC tem o seu próprio
-                espaço, isolado das demais. Você acessa tudo aqui mesmo, sem precisar abrir o Google Drive.
+                Seus documentos ficam em uma pasta exclusiva no Drive da Approva. Cada OSC tem o seu
+                próprio espaço, isolado das demais. Você acessa tudo aqui mesmo, sem precisar abrir
+                o Google Drive.
               </AlertDescription>
             </Alert>
             <div className="flex justify-end">
@@ -236,8 +256,8 @@ function WizardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              O Approva vai criar (ou reaproveitar) a pasta exclusiva da sua OSC com 4 subpastas. É idempotente
-              — pode clicar quantas vezes precisar.
+              O Approva vai criar (ou reaproveitar) a pasta exclusiva da sua OSC com 4 subpastas. É
+              idempotente — pode clicar quantas vezes precisar.
             </p>
 
             <div className="rounded-md border border-border p-4 space-y-3">
@@ -245,7 +265,9 @@ function WizardPage() {
                 <div>
                   <p className="font-medium">Pastas dentro do Drive da Approva</p>
                   <p className="text-xs text-muted-foreground">
-                    <code>Approva/{`{sua-osc}`}/{`{Orçamentos, Cotações, Prestações, Documentos}`}</code>
+                    <code>
+                      Approva/{`{sua-osc}`}/{`{Orçamentos, Cotações, Prestações, Documentos}`}
+                    </code>
                   </p>
                 </div>
                 <Button onClick={criarEstrutura} disabled={creatingStructure} size="sm">
@@ -272,9 +294,13 @@ function WizardPage() {
                         {nome}
                       </span>
                       {found ? (
-                        <Badge variant="default" className="text-[10px]">pronta</Badge>
+                        <Badge variant="default" className="text-[10px]">
+                          pronta
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px]">pendente</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          pendente
+                        </Badge>
                       )}
                     </li>
                   );
@@ -285,8 +311,12 @@ function WizardPage() {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Os arquivos gerados (orçamentos, cotações, prestações) e os documentos da captura vão direto
-                para esta pasta. Você acessa tudo em <Link to="/admin/arquivos" className="underline">Arquivos</Link>.
+                Os arquivos gerados (orçamentos, cotações, prestações) e os documentos da captura
+                vão direto para esta pasta. Você acessa tudo em{" "}
+                <Link to="/admin/arquivos" className="underline">
+                  Arquivos
+                </Link>
+                .
               </AlertDescription>
             </Alert>
 
@@ -305,12 +335,14 @@ function WizardPage() {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">📄 Passo 3 — Modelo de Prestação (Google Docs)</CardTitle>
+            <CardTitle className="text-base">
+              📄 Passo 3 — Modelo de Prestação (Google Docs)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              Este é o documento que o Approva vai duplicar e preencher toda vez que você gerar uma prestação
-              de contas mensal.
+              Este é o documento que o Approva vai duplicar e preencher toda vez que você gerar uma
+              prestação de contas mensal.
             </p>
             <div className="space-y-2">
               <Label>Link do Google Docs</Label>
@@ -346,12 +378,12 @@ function WizardPage() {
       {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">📊 Passo 4 — Modelo de Painel (Google Sheets)</CardTitle>
+            <CardTitle className="text-base">
+              📊 Passo 4 — Modelo de Painel (Google Sheets)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <p>
-              Planilha-mestre que o Approva usa como base para o painel financeiro.
-            </p>
+            <p>Planilha-mestre que o Approva usa como base para o painel financeiro.</p>
             <div className="space-y-2">
               <Label>Link do Google Sheets</Label>
               <div className="flex gap-2">

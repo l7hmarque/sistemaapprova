@@ -6,20 +6,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Landmark, Download, Plus, Trash2, Save } from "lucide-react";
 import {
-  carregarReo, listarNaturezas,
-  listarPlanoAplicacao, salvarLinhaPlano, removerLinhaPlano,
-  listarRepasses, salvarRepasse, removerRepasse,
-  salvarMovimento, gerarReoPdf,
+  carregarReo,
+  listarNaturezas,
+  listarPlanoAplicacao,
+  salvarLinhaPlano,
+  removerLinhaPlano,
+  listarRepasses,
+  salvarRepasse,
+  removerRepasse,
+  salvarMovimento,
+  gerarReoPdf,
 } from "@/lib/reo.functions";
 import { listarProjetos } from "@/lib/projetos.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/reo")({ component: ReoPage });
+export const Route = createFileRoute("/_authenticated/admin/reo")({
+  head: () => ({ meta: [{ title: "REO mensal · Approva" }] }),
+  component: ReoPage,
+});
 
 function mesAtual(): string {
   const d = new Date();
@@ -48,24 +63,40 @@ function ReoPage() {
 
   const projetoId = filtroProjeto === "todos" ? undefined : filtroProjeto;
 
-  const reoQ = useQuery({ queryKey: ["reo", mes, projetoId], queryFn: () => fnReo({ data: { mes, projeto_id: projetoId } }) });
+  const reoQ = useQuery({
+    queryKey: ["reo", mes, projetoId],
+    queryFn: () => fnReo({ data: { mes, projeto_id: projetoId } }),
+  });
   const natQ = useQuery({ queryKey: ["reo-nat"], queryFn: () => fnNat(), staleTime: 300_000 });
-  const projetosQ = useQuery({ queryKey: ["projetos-reo"], queryFn: () => listarProjetos({ data: {} }), staleTime: 300_000 });
+  const projetosQ = useQuery({
+    queryKey: ["projetos-reo"],
+    queryFn: () => listarProjetos({ data: {} }),
+    staleTime: 300_000,
+  });
   const planoQ = useQuery({
     queryKey: ["reo-plano", vigencia, projetoId],
     queryFn: () => fnPlano({ data: { vigenciaInicio: vigencia, projeto_id: projetoId } }),
   });
-  const repsQ = useQuery({ queryKey: ["reo-reps", mes, projetoId], queryFn: () => fnReps({ data: { mes, projeto_id: projetoId } }) });
+  const repsQ = useQuery({
+    queryKey: ["reo-reps", mes, projetoId],
+    queryFn: () => fnReps({ data: { mes, projeto_id: projetoId } }),
+  });
 
-  const [mov, setMov] = useState({ saldo_anterior: "", rendimentos: "", estornos_extra: "", observacao: "" });
+  const [mov, setMov] = useState({
+    saldo_anterior: "",
+    rendimentos: "",
+    estornos_extra: "",
+    observacao: "",
+  });
   useMemo(() => {
     const m = reoQ.data?.movimento;
-    if (m) setMov({
-      saldo_anterior: String(m.saldo_anterior ?? 0),
-      rendimentos: String(m.rendimentos ?? 0),
-      estornos_extra: String(m.estornos_extra ?? 0),
-      observacao: m.observacao ?? "",
-    });
+    if (m)
+      setMov({
+        saldo_anterior: String(m.saldo_anterior ?? 0),
+        rendimentos: String(m.rendimentos ?? 0),
+        estornos_extra: String(m.estornos_extra ?? 0),
+        observacao: m.observacao ?? "",
+      });
   }, [reoQ.data?.mes]);
 
   const invalidateAll = () => {
@@ -87,7 +118,9 @@ function ReoPage() {
       });
       toast.success("Movimento salvo");
       invalidateAll();
-    } catch (e: any) { toast.error(e?.message || "Falha"); }
+    } catch (e: any) {
+      toast.error(e?.message || "Falha");
+    }
   };
 
   const baixarPdf = async () => {
@@ -99,10 +132,16 @@ function ReoPage() {
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       const url = URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
       const a = document.createElement("a");
-      a.href = url; a.download = r.filename; a.click();
+      a.href = url;
+      a.download = r.filename;
+      a.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      toast.success(`REO gerado — ${r.totalPaginas} pág. · ${moeda(r.totalDespesas)}`, { id: "reo-pdf" });
-    } catch (e: any) { toast.error(e?.message || "Falha ao gerar", { id: "reo-pdf" }); }
+      toast.success(`REO gerado — ${r.totalPaginas} pág. · ${moeda(r.totalDespesas)}`, {
+        id: "reo-pdf",
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar", { id: "reo-pdf" });
+    }
   };
 
   return (
@@ -126,40 +165,92 @@ function ReoPage() {
               <SelectContent>
                 <SelectItem value="todos">Todos os projetos</SelectItem>
                 {(projetosQ.data ?? []).map((p: any) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label className="text-xs">Mês</Label>
-            <Input value={mes} onChange={(e) => setMes(e.target.value)} placeholder="AAAA-MM" className="w-32" />
+            <Input
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              placeholder="AAAA-MM"
+              className="w-32"
+            />
           </div>
-          <Button onClick={baixarPdf}><Download className="h-4 w-4 mr-2" /> Gerar PDF</Button>
+          <Button onClick={baixarPdf}>
+            <Download className="h-4 w-4 mr-2" /> Gerar PDF
+          </Button>
         </div>
       </header>
 
       {/* 2.3 Resumo */}
       <Card>
-        <CardHeader><CardTitle className="text-base">2.3 Resumo financeiro do mês</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">2.3 Resumo financeiro do mês</CardTitle>
+        </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div><Label>Saldo anterior</Label><Input value={mov.saldo_anterior} onChange={(e) => setMov({ ...mov, saldo_anterior: e.target.value })} /></div>
-          <div><Label>Rendimentos</Label><Input value={mov.rendimentos} onChange={(e) => setMov({ ...mov, rendimentos: e.target.value })} /></div>
-          <div><Label>Estornos extras (fora dos eventos)</Label><Input value={mov.estornos_extra} onChange={(e) => setMov({ ...mov, estornos_extra: e.target.value })} /></div>
-          <div className="md:col-span-3"><Label>Observação</Label><Textarea value={mov.observacao} onChange={(e) => setMov({ ...mov, observacao: e.target.value })} rows={2} /></div>
+          <div>
+            <Label>Saldo anterior</Label>
+            <Input
+              value={mov.saldo_anterior}
+              onChange={(e) => setMov({ ...mov, saldo_anterior: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Rendimentos</Label>
+            <Input
+              value={mov.rendimentos}
+              onChange={(e) => setMov({ ...mov, rendimentos: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Estornos extras (fora dos eventos)</Label>
+            <Input
+              value={mov.estornos_extra}
+              onChange={(e) => setMov({ ...mov, estornos_extra: e.target.value })}
+            />
+          </div>
+          <div className="md:col-span-3">
+            <Label>Observação</Label>
+            <Textarea
+              value={mov.observacao}
+              onChange={(e) => setMov({ ...mov, observacao: e.target.value })}
+              rows={2}
+            />
+          </div>
           <div className="md:col-span-3 flex flex-wrap items-center gap-4 pt-2 border-t">
-            <Badge variant="secondary">Transferido: {moeda(reoQ.data?.movimento.valor_transferido || 0)}</Badge>
-            <Badge variant="secondary">Executado: {moeda(reoQ.data?.movimento.valor_executado || 0)}</Badge>
+            <Badge variant="secondary">
+              Transferido: {moeda(reoQ.data?.movimento.valor_transferido || 0)}
+            </Badge>
+            <Badge variant="secondary">
+              Executado: {moeda(reoQ.data?.movimento.valor_executado || 0)}
+            </Badge>
             <Badge>Saldo p/ próximo mês: {moeda(reoQ.data?.movimento.saldo_proximo || 0)}</Badge>
             <div className="flex-1" />
-            <Button size="sm" onClick={salvarMov}><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+            <Button size="sm" onClick={salvarMov}>
+              <Save className="h-4 w-4 mr-2" /> Salvar
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* 2.1 Repasses */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex justify-between">2.1 Valores transferidos <BotaoAddRepasse mes={mes} projetoId={projetoId} fn={fnSaveRep} onSaved={invalidateAll} /></CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex justify-between">
+            2.1 Valores transferidos{" "}
+            <BotaoAddRepasse
+              mes={mes}
+              projetoId={projetoId}
+              fn={fnSaveRep}
+              onSaved={invalidateAll}
+            />
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {!repsQ.data?.length ? (
             <p className="text-sm text-muted-foreground">Nenhum repasse cadastrado neste mês.</p>
@@ -168,10 +259,18 @@ function ReoPage() {
               {repsQ.data.map((r: any) => (
                 <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                   <div>
-                    <span className="font-medium">Parcela {r.numero_parcela}</span> · {moeda(Number(r.valor))} · {r.data_recebimento}
+                    <span className="font-medium">Parcela {r.numero_parcela}</span> ·{" "}
+                    {moeda(Number(r.valor))} · {r.data_recebimento}
                     {r.convenio && <span className="text-muted-foreground"> · {r.convenio}</span>}
                   </div>
-                  <Button size="sm" variant="ghost" onClick={async () => { await fnDelRep({ data: { id: r.id } }); invalidateAll(); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async () => {
+                      await fnDelRep({ data: { id: r.id } });
+                      invalidateAll();
+                    }}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </li>
@@ -183,7 +282,11 @@ function ReoPage() {
 
       {/* 2.2 Despesas */}
       <Card>
-        <CardHeader><CardTitle className="text-base">2.2 Despesas efetuadas no mês ({reoQ.data?.eventos.length ?? 0})</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">
+            2.2 Despesas efetuadas no mês ({reoQ.data?.eventos.length ?? 0})
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {!reoQ.data?.eventos.length ? (
             <p className="text-sm text-muted-foreground">Sem despesas com pagamento neste mês.</p>
@@ -198,9 +301,13 @@ function ReoPage() {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {e.natureza_despesa_codigo ? (
-                        <Badge variant="outline" className="text-[10px]">{e.natureza_despesa_codigo}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {e.natureza_despesa_codigo}
+                        </Badge>
                       ) : (
-                        <Badge variant="destructive" className="text-[10px]">sem natureza</Badge>
+                        <Badge variant="destructive" className="text-[10px]">
+                          sem natureza
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -220,15 +327,28 @@ function ReoPage() {
             <div className="flex items-end gap-2">
               <div>
                 <Label className="text-xs">Vigência (início)</Label>
-                <Input type="date" value={vigencia} onChange={(e) => setVigencia(e.target.value)} className="w-40" />
+                <Input
+                  type="date"
+                  value={vigencia}
+                  onChange={(e) => setVigencia(e.target.value)}
+                  className="w-40"
+                />
               </div>
-              <BotaoAddPlano vigencia={vigencia} projetoId={projetoId} naturezas={natQ.data ?? []} fn={fnSavePlano} onSaved={invalidateAll} />
+              <BotaoAddPlano
+                vigencia={vigencia}
+                projetoId={projetoId}
+                naturezas={natQ.data ?? []}
+                fn={fnSavePlano}
+                onSaved={invalidateAll}
+              />
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!planoQ.data?.length ? (
-            <p className="text-sm text-muted-foreground">Cadastre o plano de aplicação da vigência para ver o item 2.4.</p>
+            <p className="text-sm text-muted-foreground">
+              Cadastre o plano de aplicação da vigência para ver o item 2.4.
+            </p>
           ) : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-sm">
@@ -245,19 +365,34 @@ function ReoPage() {
                 </thead>
                 <tbody>
                   {planoQ.data.map((p: any) => {
-                    const linha = reoQ.data?.linhas24.find((l: any) => l.codigo === p.natureza_codigo);
+                    const linha = reoQ.data?.linhas24.find(
+                      (l: any) => l.codigo === p.natureza_codigo,
+                    );
                     const nat = (natQ.data ?? []).find((n) => n.codigo === p.natureza_codigo);
                     const disp = linha?.disponivel ?? Number(p.valor_previsto);
                     return (
                       <tr key={p.id} className="border-t">
                         <td className="px-2 py-1.5 font-mono text-xs">{p.natureza_codigo}</td>
                         <td className="px-2 py-1.5">{nat?.descricao ?? ""}</td>
-                        <td className="px-2 py-1.5 text-right">{moeda(Number(p.valor_previsto))}</td>
+                        <td className="px-2 py-1.5 text-right">
+                          {moeda(Number(p.valor_previsto))}
+                        </td>
                         <td className="px-2 py-1.5 text-right">{moeda(linha?.gasto ?? 0)}</td>
                         <td className="px-2 py-1.5 text-right">{moeda(linha?.estornado ?? 0)}</td>
-                        <td className={`px-2 py-1.5 text-right ${disp < 0 ? "text-destructive font-medium" : ""}`}>{moeda(disp)}</td>
+                        <td
+                          className={`px-2 py-1.5 text-right ${disp < 0 ? "text-destructive font-medium" : ""}`}
+                        >
+                          {moeda(disp)}
+                        </td>
                         <td className="px-2">
-                          <Button size="sm" variant="ghost" onClick={async () => { await fnDelPlano({ data: { id: p.id } }); invalidateAll(); }}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await fnDelPlano({ data: { id: p.id } });
+                              invalidateAll();
+                            }}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </td>
@@ -270,7 +405,8 @@ function ReoPage() {
           )}
           {reoQ.data && reoQ.data.semNaturezaGasto > 0 && (
             <p className="text-xs text-destructive">
-              Atenção: {moeda(reoQ.data.semNaturezaGasto)} em despesas do ano ainda sem natureza classificada — edite nas despesas do painel financeiro.
+              Atenção: {moeda(reoQ.data.semNaturezaGasto)} em despesas do ano ainda sem natureza
+              classificada — edite nas despesas do painel financeiro.
             </p>
           )}
         </CardContent>
@@ -279,7 +415,17 @@ function ReoPage() {
   );
 }
 
-function BotaoAddRepasse({ mes, projetoId, fn, onSaved }: { mes: string; projetoId?: string; fn: any; onSaved: () => void }) {
+function BotaoAddRepasse({
+  mes,
+  projetoId,
+  fn,
+  onSaved,
+}: {
+  mes: string;
+  projetoId?: string;
+  fn: any;
+  onSaved: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const add = async () => {
     const parcela = Number(prompt("Número da parcela?") || "0");
@@ -288,20 +434,59 @@ function BotaoAddRepasse({ mes, projetoId, fn, onSaved }: { mes: string; projeto
     if (!parcela || !valor || !dt) return;
     setLoading(true);
     try {
-      await fn({ data: { mes_referencia: mes, numero_parcela: parcela, valor, data_recebimento: dt, projeto_id: projetoId } });
-      toast.success("Repasse adicionado"); onSaved();
-    } catch (e: any) { toast.error(e?.message || "Falha"); }
-    finally { setLoading(false); }
+      await fn({
+        data: {
+          mes_referencia: mes,
+          numero_parcela: parcela,
+          valor,
+          data_recebimento: dt,
+          projeto_id: projetoId,
+        },
+      });
+      toast.success("Repasse adicionado");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha");
+    } finally {
+      setLoading(false);
+    }
   };
-  return <Button size="sm" variant="outline" onClick={add} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-1" /> Adicionar</>}</Button>;
+  return (
+    <Button size="sm" variant="outline" onClick={add} disabled={loading}>
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <>
+          <Plus className="h-4 w-4 mr-1" /> Adicionar
+        </>
+      )}
+    </Button>
+  );
 }
 
-function BotaoAddPlano({ vigencia, projetoId, naturezas, fn, onSaved }: { vigencia: string; projetoId?: string; naturezas: Array<{ codigo: string; descricao: string }>; fn: any; onSaved: () => void }) {
+function BotaoAddPlano({
+  vigencia,
+  projetoId,
+  naturezas,
+  fn,
+  onSaved,
+}: {
+  vigencia: string;
+  projetoId?: string;
+  naturezas: Array<{ codigo: string; descricao: string }>;
+  fn: any;
+  onSaved: () => void;
+}) {
   const [cod, setCod] = useState("");
   const [val, setVal] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  if (!open) return <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Add natureza</Button>;
+  if (!open)
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-1" /> Add natureza
+      </Button>
+    );
   const add = async () => {
     if (!cod || !val) return;
     setLoading(true);
@@ -316,27 +501,49 @@ function BotaoAddPlano({ vigencia, projetoId, naturezas, fn, onSaved }: { vigenc
           projeto_id: projetoId,
         },
       });
-      toast.success("Adicionado"); setCod(""); setVal(""); setOpen(false); onSaved();
-    } catch (e: any) { toast.error(e?.message || "Falha"); }
-    finally { setLoading(false); }
+      toast.success("Adicionado");
+      setCod("");
+      setVal("");
+      setOpen(false);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha");
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="flex items-end gap-2">
       <div>
         <Label className="text-xs">Natureza</Label>
         <Select value={cod} onValueChange={setCod}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="código…" /></SelectTrigger>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="código…" />
+          </SelectTrigger>
           <SelectContent>
-            {naturezas.map((n) => <SelectItem key={n.codigo} value={n.codigo}>{n.codigo} · {n.descricao}</SelectItem>)}
+            {naturezas.map((n) => (
+              <SelectItem key={n.codigo} value={n.codigo}>
+                {n.codigo} · {n.descricao}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <div>
         <Label className="text-xs">Previsto</Label>
-        <Input value={val} onChange={(e) => setVal(e.target.value)} placeholder="0,00" className="w-32" />
+        <Input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="0,00"
+          className="w-32"
+        />
       </div>
-      <Button size="sm" onClick={add} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
-      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>×</Button>
+      <Button size="sm" onClick={add} disabled={loading}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+        ×
+      </Button>
     </div>
   );
 }

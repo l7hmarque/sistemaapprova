@@ -54,21 +54,27 @@ export type DespesaInput = {
   tpDocumentoPagamento: number;
   nrDocumentoPagamento: string;
   dtEmissaoPagamento: string; // ISO
-  dtDebito?: string | null;   // ISO
+  dtDebito?: string | null; // ISO
   dsItemDespesa: string;
 };
 
-const stripDiacritics = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const stripDiacritics = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const stripUnsafe = (s: string) =>
-  s.replace(/[|"'\\\r\n]/g, " ").replace(/\s+/g, " ").trim();
+  s
+    .replace(/[|"'\\\r\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 const cleanText = (s: string) => stripDiacritics(stripUnsafe(s ?? ""));
 const onlyDigits = (s: string) => (s ?? "").replace(/\D/g, "");
 const truncate = (s: string, max: number) => (s.length > max ? s.slice(0, max) : s);
 
 const toDecimal = (v: string | number): string => {
   if (typeof v === "number") return v.toFixed(2);
-  const cleaned = String(v ?? "").trim().replace(/\s+/g, "").replace(/\./g, "").replace(",", ".");
+  const cleaned = String(v ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
   const n = Number(cleaned);
   return isFinite(n) ? n.toFixed(2) : "0.00";
 };
@@ -94,32 +100,32 @@ export function formatLinhaSIT(termo: DadosTermo, d: DespesaInput): string {
   }
 
   const campos = [
-    onlyDigits(termo.nrCNPJConcedente),                                    // 1
-    String(termo.tpTransferencia ?? ""),                                   // 2
-    truncate(cleanText(termo.nrInternoConcedente), 20),                    // 3
-    String(termo.anoTransferencia ?? ""),                                  // 4
-    d.tpDespesa != null ? String(d.tpDespesa) : "",                        // 5
-    d.tpDocumentoFavorecido ?? "",                                         // 6
-    nrDocFav,                                                              // 7
-    truncate(nmFav, 250),                                                  // 8
-    String(d.tpDocumentoDespesa ?? ""),                                    // 9
-    truncate(cleanText(d.nrDocumentoDespesa), 10),                         // 10
-    toDecimal(d.vlDocumentoDespesa),                                       // 11
-    toBrDate(d.dtDocumentoDespesa),                                        // 12
-    "",                                                                    // 13 dsPlacaVeiculo
-    "",                                                                    // 14 nrQuilometragemVeiculo
-    "",                                                                    // 15 nrEmpenho
-    "",                                                                    // 16 dtEmpenho
-    String(d.cdModalidadeCompra ?? ""),                                    // 17
-    "",                                                                    // 18 nrProcessoCompra
-    "",                                                                    // 19 dtProcessoCompra
-    String(d.tpDocumentoPagamento ?? ""),                                  // 20
-    truncate(cleanText(d.nrDocumentoPagamento), 15),                       // 21
-    toBrDate(d.dtEmissaoPagamento),                                        // 22
+    onlyDigits(termo.nrCNPJConcedente), // 1
+    String(termo.tpTransferencia ?? ""), // 2
+    truncate(cleanText(termo.nrInternoConcedente), 20), // 3
+    String(termo.anoTransferencia ?? ""), // 4
+    d.tpDespesa != null ? String(d.tpDespesa) : "", // 5
+    d.tpDocumentoFavorecido ?? "", // 6
+    nrDocFav, // 7
+    truncate(nmFav, 250), // 8
+    String(d.tpDocumentoDespesa ?? ""), // 9
+    truncate(cleanText(d.nrDocumentoDespesa), 10), // 10
+    toDecimal(d.vlDocumentoDespesa), // 11
+    toBrDate(d.dtDocumentoDespesa), // 12
+    "", // 13 dsPlacaVeiculo
+    "", // 14 nrQuilometragemVeiculo
+    "", // 15 nrEmpenho
+    "", // 16 dtEmpenho
+    String(d.cdModalidadeCompra ?? ""), // 17
+    "", // 18 nrProcessoCompra
+    "", // 19 dtProcessoCompra
+    String(d.tpDocumentoPagamento ?? ""), // 20
+    truncate(cleanText(d.nrDocumentoPagamento), 15), // 21
+    toBrDate(d.dtEmissaoPagamento), // 22
     // dtDebito (23): só faz sentido para Débito em Conta (código 6).
     // Demais formas (Cheque, OB, DOC, TED, PIX, Depósito) vão vazias.
-    d.tpDocumentoPagamento === 6 ? toBrDate(d.dtDebito ?? "") : "",        // 23
-    truncate(cleanText(d.dsItemDespesa), 2000),                            // 24
+    d.tpDocumentoPagamento === 6 ? toBrDate(d.dtDebito ?? "") : "", // 23
+    truncate(cleanText(d.dsItemDespesa), 2000), // 24
   ];
 
   return campos.join("|");

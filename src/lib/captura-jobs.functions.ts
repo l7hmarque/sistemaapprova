@@ -14,7 +14,11 @@ const EnfileirarSchema = z.object({
   hash: z.string().length(64),
   nomeArquivo: z.string().min(1).max(255),
   mimeType: z.string().max(100).nullable().optional(),
-  tamanhoBytes: z.number().int().nonnegative().max(50 * 1024 * 1024),
+  tamanhoBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(50 * 1024 * 1024),
   mesReferencia: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   organizationId: z.string().uuid(),
 });
@@ -46,7 +50,10 @@ export const enfileirarCaptura = createServerFn({ method: "POST" })
 
 const ListarSchema = z.object({
   organizationId: z.string().uuid(),
-  mesReferencia: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  mesReferencia: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+    .optional(),
   limite: z.number().int().min(1).max(200).default(50),
 });
 
@@ -57,7 +64,9 @@ export const listarCapturaJobs = createServerFn({ method: "POST" })
     const { supabase } = context;
     let q = supabase
       .from("captura_jobs")
-      .select("id, status, mensagem, storage_path, arquivo_hash, nome_arquivo, mime_type, tamanho_bytes, mes_referencia, evento_id, documento_id, dados, criado_em, atualizado_em, tentativas")
+      .select(
+        "id, status, mensagem, storage_path, arquivo_hash, nome_arquivo, mime_type, tamanho_bytes, mes_referencia, evento_id, documento_id, dados, criado_em, atualizado_em, tentativas",
+      )
       .eq("organization_id", data.organizationId)
       .order("criado_em", { ascending: false })
       .limit(data.limite);

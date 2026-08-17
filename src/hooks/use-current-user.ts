@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
 
-
 export type Membership = {
   organization_id: string;
   role: "owner" | "admin" | "membro";
@@ -28,7 +27,7 @@ export function useCurrentUser() {
       const { data, error } = await supabase
         .from("organization_members")
         .select(
-          "organization_id, role, organizations:organizations!inner(id, nome, tipo, plano, status, trial_ate, parent_organization_id)"
+          "organization_id, role, organizations:organizations!inner(id, nome, tipo, plano, status, trial_ate, parent_organization_id)",
         )
         .eq("user_id", user!.id);
       if (error) throw error;
@@ -57,7 +56,9 @@ export function useCurrentUser() {
     if (typeof window === "undefined") return;
     try {
       if (isSuperAdmin) localStorage.setItem("synsit_interno", "1");
-    } catch {}
+    } catch {
+      /* ignorado: recurso opcional indisponível */
+    }
   }, [isSuperAdmin]);
 
   return {
@@ -67,5 +68,3 @@ export function useCurrentUser() {
     isSuperAdmin,
   };
 }
-
-

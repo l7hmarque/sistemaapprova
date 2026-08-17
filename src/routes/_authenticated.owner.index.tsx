@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDriveQueueStats } from "@/lib/owner.functions";
 import { AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/owner/")({ component: OwnerDashboard });
-
+export const Route = createFileRoute("/_authenticated/owner/")({
+  head: () => ({ meta: [{ title: "Visão geral · Approva" }] }),
+  component: OwnerDashboard,
+});
 
 function OwnerDashboard() {
   const { data: stats } = useQuery({
@@ -34,9 +36,7 @@ function OwnerDashboard() {
     <div className="p-8 space-y-6 max-w-5xl">
       <header>
         <h1 className="font-display text-3xl uppercase">Visão geral</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Pulsação da operação Approva.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Pulsação da operação Approva.</p>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -51,20 +51,30 @@ function OwnerDashboard() {
       <DriveQueueCard />
 
       <Card>
-
         <CardHeader>
-          <CardTitle className="text-sm uppercase tracking-wide">Modelo escritório-contábil — métricas de referência</CardTitle>
+          <CardTitle className="text-sm uppercase tracking-wide">
+            Modelo escritório-contábil — métricas de referência
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-2 text-muted-foreground">
-          <p>
-            Quando um escritório contábil onboarda N OSCs, métricas-alvo:
-          </p>
+          <p>Quando um escritório contábil onboarda N OSCs, métricas-alvo:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>ARPA escritório</strong>: R$ 79–199/OSC ativa (volume).</li>
-            <li><strong>LTV/CAC</strong> mínimo 4×; LTV ≈ 36 meses × ARPA × % retenção.</li>
-            <li><strong>Churn mensal</strong> alvo ≤ 2,5% (terceiro setor é fiel quando o produto resolve compliance).</li>
-            <li><strong>NPS</strong> alvo ≥ 50 entre coordenadores e contadores.</li>
-            <li><strong>Time-to-first-SIT</strong>: ≤ 48h desde criação da org.</li>
+            <li>
+              <strong>ARPA escritório</strong>: R$ 79–199/OSC ativa (volume).
+            </li>
+            <li>
+              <strong>LTV/CAC</strong> mínimo 4×; LTV ≈ 36 meses × ARPA × % retenção.
+            </li>
+            <li>
+              <strong>Churn mensal</strong> alvo ≤ 2,5% (terceiro setor é fiel quando o produto
+              resolve compliance).
+            </li>
+            <li>
+              <strong>NPS</strong> alvo ≥ 50 entre coordenadores e contadores.
+            </li>
+            <li>
+              <strong>Time-to-first-SIT</strong>: ≤ 48h desde criação da org.
+            </li>
           </ul>
         </CardContent>
       </Card>
@@ -77,7 +87,12 @@ function Stat({ label, value, accent }: { label: string; value?: number; accent?
     <Card>
       <CardContent className="p-5">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className={["text-3xl font-display mt-1", accent ? "text-primary" : "text-foreground"].join(" ")}>
+        <div
+          className={[
+            "text-3xl font-display mt-1",
+            accent ? "text-primary" : "text-foreground",
+          ].join(" ")}
+        >
           {value ?? "—"}
         </div>
       </CardContent>
@@ -93,7 +108,10 @@ function DriveQueueCard() {
     refetchInterval: 30_000,
   });
 
-  const alerta = (data?.falhou_retry ?? 0) > 0 || (data?.falhou_permanente ?? 0) > 0 || (data?.atrasados ?? 0) > 0;
+  const alerta =
+    (data?.falhou_retry ?? 0) > 0 ||
+    (data?.falhou_permanente ?? 0) > 0 ||
+    (data?.atrasados ?? 0) > 0;
 
   return (
     <Card className={alerta ? "border-destructive/60" : undefined}>
@@ -110,8 +128,16 @@ function DriveQueueCard() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <QueueStat label="Pendentes" value={data.pendente} />
             <QueueStat label="Em andamento" value={data.em_andamento} />
-            <QueueStat label="Falhou — retry" value={data.falhou_retry} danger={data.falhou_retry > 0} />
-            <QueueStat label="Falhou — permanente" value={data.falhou_permanente} danger={data.falhou_permanente > 0} />
+            <QueueStat
+              label="Falhou — retry"
+              value={data.falhou_retry}
+              danger={data.falhou_retry > 0}
+            />
+            <QueueStat
+              label="Falhou — permanente"
+              value={data.falhou_permanente}
+              danger={data.falhou_permanente > 0}
+            />
             <QueueStat label="Atrasados" value={data.atrasados} danger={data.atrasados > 0} />
             <QueueStat label="Concluídos (24h)" value={data.concluido_24h} />
           </div>
@@ -125,10 +151,14 @@ function QueueStat({ label, value, danger }: { label: string; value: number; dan
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={["text-2xl font-display mt-1", danger ? "text-destructive" : "text-foreground"].join(" ")}>
+      <div
+        className={[
+          "text-2xl font-display mt-1",
+          danger ? "text-destructive" : "text-foreground",
+        ].join(" ")}
+      >
         {value}
       </div>
     </div>
   );
 }
-

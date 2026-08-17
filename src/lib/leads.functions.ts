@@ -39,7 +39,9 @@ const LeadSchema = z.object({
 async function hashIp(ip: string): Promise<string> {
   const enc = new TextEncoder().encode("synsit::" + ip);
   const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function checkRateLimit(ipHash: string): Promise<boolean> {
@@ -141,18 +143,21 @@ async function notificarEquipe(lead: Record<string, unknown> & { id: string }) {
   try {
     const html = renderLeadEmail(lead);
     const text = renderLeadEmailText(lead);
-    const { error } = await supabaseAdmin.rpc("enqueue_email" as never, {
-      p_queue_name: "transactional_emails",
-      p_payload: {
-        to: DEST,
-        from: { email: "no-reply@synsit.app", name: "Approva Leads" },
-        subject: SUBJECT,
-        html,
-        text,
-        template_name: "lead_notification",
-        message_id: `lead-${lead.id}`,
-      },
-    } as never);
+    const { error } = await supabaseAdmin.rpc(
+      "enqueue_email" as never,
+      {
+        p_queue_name: "transactional_emails",
+        p_payload: {
+          to: DEST,
+          from: { email: "no-reply@synsit.app", name: "Approva Leads" },
+          subject: SUBJECT,
+          html,
+          text,
+          template_name: "lead_notification",
+          message_id: `lead-${lead.id}`,
+        },
+      } as never,
+    );
     if (error) throw error;
     console.log("[lead] notification enqueued", lead.id);
   } catch (e) {
@@ -161,7 +166,10 @@ async function notificarEquipe(lead: Record<string, unknown> & { id: string }) {
 }
 
 function esc(v: unknown): string {
-  return String(v ?? "—").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]!);
+  return String(v ?? "—").replace(
+    /[<>&"]/g,
+    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]!,
+  );
 }
 
 function renderLeadEmail(l: Record<string, unknown>): string {
@@ -207,5 +215,7 @@ function renderLeadEmailText(l: Record<string, unknown>): string {
     l.dor ? `Dor: ${l.dor}` : null,
     `UTM: ${l.utm_source}/${l.utm_medium}/${l.utm_campaign}`,
     `Referrer: ${l.referrer}`,
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

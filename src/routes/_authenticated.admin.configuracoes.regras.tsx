@@ -41,6 +41,7 @@ import {
 } from "@/lib/sit/catalogos";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes/regras")({
+  head: () => ({ meta: [{ title: "Regras de despesa · Approva" }] }),
   component: RegrasPage,
 });
 
@@ -179,9 +180,8 @@ function RegrasPage() {
           <div>
             <CardTitle>Regras de despesa</CardTitle>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Automações que preenchem campos SIT quando um evento novo bate no
-              critério. Só preenchem campos vazios — nunca sobrescrevem valores
-              já definidos manualmente.
+              Automações que preenchem campos SIT quando um evento novo bate no critério. Só
+              preenchem campos vazios — nunca sobrescrevem valores já definidos manualmente.
             </p>
           </div>
           <Button onClick={abrirNova}>
@@ -192,9 +192,7 @@ function RegrasPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Carregando…</p>
           ) : regras.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma regra cadastrada.
-            </p>
+            <p className="text-sm text-muted-foreground">Nenhuma regra cadastrada.</p>
           ) : (
             <div className="space-y-2">
               {regras.map((r) => (
@@ -212,12 +210,9 @@ function RegrasPage() {
                       <div>
                         <span className="font-medium">Quando:</span>{" "}
                         {[
-                          r.match_tp_despesa != null &&
-                            `REO ${tpDespesaLabel(r.match_tp_despesa)}`,
-                          r.match_tp_documento != null &&
-                            `Doc ${tpDocLabel(r.match_tp_documento)}`,
-                          r.match_favorecido_regex &&
-                            `Favorecido ~ /${r.match_favorecido_regex}/i`,
+                          r.match_tp_despesa != null && `REO ${tpDespesaLabel(r.match_tp_despesa)}`,
+                          r.match_tp_documento != null && `Doc ${tpDocLabel(r.match_tp_documento)}`,
+                          r.match_favorecido_regex && `Favorecido ~ /${r.match_favorecido_regex}/i`,
                         ]
                           .filter(Boolean)
                           .join(" · ") || "—"}
@@ -225,16 +220,14 @@ function RegrasPage() {
                       <div>
                         <span className="font-medium">Aplicar:</span>{" "}
                         {[
-                          r.set_tp_despesa != null &&
-                            `REO=${tpDespesaLabel(r.set_tp_despesa)}`,
+                          r.set_tp_despesa != null && `REO=${tpDespesaLabel(r.set_tp_despesa)}`,
                           r.set_cd_modalidade != null &&
                             `Modalidade=${modalidadeLabel(r.set_cd_modalidade)}`,
                           r.set_tp_documento_pagamento != null &&
                             `Pagto=${pagamentoLabel(r.set_tp_documento_pagamento)}`,
                           r.set_tp_documento_favorecido &&
                             `TipoDoc=${r.set_tp_documento_favorecido}`,
-                          r.set_nr_documento_favorecido &&
-                            `NºDoc=${r.set_nr_documento_favorecido}`,
+                          r.set_nr_documento_favorecido && `NºDoc=${r.set_nr_documento_favorecido}`,
                           r.set_nm_favorecido && `Nome=${r.set_nm_favorecido}`,
                         ]
                           .filter(Boolean)
@@ -243,18 +236,10 @@ function RegrasPage() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => abrirEdit(r)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => abrirEdit(r)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remover(r)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => remover(r)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -321,7 +306,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— qualquer —</SelectItem>
                   {CATEGORIAS.map((c) => {
@@ -346,7 +333,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— qualquer —</SelectItem>
                   {TIPOS_DOC_DESPESA.map((t) => (
@@ -387,7 +376,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— não alterar —</SelectItem>
                   {CATEGORIAS.map((c) => {
@@ -412,7 +403,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— não alterar —</SelectItem>
                   {MODALIDADES_COMPRA.map((m) => (
@@ -426,7 +419,11 @@ function RegrasPage() {
             <div>
               <Label>Tipo doc pagamento</Label>
               <Select
-                value={form.set_tp_documento_pagamento != null ? String(form.set_tp_documento_pagamento) : "none"}
+                value={
+                  form.set_tp_documento_pagamento != null
+                    ? String(form.set_tp_documento_pagamento)
+                    : "none"
+                }
                 onValueChange={(v) =>
                   setForm({
                     ...form,
@@ -434,7 +431,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— não alterar —</SelectItem>
                   {TIPOS_DOC_PAGAMENTO.map((t) => (
@@ -456,7 +455,9 @@ function RegrasPage() {
                   })
                 }
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— não alterar —</SelectItem>
                   <SelectItem value="CNPJ">CNPJ</SelectItem>

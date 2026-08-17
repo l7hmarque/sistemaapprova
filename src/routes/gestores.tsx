@@ -9,56 +9,119 @@ export const Route = createFileRoute("/gestores")({
   head: () => ({
     meta: [
       { title: "Sistema para OSC: despesas e prestação de contas | Approva" },
-      { name: "description", content: "Organize as despesas do mês da sua OSC, guarde os comprovantes de cada convênio ou termo de fomento e gere a prestação de contas em um PDF único. 30 dias grátis." },
+      {
+        name: "description",
+        content:
+          "Organize as despesas do mês da sua OSC, guarde os comprovantes de cada convênio ou termo de fomento e gere a prestação de contas em um PDF único. 30 dias grátis.",
+      },
       { property: "og:title", content: "Approva para gestores e equipes financeiras de OSCs" },
-      { property: "og:description", content: "Despesas com comprovante anexo, saldo por projeto e prestação de contas do mês em um PDF só." },
+      {
+        property: "og:description",
+        content:
+          "Despesas com comprovante anexo, saldo por projeto e prestação de contas do mês em um PDF só.",
+      },
 
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://sistemaapprova.lovable.app/gestores" },
     ],
     links: [{ rel: "canonical", href: "https://sistemaapprova.lovable.app/gestores" }],
-    scripts: [{
-      type: "application/ld+json",
-      children: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: [
-          { "@type": "Question", name: "Minha OSC é pequena, vale a pena?", acceptedAnswer: { "@type": "Answer", text: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema." } },
-          { "@type": "Question", name: "Como funciona com convênios e termos de fomento?", acceptedAnswer: { "@type": "Answer", text: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto." } },
-          { "@type": "Question", name: "O Approva envia a prestação para o TCE ou para o SIT?", acceptedAnswer: { "@type": "Answer", text: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC." } },
-          { "@type": "Question", name: "Posso dar acesso para meu contador?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail." } },
-          { "@type": "Question", name: "E LGPD?", acceptedAnswer: { "@type": "Answer", text: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC." } },
-        ],
-
-      }),
-    }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            {
+              "@type": "Question",
+              name: "Minha OSC é pequena, vale a pena?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "Como funciona com convênios e termos de fomento?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "O Approva envia a prestação para o TCE ou para o SIT?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "Posso dar acesso para meu contador?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "E LGPD?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC.",
+              },
+            },
+          ],
+        }),
+      },
+    ],
   }),
   component: GestoresPage,
 });
 
 const VANTAGENS = [
-  { t: "Menos papelada, mais causa", d: "Os documentos entram pelo sistema e já viram despesa preenchida. Sua equipe deixa de digitar linha por linha." },
-  { t: "Saldo do projeto na tela", d: "Quanto foi aprovado, repassado, gasto e quanto resta em cada convênio ou termo de fomento." },
-  { t: "Prestação em um PDF só", d: "Modelo, certidões e comprovantes do mês reunidos em um arquivo único, com sumário, pronto para entregar." },
-  { t: "Certidões com validade controlada", d: "Documento válido por vários meses reaparece sozinho na prestação e avisa quando está perto de vencer." },
-  { t: "Cotação e mapa comparativo", d: "Peça orçamento aos fornecedores por e-mail, compare os preços e gere o mapa comparativo no próprio sistema." },
-  { t: "Acesso para a equipe", d: "Coordenação, financeiro, diretoria e contabilidade com convite por e-mail e histórico de quem alterou o quê." },
+  {
+    t: "Menos papelada, mais causa",
+    d: "Os documentos entram pelo sistema e já viram despesa preenchida. Sua equipe deixa de digitar linha por linha.",
+  },
+  {
+    t: "Saldo do projeto na tela",
+    d: "Quanto foi aprovado, repassado, gasto e quanto resta em cada convênio ou termo de fomento.",
+  },
+  {
+    t: "Prestação em um PDF só",
+    d: "Modelo, certidões e comprovantes do mês reunidos em um arquivo único, com sumário, pronto para entregar.",
+  },
+  {
+    t: "Certidões com validade controlada",
+    d: "Documento válido por vários meses reaparece sozinho na prestação e avisa quando está perto de vencer.",
+  },
+  {
+    t: "Cotação e mapa comparativo",
+    d: "Peça orçamento aos fornecedores por e-mail, compare os preços e gere o mapa comparativo no próprio sistema.",
+  },
+  {
+    t: "Acesso para a equipe",
+    d: "Coordenação, financeiro, diretoria e contabilidade com convite por e-mail e histórico de quem alterou o quê.",
+  },
 ];
-
 
 function GestoresPage() {
   return (
     <MarketingLayout>
       <section className="bg-brand-cream">
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Para gestores de OSCs</p>
+          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+            Para gestores de OSCs
+          </p>
           <h1 className="mt-4 text-5xl md:text-6xl font-serif text-brand-navy max-w-3xl leading-[1.05]">
             Mais tempo para a missão. Menos tempo com planilha.
           </h1>
           <p className="mt-6 text-lg text-brand-muted max-w-2xl leading-relaxed">
-            Approva organiza a vida financeira da sua OSC — orçamento, lançamentos,
-            documentos e prestação de contas — num só lugar, com visão clara para
-            quem coordena e segurança para quem audita.
+            Approva organiza a vida financeira da sua OSC — orçamento, lançamentos, documentos e
+            prestação de contas — num só lugar, com visão clara para quem coordena e segurança para
+            quem audita.
           </p>
           <a
             href="/demonstracao?plano=profissional&publico=gestor"
@@ -72,26 +135,46 @@ function GestoresPage() {
       <section className="mx-auto max-w-6xl px-6 py-20 space-y-16">
         <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
           <div className="rounded-xl overflow-hidden border border-brand-line shadow-xl bg-white order-2 lg:order-1">
-            <img src={painelShot} alt="Painel financeiro do Approva com saldo do termo, próximo repasse e execução por rubrica em barras coloridas." loading="lazy" className="w-full h-auto" />
+            <img
+              src={painelShot}
+              alt="Painel financeiro do Approva com saldo do termo, próximo repasse e execução por rubrica em barras coloridas."
+              loading="lazy"
+              className="w-full h-auto"
+            />
           </div>
           <div className="order-1 lg:order-2">
-            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Visão clara do orçamento</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">Saiba quanto sobrou — sem abrir 6 planilhas.</h2>
+            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+              Visão clara do orçamento
+            </p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">
+              Saiba quanto sobrou — sem abrir 6 planilhas.
+            </h2>
             <p className="mt-4 text-brand-muted leading-relaxed">
-              Saldo do termo, próximo repasse e execução por rubrica em tempo real. Quando a diretoria perguntar, a resposta está na tela.
+              Saldo do termo, próximo repasse e execução por rubrica em tempo real. Quando a
+              diretoria perguntar, a resposta está na tela.
             </p>
           </div>
         </div>
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
           <div>
-            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Aprovação em duas mãos</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">Nenhuma despesa passa sem revisão.</h2>
+            <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+              Aprovação em duas mãos
+            </p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy">
+              Nenhuma despesa passa sem revisão.
+            </h2>
             <p className="mt-4 text-brand-muted leading-relaxed">
-              Solicitante, valor, fornecedor e tempo na fila — tudo num cartão. Aprovar ou rejeitar leva um clique, com trilha auditável.
+              Solicitante, valor, fornecedor e tempo na fila — tudo num cartão. Aprovar ou rejeitar
+              leva um clique, com trilha auditável.
             </p>
           </div>
           <div className="rounded-xl overflow-hidden border border-brand-line shadow-xl bg-white">
-            <img src={aprovacoesShot} alt="Tela de aprovações do Approva com três despesas pendentes em cards, mostrando fornecedor, valor, solicitante e botões aprovar/rejeitar." loading="lazy" className="w-full h-auto" />
+            <img
+              src={aprovacoesShot}
+              alt="Tela de aprovações do Approva com três despesas pendentes em cards, mostrando fornecedor, valor, solicitante e botões aprovar/rejeitar."
+              loading="lazy"
+              className="w-full h-auto"
+            />
           </div>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
@@ -106,29 +189,46 @@ function GestoresPage() {
 
       <section className="bg-brand-navy text-white">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <p className="text-xs uppercase tracking-widest text-brand-accent font-medium">Para quem cuida do que importa</p>
+          <p className="text-xs uppercase tracking-widest text-brand-accent font-medium">
+            Para quem cuida do que importa
+          </p>
           <h2 className="mt-3 text-4xl md:text-5xl font-serif text-white">
             A sua causa merece uma operação organizada.
           </h2>
           <p className="mt-6 text-white/85 text-lg leading-relaxed">
-            Cada despesa com o comprovante junto, o saldo do projeto sempre à
-            vista e o relatório do mês pronto para baixar. O Approva organiza e
-            gera os documentos — a entrega ao órgão continua sendo feita por você.
+            Cada despesa com o comprovante junto, o saldo do projeto sempre à vista e o relatório do
+            mês pronto para baixar. O Approva organiza e gera os documentos — a entrega ao órgão
+            continua sendo feita por você.
           </p>
         </div>
       </section>
 
-
       <PlanCards publico="gestor" />
 
-      <FaqAccordion items={[
-        { q: "Minha OSC é pequena, vale a pena?", a: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema." },
-        { q: "Como funciona com convênios e termos de fomento?", a: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto." },
-        { q: "O Approva envia a prestação para o TCE ou para o SIT?", a: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC." },
-        { q: "Posso dar acesso para meu contador?", a: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail." },
-        { q: "E LGPD?", a: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC." },
-      ]} />
-
+      <FaqAccordion
+        items={[
+          {
+            q: "Minha OSC é pequena, vale a pena?",
+            a: "Sim. O plano Essencial foi pensado para OSCs em início ou pequeno porte. Você organiza desde já e cresce sem precisar trocar de sistema.",
+          },
+          {
+            q: "Como funciona com convênios e termos de fomento?",
+            a: "Você cadastra cada projeto ou termo com valor e vigência e vincula as despesas a ele. O sistema mostra quanto foi repassado, quanto foi gasto e quanto resta, e gera o relatório do mês por projeto.",
+          },
+          {
+            q: "O Approva envia a prestação para o TCE ou para o SIT?",
+            a: "Não. Não existe integração com sistemas de órgãos públicos. O Approva organiza as despesas e gera o PDF da prestação de contas com todos os comprovantes; a entrega continua sendo feita pela sua OSC.",
+          },
+          {
+            q: "Posso dar acesso para meu contador?",
+            a: "Sim. Você convida a contabilidade por e-mail e ela acessa o mesmo mês para revisar e aprovar — sem trocar planilha por e-mail.",
+          },
+          {
+            q: "E LGPD?",
+            a: "Tratamos dados conforme a LGPD. Apenas pessoas com acesso autorizado visualizam informações da OSC.",
+          },
+        ]}
+      />
     </MarketingLayout>
   );
 }

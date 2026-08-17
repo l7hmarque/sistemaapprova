@@ -26,7 +26,14 @@ interface AdminShellProps {
   actions?: React.ReactNode;
 }
 
-export function AdminShell({ title, subtitle, children, backTo, module = "dashboard", actions }: AdminShellProps) {
+export function AdminShell({
+  title,
+  subtitle,
+  children,
+  backTo,
+  module = "dashboard",
+  actions,
+}: AdminShellProps) {
   return (
     <div data-module={module} className="p-6 md:p-8 space-y-6 md:space-y-8">
       <header

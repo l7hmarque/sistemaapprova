@@ -67,15 +67,14 @@ export function PlanCards({ publico }: { publico?: "contador" | "gestor" }) {
   return (
     <section id="planos" className="mx-auto max-w-6xl px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
-        <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
-          Planos
-        </p>
+        <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Planos</p>
         <h2 className="mt-3 text-4xl md:text-5xl font-serif text-brand-navy">
           Escolha o tamanho certo
         </h2>
         <p className="mt-4 text-brand-muted text-lg">
-          Todos os planos incluem <strong className="text-brand-navy">30 dias de demonstração gratuita</strong>,
-          sem cartão de crédito e sem fidelidade.
+          Todos os planos incluem{" "}
+          <strong className="text-brand-navy">30 dias de demonstração gratuita</strong>, sem cartão
+          de crédito e sem fidelidade.
         </p>
       </div>
 
@@ -94,21 +93,45 @@ export function PlanCards({ publico }: { publico?: "contador" | "gestor" }) {
                 Mais escolhido
               </div>
             )}
-            <div className={p.destaque ? "text-white/70 text-xs uppercase tracking-widest" : "text-brand-blue text-xs uppercase tracking-widest"}>
+            <div
+              className={
+                p.destaque
+                  ? "text-white/70 text-xs uppercase tracking-widest"
+                  : "text-brand-blue text-xs uppercase tracking-widest"
+              }
+            >
               {p.publico}
             </div>
-            <h3 className={p.destaque ? "mt-2 text-3xl font-serif text-white" : "mt-2 text-3xl font-serif text-brand-navy"}>
+            <h3
+              className={
+                p.destaque
+                  ? "mt-2 text-3xl font-serif text-white"
+                  : "mt-2 text-3xl font-serif text-brand-navy"
+              }
+            >
               {p.nome}
             </h3>
             <div className="mt-6 flex items-baseline gap-1">
-              <span className={p.destaque ? "text-5xl font-serif text-white" : "text-5xl font-serif text-brand-navy"}>
+              <span
+                className={
+                  p.destaque
+                    ? "text-5xl font-serif text-white"
+                    : "text-5xl font-serif text-brand-navy"
+                }
+              >
                 {p.preco}
               </span>
               <span className={p.destaque ? "text-white/70 text-sm" : "text-brand-muted text-sm"}>
                 /mês
               </span>
             </div>
-            <p className={p.destaque ? "mt-3 text-white/80 text-sm leading-relaxed" : "mt-3 text-brand-muted text-sm leading-relaxed"}>
+            <p
+              className={
+                p.destaque
+                  ? "mt-3 text-white/80 text-sm leading-relaxed"
+                  : "mt-3 text-brand-muted text-sm leading-relaxed"
+              }
+            >
               {p.resumo}
             </p>
 
@@ -139,7 +162,10 @@ export function PlanCards({ publico }: { publico?: "contador" | "gestor" }) {
 
       <p className="mt-10 text-center text-sm text-brand-muted">
         Precisa de mais que 5 OSCs ou de integração customizada?{" "}
-        <Link to="/demonstracao" className="text-brand-blue underline decoration-brand-line underline-offset-4">
+        <Link
+          to="/demonstracao"
+          className="text-brand-blue underline decoration-brand-line underline-offset-4"
+        >
           Fale com a equipe
         </Link>
         .

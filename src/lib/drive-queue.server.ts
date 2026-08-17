@@ -44,20 +44,18 @@ export interface EnqueueArgs {
  */
 export async function enqueueDriveSync(args: EnqueueArgs): Promise<void> {
   try {
-    const { error } = await (supabaseAdmin as any)
-      .from("drive_sync_queue")
-      .insert({
-        organization_id: args.organizationId,
-        bucket: args.bucket,
-        path: args.path,
-        section: args.section,
-        mes_ref: args.mesRef ?? null,
-        ref_table: args.refTable ?? null,
-        ref_id: args.refId ?? null,
-        nome_original: args.nomeOriginal ?? null,
-        mime_type: args.mimeType ?? null,
-        status: "pendente",
-      });
+    const { error } = await (supabaseAdmin as any).from("drive_sync_queue").insert({
+      organization_id: args.organizationId,
+      bucket: args.bucket,
+      path: args.path,
+      section: args.section,
+      mes_ref: args.mesRef ?? null,
+      ref_table: args.refTable ?? null,
+      ref_id: args.refId ?? null,
+      nome_original: args.nomeOriginal ?? null,
+      mime_type: args.mimeType ?? null,
+      status: "pendente",
+    });
     if (error) console.warn("[drive-queue] enqueue falhou:", error.message);
   } catch (e) {
     console.warn("[drive-queue] enqueue exception:", e);
@@ -138,7 +136,10 @@ async function markSuccess(job: Job, driveFileId: string): Promise<void> {
 
 async function markFailure(job: Job, err: unknown): Promise<void> {
   const msg = err instanceof Error ? err.message : String(err);
-  const proxima = job.tentativas >= MAX_TENTATIVAS ? null : RETRY_STEPS_SEC[job.tentativas - 1] ?? RETRY_STEPS_SEC[0];
+  const proxima =
+    job.tentativas >= MAX_TENTATIVAS
+      ? null
+      : (RETRY_STEPS_SEC[job.tentativas - 1] ?? RETRY_STEPS_SEC[0]);
   const nextStatus = proxima == null ? "falhou_definitivo" : "falhou_retry";
   const payload: Record<string, unknown> = { status: nextStatus, ultimo_erro: msg.slice(0, 500) };
   if (proxima != null) {

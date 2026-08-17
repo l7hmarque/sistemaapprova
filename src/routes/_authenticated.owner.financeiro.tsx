@@ -10,7 +10,10 @@ const PLANO_VALOR: Record<string, number> = {
   escritorio: 299,
 };
 
-export const Route = createFileRoute("/_authenticated/owner/financeiro")({ component: FinanceiroPage });
+export const Route = createFileRoute("/_authenticated/owner/financeiro")({
+  head: () => ({ meta: [{ title: "Financeiro · Approva" }] }),
+  component: FinanceiroPage,
+});
 
 function FinanceiroPage() {
   const { data } = useQuery({
@@ -42,9 +45,24 @@ function FinanceiroPage() {
       </header>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-5"><div className="text-xs uppercase text-muted-foreground">MRR (projetado)</div><div className="text-3xl font-display mt-1">R$ {mrr.toLocaleString("pt-BR")}</div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="text-xs uppercase text-muted-foreground">ARR (projetado)</div><div className="text-3xl font-display mt-1">R$ {arr.toLocaleString("pt-BR")}</div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="text-xs uppercase text-muted-foreground">Ativos pagantes</div><div className="text-3xl font-display mt-1">{ativos.length}</div></CardContent></Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-xs uppercase text-muted-foreground">MRR (projetado)</div>
+            <div className="text-3xl font-display mt-1">R$ {mrr.toLocaleString("pt-BR")}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-xs uppercase text-muted-foreground">ARR (projetado)</div>
+            <div className="text-3xl font-display mt-1">R$ {arr.toLocaleString("pt-BR")}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-xs uppercase text-muted-foreground">Ativos pagantes</div>
+            <div className="text-3xl font-display mt-1">{ativos.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -58,7 +76,7 @@ function FinanceiroPage() {
             <div className="divide-y divide-border">
               {proxTrials.map((o) => {
                 const dias = Math.ceil(
-                  (+new Date(o.trial_ate!) - Date.now()) / (1000 * 60 * 60 * 24)
+                  (+new Date(o.trial_ate!) - Date.now()) / (1000 * 60 * 60 * 24),
                 );
                 return (
                   <div key={o.id} className="flex justify-between items-center py-3 text-sm">
@@ -79,7 +97,9 @@ function FinanceiroPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm uppercase tracking-wide">Planos de referência (mensal)</CardTitle>
+          <CardTitle className="text-sm uppercase tracking-wide">
+            Planos de referência (mensal)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-sm">
@@ -91,7 +111,8 @@ function FinanceiroPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            Stripe será plugado depois — campo <code>stripe_customer_id</code> já existe nas organizações.
+            Stripe será plugado depois — campo <code>stripe_customer_id</code> já existe nas
+            organizações.
           </p>
         </CardContent>
       </Card>

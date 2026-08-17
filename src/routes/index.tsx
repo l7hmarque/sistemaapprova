@@ -159,7 +159,12 @@ export const Route = createFileRoute("/")({
           url: `${SITE}/`,
           description:
             "Sistema de gestão financeira e prestação de contas para OSCs e escritórios de contabilidade do terceiro setor: leitura automática de documentos, controle de despesas por projeto, cotação com mapa comparativo e geração da prestação de contas mensal em PDF único.",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "BRL", description: "30 dias grátis" },
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "BRL",
+            description: "30 dias grátis",
+          },
         }),
       },
       {
@@ -191,12 +196,13 @@ function HomePage() {
             </p>
             <h1 className="mt-4 text-4xl md:text-6xl font-serif text-brand-navy leading-[1.05]">
               Organize as despesas da sua OSC e feche a{" "}
-              <em className="not-italic text-brand-blue">prestação de contas do mês</em> em um PDF só.
+              <em className="not-italic text-brand-blue">prestação de contas do mês</em> em um PDF
+              só.
             </h1>
             <p className="mt-6 text-lg text-brand-muted max-w-xl leading-relaxed">
-              Você envia os documentos, o Approva lê, separa cada despesa e monta
-              o relatório do mês com todos os comprovantes anexos. Feito para
-              OSCs e para escritórios de contabilidade que atendem o terceiro setor.
+              Você envia os documentos, o Approva lê, separa cada despesa e monta o relatório do mês
+              com todos os comprovantes anexos. Feito para OSCs e para escritórios de contabilidade
+              que atendem o terceiro setor.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
@@ -220,7 +226,10 @@ function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 bg-brand-blue/5 rounded-3xl blur-2xl" aria-hidden="true" />
+            <div
+              className="absolute -inset-4 bg-brand-blue/5 rounded-3xl blur-2xl"
+              aria-hidden="true"
+            />
             <div className="relative rounded-xl overflow-hidden border border-brand-line shadow-2xl bg-white">
               <img
                 src={previewPrestacao}
@@ -249,9 +258,9 @@ function HomePage() {
                 Quem cuida do financeiro da organização
               </h3>
               <p className="mt-3 text-brand-muted leading-relaxed">
-                Chega de montar pasta no fim do mês. Você envia os documentos ao
-                longo do período, vê o que ainda falta e gera a prestação de
-                contas para entregar a quem repassou o recurso.
+                Chega de montar pasta no fim do mês. Você envia os documentos ao longo do período,
+                vê o que ainda falta e gera a prestação de contas para entregar a quem repassou o
+                recurso.
               </p>
               <Link
                 to="/gestores"
@@ -264,13 +273,10 @@ function HomePage() {
               <div className="text-xs uppercase tracking-widest text-brand-blue font-medium">
                 Para escritórios de contabilidade
               </div>
-              <h3 className="mt-3 text-2xl font-serif text-brand-navy">
-                Quem atende várias OSCs
-              </h3>
+              <h3 className="mt-3 text-2xl font-serif text-brand-navy">Quem atende várias OSCs</h3>
               <p className="mt-3 text-brand-muted leading-relaxed">
-                Todas as organizações da sua carteira no mesmo login. O cliente
-                lança com o documento anexo, você revisa, aprova e baixa o
-                pacote do mês pronto.
+                Todas as organizações da sua carteira no mesmo login. O cliente lança com o
+                documento anexo, você revisa, aprova e baixa o pacote do mês pronto.
               </p>
               <Link
                 to="/contadores"
@@ -286,13 +292,15 @@ function HomePage() {
       {/* COMO FUNCIONA */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="max-w-2xl">
-          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Como funciona</p>
+          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
+            Como funciona
+          </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
             Três passos, do documento ao relatório.
           </h2>
           <p className="mt-4 text-brand-muted leading-relaxed">
-            O mesmo caminho todo mês, sem planilha paralela e sem procurar
-            comprovante solto no e-mail.
+            O mesmo caminho todo mês, sem planilha paralela e sem procurar comprovante solto no
+            e-mail.
           </p>
         </div>
 
@@ -313,8 +321,8 @@ function HomePage() {
               <h3 className="text-xl font-serif text-brand-navy">Envie os documentos</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              Um PDF com vários documentos dentro ou arquivos avulsos. O sistema
-              separa cada um e já preenche fornecedor, valor e datas.
+              Um PDF com vários documentos dentro ou arquivos avulsos. O sistema separa cada um e já
+              preenche fornecedor, valor e datas.
             </p>
           </li>
           <li>
@@ -333,8 +341,8 @@ function HomePage() {
               <h3 className="text-xl font-serif text-brand-navy">Confira e aprove</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              Cada despesa fica com o comprovante junto. A fila de aprovação
-              mostra o que falta e registra quem aprovou.
+              Cada despesa fica com o comprovante junto. A fila de aprovação mostra o que falta e
+              registra quem aprovou.
             </p>
           </li>
           <li>
@@ -353,8 +361,8 @@ function HomePage() {
               <h3 className="text-xl font-serif text-brand-navy">Gere o relatório do mês</h3>
             </div>
             <p className="mt-2 text-brand-muted leading-relaxed">
-              A prestação de contas sai em um PDF único, com sumário, certidões
-              e todos os comprovantes. É só baixar e entregar.
+              A prestação de contas sai em um PDF único, com sumário, certidões e todos os
+              comprovantes. É só baixar e entregar.
             </p>
           </li>
         </ol>
@@ -366,15 +374,13 @@ function HomePage() {
       {/* RECURSOS */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="max-w-2xl">
-          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">
-            Recursos
-          </p>
+          <p className="text-xs uppercase tracking-widest text-brand-blue font-medium">Recursos</p>
           <h2 className="mt-3 text-3xl md:text-4xl font-serif text-brand-navy leading-tight">
             O que o Approva faz hoje.
           </h2>
           <p className="mt-4 text-brand-muted leading-relaxed">
-            Tudo o que está listado abaixo já está no sistema e pode ser testado
-            nos 30 dias gratuitos.
+            Tudo o que está listado abaixo já está no sistema e pode ser testado nos 30 dias
+            gratuitos.
           </p>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -451,10 +457,9 @@ function HomePage() {
               O que o Approva faz — e o que ele não faz.
             </h2>
             <p className="mt-4 text-white/80 leading-relaxed">
-              O Approva organiza os dados e gera os documentos da prestação de
-              contas. Ele não se conecta a sistemas de órgãos públicos e não
-              envia nada no seu lugar: a entrega continua sendo feita por você,
-              com o material pronto em mãos.
+              O Approva organiza os dados e gera os documentos da prestação de contas. Ele não se
+              conecta a sistemas de órgãos públicos e não envia nada no seu lugar: a entrega
+              continua sendo feita por você, com o material pronto em mãos.
             </p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">

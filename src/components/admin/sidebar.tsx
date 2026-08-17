@@ -29,25 +29,86 @@ import { resumoDashboard } from "@/lib/aprovacoes.functions";
 import { ViewAsSwitcher } from "./ViewAsSwitcher";
 import { toast } from "sonner";
 
-type Item = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; tour?: string; module: string };
+type Item = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  tour?: string;
+  module: string;
+};
 const ITEMS: Item[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, tour: "nav-dashboard", module: "dashboard" },
-  { to: "/admin/painel", label: "Painel financeiro", icon: Wallet, tour: "nav-painel", module: "painel" },
-  { to: "/admin/projetos", label: "Projetos/Termos", icon: FolderKanban, tour: "nav-projetos", module: "projetos" },
+  {
+    to: "/admin",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+    tour: "nav-dashboard",
+    module: "dashboard",
+  },
+  {
+    to: "/admin/painel",
+    label: "Painel financeiro",
+    icon: Wallet,
+    tour: "nav-painel",
+    module: "painel",
+  },
+  {
+    to: "/admin/projetos",
+    label: "Projetos/Termos",
+    icon: FolderKanban,
+    tour: "nav-projetos",
+    module: "projetos",
+  },
   { to: "/admin/captura", label: "Captura", icon: Camera, tour: "nav-captura", module: "captura" },
-  { to: "/admin/orcamentos", label: "Orçamentos", icon: FileText, tour: "nav-orcamentos", module: "orcamentos" },
-  { to: "/admin/fornecedores", label: "Fornecedores", icon: Users, tour: "nav-fornecedores", module: "fornecedores" },
+  {
+    to: "/admin/orcamentos",
+    label: "Orçamentos",
+    icon: FileText,
+    tour: "nav-orcamentos",
+    module: "orcamentos",
+  },
+  {
+    to: "/admin/fornecedores",
+    label: "Fornecedores",
+    icon: Users,
+    tour: "nav-fornecedores",
+    module: "fornecedores",
+  },
   { to: "/admin/objetos", label: "Objetos", icon: Package, tour: "nav-objetos", module: "objetos" },
   { to: "/admin/modelos", label: "Modelos", icon: FileCog, tour: "nav-modelos", module: "modelos" },
-  { to: "/admin/prestacao", label: "Prestação", icon: FolderCheck, tour: "nav-prestacao", module: "prestacao" },
+  {
+    to: "/admin/prestacao",
+    label: "Prestação",
+    icon: FolderCheck,
+    tour: "nav-prestacao",
+    module: "prestacao",
+  },
   { to: "/admin/reo", label: "REO Mensal", icon: Landmark, tour: "nav-reo", module: "reo" },
-  { to: "/admin/arquivos", label: "Arquivos", icon: FolderTree, tour: "nav-arquivos", module: "arquivos" },
-  { to: "/admin/aprovacoes", label: "Aprovações", icon: ShieldCheck, tour: "nav-aprovacoes", module: "aprovacoes" },
+  {
+    to: "/admin/arquivos",
+    label: "Arquivos",
+    icon: FolderTree,
+    tour: "nav-arquivos",
+    module: "arquivos",
+  },
+  {
+    to: "/admin/aprovacoes",
+    label: "Aprovações",
+    icon: ShieldCheck,
+    tour: "nav-aprovacoes",
+    module: "aprovacoes",
+  },
   // Agenda: rota disponível mas escondida do menu até entrega da Fase 4.
   // { to: "/admin/agenda", label: "Agenda", icon: CalendarDays, tour: "nav-agenda", module: "agenda" },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, tour: "nav-configuracoes", module: "configuracoes" },
+  {
+    to: "/admin/configuracoes",
+    label: "Configurações",
+    icon: Settings,
+    tour: "nav-configuracoes",
+    module: "configuracoes",
+  },
 ];
-
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -75,7 +136,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <aside data-tour="sidebar" className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col">
+    <aside
+      data-tour="sidebar"
+      className="w-60 shrink-0 border-r border-border bg-sidebar text-sidebar-foreground min-h-screen flex flex-col"
+    >
       <div className="px-5 py-6 border-b border-border">
         <Link to="/" className="block text-foreground" onClick={onNavigate}>
           <ApprovaLogo variant="full" size="md" />
@@ -101,7 +165,11 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   ? "text-foreground bg-[var(--module-accent-soft,var(--secondary))]"
                   : "text-foreground hover:bg-muted",
               ].join(" ")}
-              style={active ? { boxShadow: "inset 3px 0 0 0 var(--module-accent, var(--primary))" } : undefined}
+              style={
+                active
+                  ? { boxShadow: "inset 3px 0 0 0 var(--module-accent, var(--primary))" }
+                  : undefined
+              }
             >
               <Icon
                 className="h-4 w-4"

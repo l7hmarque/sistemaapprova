@@ -28,7 +28,11 @@ function driveHeaders(): HeadersInit {
 async function jsonOrThrow(res: Response, ctx: string): Promise<any> {
   const txt = await res.text();
   if (!res.ok) throw new Error(`${ctx} falhou [${res.status}]: ${txt.slice(0, 400)}`);
-  try { return JSON.parse(txt); } catch { return {}; }
+  try {
+    return JSON.parse(txt);
+  } catch {
+    return {};
+  }
 }
 
 /** Exporta um Google Docs/Sheets/Slides como PDF via Drive API. */
@@ -45,7 +49,9 @@ async function exportGoogleFileAsPdf(fileId: string): Promise<Uint8Array> {
 }
 
 /** Baixa mídia binária pela API do Drive (arquivo comum ou Google Doc nativo). */
-async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
+async function downloadDriveMedia(
+  fileId: string,
+): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
   // Tenta direto ?alt=media (arquivos comuns). Uma única requisição, sem metadata prévia.
   const r = await fetch(`${DRIVE}/files/${fileId}?alt=media&supportsAllDrives=true`, {
     headers: driveHeaders(),
@@ -72,16 +78,23 @@ async function downloadDriveMedia(fileId: string): Promise<{ bytes: Uint8Array; 
 }
 
 /** Executa `fn` sobre `items` com no máximo `concurrency` promessas em paralelo. */
-async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, idx: number) => Promise<R>): Promise<R[]> {
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, idx: number) => Promise<R>,
+): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let i = 0;
-  const workers = Array.from({ length: Math.min(concurrency, Math.max(items.length, 1)) }, async () => {
-    while (true) {
-      const idx = i++;
-      if (idx >= items.length) return;
-      results[idx] = await fn(items[idx], idx);
-    }
-  });
+  const workers = Array.from(
+    { length: Math.min(concurrency, Math.max(items.length, 1)) },
+    async () => {
+      while (true) {
+        const idx = i++;
+        if (idx >= items.length) return;
+        results[idx] = await fn(items[idx], idx);
+      }
+    },
+  );
   await Promise.all(workers);
   return results;
 }
@@ -101,7 +114,7 @@ async function driveUploadPdf(args: {
   });
   const preamble = enc.encode(
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
-    `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
+      `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
   );
   const closing = enc.encode(`\r\n--${boundary}--`);
   const body = new Uint8Array(preamble.length + args.bytes.length + closing.length);
@@ -142,7 +155,9 @@ function driveIdFromUrl(url: string | null | undefined): string | null {
 }
 
 /** Baixa qualquer URL. Prefere Drive quando reconhecido; suporta scheme storage://<bucket>/<path>. */
-async function fetchAsBytes(url: string): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
+async function fetchAsBytes(
+  url: string,
+): Promise<{ bytes: Uint8Array; mimeType: string; name: string }> {
   if (url.startsWith("storage://")) {
     const rest = url.slice("storage://".length);
     const slash = rest.indexOf("/");
@@ -151,7 +166,8 @@ async function fetchAsBytes(url: string): Promise<{ bytes: Uint8Array; mimeType:
     const path = rest.slice(slash + 1);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const dl = await supabaseAdmin.storage.from(bucket).download(path);
-    if (dl.error || !dl.data) throw new Error(`Storage download falhou: ${dl.error?.message ?? "erro"}`);
+    if (dl.error || !dl.data)
+      throw new Error(`Storage download falhou: ${dl.error?.message ?? "erro"}`);
     const buf = new Uint8Array(await dl.data.arrayBuffer());
     const nome = path.split("/").pop() ?? "arquivo";
     const mt = (dl.data as any).type || "application/octet-stream";
@@ -210,9 +226,19 @@ function toWinAnsi(s: string): string {
   return s.normalize("NFC").replace(/[^\x00-\xff]/g, "?");
 }
 
-function drawWrapped(page: PDFPage, text: string, opts: {
-  x: number; y: number; size: number; font: PDFFont; maxWidth: number; lineHeight?: number; color?: ReturnType<typeof rgb>;
-}): number {
+function drawWrapped(
+  page: PDFPage,
+  text: string,
+  opts: {
+    x: number;
+    y: number;
+    size: number;
+    font: PDFFont;
+    maxWidth: number;
+    lineHeight?: number;
+    color?: ReturnType<typeof rgb>;
+  },
+): number {
   const words = toWinAnsi(text).split(/\s+/);
   const lh = opts.lineHeight ?? opts.size * 1.3;
   let line = "";
@@ -221,7 +247,13 @@ function drawWrapped(page: PDFPage, text: string, opts: {
     const test = line ? line + " " + w : w;
     const width = opts.font.widthOfTextAtSize(test, opts.size);
     if (width > opts.maxWidth && line) {
-      page.drawText(line, { x: opts.x, y, size: opts.size, font: opts.font, color: opts.color ?? rgb(0, 0, 0) });
+      page.drawText(line, {
+        x: opts.x,
+        y,
+        size: opts.size,
+        font: opts.font,
+        color: opts.color ?? rgb(0, 0, 0),
+      });
       line = w;
       y -= lh;
     } else {
@@ -229,7 +261,13 @@ function drawWrapped(page: PDFPage, text: string, opts: {
     }
   }
   if (line) {
-    page.drawText(line, { x: opts.x, y, size: opts.size, font: opts.font, color: opts.color ?? rgb(0, 0, 0) });
+    page.drawText(line, {
+      x: opts.x,
+      y,
+      size: opts.size,
+      font: opts.font,
+      color: opts.color ?? rgb(0, 0, 0),
+    });
     y -= lh;
   }
   return y;
@@ -237,7 +275,13 @@ function drawWrapped(page: PDFPage, text: string, opts: {
 
 type SumarioItem = { numero: string; titulo: string; subtitulo?: string };
 
-async function montarSumario(opts: { mes: string; titulo: string; itens: SumarioItem[]; totalDocs: number; totalComprovantes: number }): Promise<Uint8Array> {
+async function montarSumario(opts: {
+  mes: string;
+  titulo: string;
+  itens: SumarioItem[];
+  totalDocs: number;
+  totalComprovantes: number;
+}): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const body = await pdf.embedFont(StandardFonts.Helvetica);
@@ -246,29 +290,64 @@ async function montarSumario(opts: { mes: string; titulo: string; itens: Sumario
 
   page.drawText(toWinAnsi("PRESTAÇÃO DE CONTAS"), { x: 50, y, size: 20, font: bold });
   y -= 26;
-  page.drawText(toWinAnsi(opts.titulo), { x: 50, y, size: 12, font: body, color: rgb(0.35, 0.35, 0.35) });
-  y -= 22;
-  page.drawText(toWinAnsi(`Mês de referência: ${opts.mes}   ·   ${opts.totalDocs} documentos   ·   ${opts.totalComprovantes} comprovantes`), {
-    x: 50, y, size: 10, font: body, color: rgb(0.3, 0.3, 0.3),
+  page.drawText(toWinAnsi(opts.titulo), {
+    x: 50,
+    y,
+    size: 12,
+    font: body,
+    color: rgb(0.35, 0.35, 0.35),
   });
+  y -= 22;
+  page.drawText(
+    toWinAnsi(
+      `Mês de referência: ${opts.mes}   ·   ${opts.totalDocs} documentos   ·   ${opts.totalComprovantes} comprovantes`,
+    ),
+    {
+      x: 50,
+      y,
+      size: 10,
+      font: body,
+      color: rgb(0.3, 0.3, 0.3),
+    },
+  );
   y -= 24;
-  page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+  page.drawLine({
+    start: { x: 50, y },
+    end: { x: 545, y },
+    thickness: 0.5,
+    color: rgb(0.7, 0.7, 0.7),
+  });
   y -= 20;
 
   page.drawText(toWinAnsi("SUMÁRIO"), { x: 50, y, size: 13, font: bold });
   y -= 20;
 
   for (const it of opts.itens) {
-    if (y < 80) { page = pdf.addPage(A4); y = 800; }
+    if (y < 80) {
+      page = pdf.addPage(A4);
+      y = 800;
+    }
     page.drawText(toWinAnsi(it.numero), { x: 50, y, size: 10, font: bold });
     const yTitulo = y;
     y = drawWrapped(page, it.titulo, { x: 90, y, size: 10, font: body, maxWidth: 455 });
     if (it.subtitulo) {
-      y = drawWrapped(page, it.subtitulo, { x: 90, y, size: 8, font: body, maxWidth: 455, color: rgb(0.45, 0.45, 0.45) });
+      y = drawWrapped(page, it.subtitulo, {
+        x: 90,
+        y,
+        size: 8,
+        font: body,
+        maxWidth: 455,
+        color: rgb(0.45, 0.45, 0.45),
+      });
     }
     // linha divisória sutil
     y -= 4;
-    page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.2, color: rgb(0.85, 0.85, 0.85) });
+    page.drawLine({
+      start: { x: 50, y },
+      end: { x: 545, y },
+      thickness: 0.2,
+      color: rgb(0.85, 0.85, 0.85),
+    });
     y -= 8;
     void yTitulo;
   }
@@ -284,7 +363,14 @@ async function paginaSeparadora(opts: { titulo: string; linhas: string[] }): Pro
   page.drawText(toWinAnsi(opts.titulo), { x: 50, y, size: 16, font: bold });
   y -= 30;
   for (const l of opts.linhas) {
-    y = drawWrapped(page, l, { x: 50, y, size: 11, font: body, maxWidth: 495, color: rgb(0.25, 0.25, 0.25) });
+    y = drawWrapped(page, l, {
+      x: 50,
+      y,
+      size: 11,
+      font: body,
+      maxWidth: 495,
+      color: rgb(0.25, 0.25, 0.25),
+    });
     y -= 4;
   }
   return pdf.save();
@@ -306,7 +392,9 @@ async function buscarDocumentosVigentes(sb: any, orgId: string, mes: string): Pr
   const primeiroDia = `${mes}-01`;
   const { data, error } = await sb
     .from("prestacao_documentos")
-    .select("id, ordem, nome, descricao, arquivo_url, drive_file_id, data_emissao, data_vencimento, mime_type, mes_referencia, mes_referencia_fim, valido_de, valido_ate")
+    .select(
+      "id, ordem, nome, descricao, arquivo_url, drive_file_id, data_emissao, data_vencimento, mime_type, mes_referencia, mes_referencia_fim, valido_de, valido_ate",
+    )
     .eq("organization_id", orgId)
     .lte("mes_referencia", mes)
     .or(`mes_referencia_fim.is.null,mes_referencia_fim.gte.${mes}`)
@@ -336,7 +424,13 @@ export async function montarPdfBytes(args: {
   orgId: string;
   mes: string;
   titulo?: string;
-}): Promise<{ bytes: Uint8Array; totalPaginas: number; totalDocs: number; totalComprovantes: number; totalEventos: number }> {
+}): Promise<{
+  bytes: Uint8Array;
+  totalPaginas: number;
+  totalDocs: number;
+  totalComprovantes: number;
+  totalEventos: number;
+}> {
   const { sb, orgId, mes } = args;
 
   // 1) Template
@@ -358,7 +452,9 @@ export async function montarPdfBytes(args: {
   // 3) Eventos + anexos do mês
   const { data: eventos, error: eEv } = await sb
     .from("eventos_financeiros")
-    .select("id, id_interno, categoria, descricao, nm_favorecido, valor_efetivo, valor_previsto, data_pagamento, data_vencimento")
+    .select(
+      "id, id_interno, categoria, descricao, nm_favorecido, valor_efetivo, valor_previsto, data_pagamento, data_vencimento",
+    )
     .eq("organization_id", orgId)
     .eq("mes_referencia", mes)
     .is("excluido_em", null)
@@ -367,7 +463,10 @@ export async function montarPdfBytes(args: {
   if (eEv) throw new Error("Erro ao buscar eventos: " + eEv.message);
 
   const eventoIds = (eventos ?? []).map((e: any) => e.id);
-  const anexosPorEvento = new Map<string, Array<{ id: string; tipo: string; arquivo_url: string | null; drive_file_id: string | null }>>();
+  const anexosPorEvento = new Map<
+    string,
+    Array<{ id: string; tipo: string; arquivo_url: string | null; drive_file_id: string | null }>
+  >();
   if (eventoIds.length) {
     const { data: anexos, error: eAn } = await sb
       .from("documentos_anexos")
@@ -389,7 +488,10 @@ export async function montarPdfBytes(args: {
   // Dedup de anexos por conteúdo: um mesmo arquivo (drive_file_id ou
   // caminho normalizado da URL) referenciado por vários eventos entra no PDF
   // uma única vez, junto do primeiro evento que o cita.
-  const fileKeyOf = (a: { drive_file_id: string | null; arquivo_url: string | null }): string | null => {
+  const fileKeyOf = (a: {
+    drive_file_id: string | null;
+    arquivo_url: string | null;
+  }): string | null => {
     if (a.drive_file_id) return `drive:${a.drive_file_id}`;
     if (!a.arquivo_url) return null;
     try {
@@ -434,7 +536,11 @@ export async function montarPdfBytes(args: {
 
   // 4) Sumário
   const sumarioItens: SumarioItem[] = [];
-  sumarioItens.push({ numero: "0.", titulo: "Capa / Template", subtitulo: "Modelo institucional configurado" });
+  sumarioItens.push({
+    numero: "0.",
+    titulo: "Capa / Template",
+    subtitulo: "Modelo institucional configurado",
+  });
   let n = 1;
   for (const d of docs) {
     const partes: string[] = [];
@@ -458,7 +564,10 @@ export async function montarPdfBytes(args: {
     const partes = [`${fav} · ${val} · ${dt}`];
     if (total > 0) partes.push(`${total} anexo(s)`);
     if (compart.length > 0) {
-      const donos = Array.from(new Set(compart)).filter(Boolean).map((x) => `#${x}`).join(", ");
+      const donos = Array.from(new Set(compart))
+        .filter(Boolean)
+        .map((x) => `#${x}`)
+        .join(", ");
       partes.push(`comprovante compartilhado com ${donos}`);
     }
     sumarioItens.push({
@@ -484,7 +593,9 @@ export async function montarPdfBytes(args: {
         const src = await PDFDocument.load(errBytes);
         const pages = await merged.copyPages(src, src.getPageIndices());
         pages.forEach((p) => merged.addPage(p));
-      } catch {}
+      } catch (err2) {
+        console.warn(`[prestacao] falha ao inserir página de erro de ${label}:`, err2);
+      }
       return false;
     }
   };
@@ -515,14 +626,24 @@ export async function montarPdfBytes(args: {
       url: ref.anexo.arquivo_url ?? null,
     });
   }
-  const totalCompartilhados = Array.from(compartilhadosPorEvento.values()).reduce((s, a) => s + a.length, 0);
+  const totalCompartilhados = Array.from(compartilhadosPorEvento.values()).reduce(
+    (s, a) => s + a.length,
+    0,
+  );
   if (totalCompartilhados > 0) {
-    console.log(`[prestacao] dedup: ${totalCompartilhados} referência(s) de anexo compartilhado suprimida(s)`);
+    console.log(
+      `[prestacao] dedup: ${totalCompartilhados} referência(s) de anexo compartilhado suprimida(s)`,
+    );
   }
 
-
   console.time("[prestacao] download");
-  type Downloaded = { label: string; ok: boolean; bytes?: Uint8Array; mime?: string; error?: string };
+  type Downloaded = {
+    label: string;
+    ok: boolean;
+    bytes?: Uint8Array;
+    mime?: string;
+    error?: string;
+  };
   const downloaded = await mapPool(jobs, 6, async (job): Promise<Downloaded> => {
     try {
       if (job.kind === "template") {
@@ -676,4 +797,3 @@ export const gerarPrestacaoContas = createServerFn({ method: "POST" })
       totalEventos: result.totalEventos,
     };
   });
-

@@ -13,10 +13,7 @@ export const receitaSchema = z.object({
 export const despesaExtraidaSchema = z.object({
   idInterno: z.string().describe("Código interno (ex: 10183728) ou ext-N"),
   data: z.string().describe("Data do pagamento AAAA-MM-DD"),
-  dataEmissao: z
-    .string()
-    .nullable()
-    .describe("Data emissão AAAA-MM-DD; null se ausente"),
+  dataEmissao: z.string().nullable().describe("Data emissão AAAA-MM-DD; null se ausente"),
   favorecido: z.string(),
   documento: z.string().describe("Número da NF/recibo/guia; '0' se não houver"),
   valor: z.number().describe("Valor em reais (decimal)"),
