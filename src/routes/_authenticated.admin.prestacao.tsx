@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/prestacao")({
+  head: () => ({ meta: [{ title: "Prestação de contas · Approva" }] }),
   component: PrestacaoPage,
 });
 

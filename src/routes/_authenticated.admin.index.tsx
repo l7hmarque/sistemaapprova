@@ -18,6 +18,7 @@ import { EscritorioDashboard } from "@/components/admin/EscritorioDashboard";
 import { resumoDashboard } from "@/lib/aprovacoes.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
+  head: () => ({ meta: [{ title: "Painel inicial · Approva" }] }),
   component: DashboardRoute,
 });
 

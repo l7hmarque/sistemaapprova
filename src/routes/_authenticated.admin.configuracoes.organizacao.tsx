@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { TIPOS_TRANSFERENCIA } from "@/lib/sit/catalogos";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes/organizacao")({
+  head: () => ({ meta: [{ title: "Organização · Approva" }] }),
   component: OrgPage,
 });
 

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, FileSpreadsheet, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/modelos/ajuda")({
+  head: () => ({ meta: [{ title: "Ajuda dos modelos · Approva" }] }),
   component: AjudaModelos,
 });
 

@@ -41,6 +41,7 @@ import {
 } from "@/lib/sit/catalogos";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes/regras")({
+  head: () => ({ meta: [{ title: "Regras de despesa · Approva" }] }),
   component: RegrasPage,
 });
 

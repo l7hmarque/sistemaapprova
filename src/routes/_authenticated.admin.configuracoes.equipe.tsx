@@ -25,6 +25,7 @@ import {
 } from "@/lib/convites-membro.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes/equipe")({
+  head: () => ({ meta: [{ title: "Equipe · Approva" }] }),
   component: EquipePage,
 });
 

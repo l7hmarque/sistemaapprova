@@ -45,6 +45,7 @@ import {
 import { useActiveOrg } from "@/hooks/use-active-org";
 
 export const Route = createFileRoute("/_authenticated/admin/arquivos")({
+  head: () => ({ meta: [{ title: "Arquivos · Approva" }] }),
   component: ArquivosPage,
 });
 

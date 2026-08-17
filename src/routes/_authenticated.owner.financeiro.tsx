@@ -11,6 +11,7 @@ const PLANO_VALOR: Record<string, number> = {
 };
 
 export const Route = createFileRoute("/_authenticated/owner/financeiro")({
+  head: () => ({ meta: [{ title: "Financeiro · Approva" }] }),
   component: FinanceiroPage,
 });
 
