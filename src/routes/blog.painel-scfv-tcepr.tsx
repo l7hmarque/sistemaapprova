@@ -15,7 +15,7 @@ const PUBLISHED = "2026-05-27";
 export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
   head: () => ({
     meta: [
-      { title: `${TITLE} — Approva` },
+      { title: SEO_TITLE },
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
