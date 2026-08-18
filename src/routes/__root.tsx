@@ -25,7 +25,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Approva é a plataforma de gestão financeira e prestação de contas para OSCs e contadores do terceiro setor — captura, aprovação em duas mãos e exportação no padrão TCE-PR.",
+          "Approva: gestão financeira e prestação de contas para OSCs e contadores do terceiro setor, com captura de documentos e aprovação em duas mãos.",
       },
       { name: "author", content: "3RD TECH" },
       { property: "og:title", content: "Approva — Contas em ordem" },
