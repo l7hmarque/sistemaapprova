@@ -104,7 +104,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sistema para OSCs e escritórios de contabilidade do terceiro setor: organiza as despesas do mês, guarda os comprovantes e gera a prestação de contas em um PDF único. 30 dias grátis.",
+          "Sistema para OSCs e contadores do terceiro setor: organize as despesas do mês, guarde os comprovantes e gere a prestação de contas em um PDF único.",
       },
       { property: "og:title", content: "Approva — Sistema de prestação de contas para OSCs" },
       {

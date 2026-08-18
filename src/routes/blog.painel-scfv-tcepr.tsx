@@ -6,6 +6,7 @@ import { capturarLeadBlog } from "@/lib/blog-leads.functions";
 
 const SLUG = "painel-scfv-tcepr";
 const TITLE = "Domingo à noite, planilha aberta, café frio: a rotina de quem presta contas de SCFV";
+const SEO_TITLE = "Prestação de contas SCFV no TCE-PR: planilha grátis";
 const DESCRIPTION =
   "Por que a prestação de contas SCFV consome seus domingos — e uma planilha gratuita pronta no leiaute IN 201/2026 do TCE-PR para você usar hoje à noite.";
 const URL = "https://sistemaapprova.lovable.app/blog/painel-scfv-tcepr";
@@ -14,7 +15,7 @@ const PUBLISHED = "2026-05-27";
 export const Route = createFileRoute("/blog/painel-scfv-tcepr")({
   head: () => ({
     meta: [
-      { title: `${TITLE} — Approva` },
+      { title: SEO_TITLE },
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
