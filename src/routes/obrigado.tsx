@@ -50,7 +50,7 @@ function ObrigadoPage() {
           <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" aria-hidden>
             <path
               d="M5 12.5l4 4 10-10"
-              stroke="#0f1b3d"
+              stroke="#2b1749"
               strokeWidth="2.4"
               strokeLinecap="round"
               strokeLinejoin="round"

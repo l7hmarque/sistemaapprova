@@ -173,9 +173,9 @@ function esc(v: unknown): string {
 }
 
 function renderLeadEmail(l: Record<string, unknown>): string {
-  return `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f5f0e0;padding:24px;color:#0f1b3d">
+  return `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#f7f6fb;padding:24px;color:#2b1749">
   <div style="max-width:560px;margin:auto;background:#fff;padding:32px;border-radius:12px">
-    <h1 style="font-family:'Instrument Serif',serif;margin:0 0 4px;color:#0f1b3d">Novo lead Approva</h1>
+    <h1 style="font-family:'Space Grotesk',Inter,sans-serif;margin:0 0 4px;color:#2b1749">Novo lead Approva</h1>
     <p style="color:#5b6478;margin:0 0 24px">Capturado pela landing page.</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px">
       <tr><td style="padding:6px 0;color:#5b6478">Nome</td><td style="padding:6px 0"><b>${esc(l.nome)}</b></td></tr>
