@@ -7,9 +7,7 @@ export function SiteHeader() {
       <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 text-brand-navy">
           <ApprovaLogo variant="full" size="md" />
-          <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-brand-muted font-sans">
-            por 3RD TECH
-          </span>
+
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm text-brand-navy/90">
           <Link to="/contadores" className="hover:text-brand-blue transition-colors">
