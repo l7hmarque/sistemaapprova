@@ -243,16 +243,19 @@
  * Tokens semânticos do admin permanecem inalterados.
  * ========================================================= */
 :root {
-  --brand-navy: #0f1b3d;
-  --brand-navy-soft: #1e3a5f;
-  --brand-blue: #3b6fa0;
-  --brand-cream: #f4f7fb;
-  --brand-cream-soft: #fbfcfe;
-  --brand-ink: #0b1330;
-  --brand-muted: #5b6478;
-  --brand-line: #d6dde8;
-  --brand-accent: #3b6fa0;
-  --font-serif: "Instrument Serif", "Times New Roman", serif;
+  /* Paleta PRISMA aplicada aos tokens de marketing */
+  --brand-navy: #2b1749;
+  --brand-navy-soft: #3a265a;
+  --brand-blue: #7a5bda;
+  --brand-cream: #f7f6fb;
+  --brand-cream-soft: #fcfbff;
+  --brand-ink: #101014;
+  --brand-muted: #5c5a70;
+  --brand-line: #e6e5ee;
+  --brand-accent: #5734c6;
+  --brand-cta: #f2600c;
+  --brand-cta-hover: #c94d07;
+  --font-serif: "Space Grotesk", "Inter", system-ui, sans-serif;
 }
 
 .marketing-theme {
@@ -263,15 +266,16 @@
 
 .marketing-theme .font-serif {
   font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .marketing-theme h1,
 .marketing-theme h2,
 .marketing-theme h3 {
   font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--brand-navy);
 }
 
@@ -279,7 +283,9 @@
 .marketing-theme .bg-brand-navy-soft { background-color: var(--brand-navy-soft); }
 .marketing-theme .bg-brand-cream { background-color: var(--brand-cream); }
 .marketing-theme .bg-brand-cream-soft { background-color: var(--brand-cream-soft); }
-.marketing-theme .bg-brand-accent { background-color: var(--brand-accent); }
+.marketing-theme .bg-brand-accent { background-color: var(--brand-cta); }
+.marketing-theme .hover\:bg-brand-accent:hover { background-color: var(--brand-cta-hover); }
+
 .marketing-theme .hover\:bg-brand-navy-soft:hover { background-color: var(--brand-navy-soft); }
 .marketing-theme .hover\:bg-brand-cream:hover { background-color: var(--brand-cream); }
 .marketing-theme .text-brand-navy { color: var(--brand-navy); }
