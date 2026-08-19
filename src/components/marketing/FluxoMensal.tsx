@@ -11,7 +11,7 @@ const BLUE = "#5734c6";
 const CREAM = "#f6efe0";
 const CREAM_SOFT = "#faf5ea";
 const LINE = "#d9d0bd";
-const ACCENT = "#c9a84c";
+const ACCENT = "#f2600c";
 const MUTED = "#6b6555";
 
 type Etapa = {
