@@ -179,7 +179,7 @@ function CheckIcon({ highlight }: { highlight?: boolean }) {
     <svg viewBox="0 0 24 24" fill="none" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden>
       <path
         d="M5 12.5l4 4 10-10"
-        stroke={highlight ? "#c9a84c" : "#3b6fa0"}
+        stroke={highlight ? "#f2600c" : "#5734c6"}
         strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"

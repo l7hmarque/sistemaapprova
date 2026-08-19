@@ -73,7 +73,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@type": "Organization",
           name: "Approva",
           url: "https://sistemaapprova.lovable.app",
-          logo: "https://sistemaapprova.lovable.app/favicon.ico",
+          logo: "https://sistemaapprova.lovable.app/favicon.png",
           description:
             "Plataforma de gestão financeira e prestação de contas para OSCs e escritórios contábeis do terceiro setor. Convênios e termos de fomento com exportação para TCE-PR e prestações municipais.",
           areaServed: { "@type": "Country", name: "Brasil" },

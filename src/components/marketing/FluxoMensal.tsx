@@ -7,7 +7,7 @@
 
 const NAVY = "#1a2a44";
 const NAVY_SOFT = "#334966";
-const BLUE = "#3b6fa0";
+const BLUE = "#5734c6";
 const CREAM = "#f6efe0";
 const CREAM_SOFT = "#faf5ea";
 const LINE = "#d9d0bd";
